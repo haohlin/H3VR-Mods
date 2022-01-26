@@ -7,7 +7,7 @@ using FistVR;
 namespace Teleport
 {
     [BepInProcess("h3vr.exe")]
-    [BepInPlugin("HLin-Teleport", PluginInfo.PLUGIN_NAME, "1.0.0")]
+    [BepInPlugin("HLin-Teleport", PluginInfo.PLUGIN_NAME, "1.0.1")]
     public class Plugin : BaseUnityPlugin
     {
         public void Awake()
