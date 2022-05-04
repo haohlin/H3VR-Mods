@@ -22,18 +22,16 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="src\lib\" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Content Include="..\..\..\Chrome下载\AssemblyPublicizer\AssemblyPublicizer\publicized_assemblies\RemoteC4Drone_publicized.dll" Link="src\lib\RemoteC4Drone_publicized.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  
-  <ItemGroup>
     <Reference Include="RemoteC4Drone">
       <HintPath>src\lib\RemoteC4Drone_publicized.dll</HintPath>
     </Reference>
+    <Reference Include="RemoteC4Drone">
+      <HintPath>src\lib\RemoteC4Drone_publicized.dll</HintPath>
+      <CopyLocal>True</CopyLocal>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="src\lib\" />
   </ItemGroup>
 </Project>
