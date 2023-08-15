@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # User-specific files
-H3VRMetaRipper/
+# H3VRMetaRipper/
 *.rsuser
 *.suo
 *.user
@@ -31,7 +31,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-[Tt]hunderstore/
+# [Tt]hunderstore/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
