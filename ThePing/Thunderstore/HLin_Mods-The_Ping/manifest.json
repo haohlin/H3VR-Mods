@@ -1,0 +1,9 @@
+{
+    "name": "The_Ping",
+    "author": "HLin",
+    "version_number": "1.0.2",
+    "dependencies": [
+    ],
+    "description": "NEW REALISTIC VOLUME CURVE! Receive sound feedback out to 2500m. Now go ring some steel across the map!",
+    "website_url": "https://github.com/haohlin/H3VR-Mods.git"
+}
