@@ -3,11 +3,12 @@ using UnityEngine;
 using BepInEx;
 using HarmonyLib;
 using FistVR;
+//using RUST.Steamworks;
 
 namespace BetterSosigSpawner
 {
     [BepInProcess("h3vr.exe")]
-    [BepInPlugin("HLin-Better-SosigSpawner", PluginInfo.PLUGIN_NAME, "1.0.1")]
+    [BepInPlugin("HLin-Better-SosigSpawner", PluginInfo.PLUGIN_NAME, "1.0.3")]
     public class Plugin : BaseUnityPlugin
     {
         public void Awake()
@@ -40,7 +41,7 @@ namespace BetterSosigSpawner
             return false;
         }
 
-        private static void UpdateInteraction_SpawnSosig_MyPatch(SosigSpawner __instance, FVRViveHand hand)
+        private static bool UpdateInteraction_SpawnSosig_MyPatch(SosigSpawner __instance, FVRViveHand hand)
         {
             Physics.Raycast(__instance.Muzzle.position, __instance.Muzzle.forward, out __instance.m_hit, 3000f, __instance.LM_PlacementBeam, QueryTriggerInteraction.Ignore);            
             __instance.PlacementReticle.gameObject.SetActive(true);
@@ -52,6 +53,29 @@ namespace BetterSosigSpawner
             __instance.m_canSpawn_Sosig = true;
             __instance.m_sosigSpawn_Point = __instance.m_hit.point;
             __instance.PlacementReticle.position = __instance.m_hit.point + Vector3.up * 0.01f;
+            Vector3 position = __instance.gameObject.transform.position;
+            if (__instance.m_hasTriggeredUpSinceBegin && hand.Input.TriggerDown)
+            {
+                if (__instance.m_canSpawn_Sosig)
+                {
+                    Vector3 a = __instance.m_sosigSpawn_Point - position;
+                    a.y = 0f;
+                    SM.PlayGenericSound(__instance.AudEvent_Spawn, position);
+                    if (__instance.SpawnerGroups[__instance.m_spawn_group].IsFurniture)
+                    {
+                        UnityEngine.Object.Instantiate<GameObject>(__instance.SpawnerGroups[__instance.m_spawn_group].Furnitures[__instance.m_spawn_template], __instance.m_sosigSpawn_Point + Vector3.up * 0.25f, Quaternion.LookRotation(-a, Vector3.up));
+                        return false;
+                    }
+                    SosigEnemyTemplate template = __instance.SpawnerGroups[__instance.m_spawn_group].Templates[__instance.m_spawn_template];
+                    __instance.SpawnSosigWithTemplate(template, __instance.m_sosigSpawn_Point, -a);
+                    return false;
+                }
+                else
+                {
+                    SM.PlayGenericSound(__instance.AudEvent_Fail, position);
+                }
+            }
+            return false;
         }
     }
 }

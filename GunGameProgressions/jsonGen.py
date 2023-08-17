@@ -6,13 +6,26 @@ parser = argparse.ArgumentParser(description="Select Sosig type")
 parser.add_argument("sosigType", type=int, default=0)
 args = parser.parse_args()
 
-enemyList = ["RW_Lemonhead","M_MercWiener_Scout","M_Swat_Riflewiener","RW_Beefkicker","RW_Pig","RW_Rot"]
+enemyList = ["RW_Lemonhead","M_MercWiener_Scout","M_MercWiener_SpecOps", "M_Swat_Scout","M_Swat_Riflewiener","RW_Beefkicker","RW_Pig","RW_Rot"]
 
 enemyType = enemyList[args.sosigType]
+enemy_operator = {  "light": ["Comperator_Light_Tier1_DoubleBarrels",
+                        "Comperator_Light_Tier2_Shotgun","Comperator_Light_Tier3_Pistols","Comperator_Light_Tier4_SMG","Comperator_Light_Tier5_M79","Comperator_Light_Tier5_PDW",
+                        "Comperator_Light_Tier5_PocketToaster"],
+                    "medium": ["Comperator_Medium_Tier1_DoubleBarrels","Comperator_Medium_Tier2_BoltAction","Comperator_Medium_Tier3_Pistols",
+                        "Comperator_Medium_Tier3_Shotgun","Comperator_Medium_Tier4_DMR","Comperator_Medium_Tier4_Rifle","Comperator_Medium_Tier5_LMG","Comperator_Medium_Tier5_RG6"],
+                    "heavy": ["Comperator_Heavy_Tier1_DoubleBarrels","Comperator_Heavy_Tier2_Shotgun","Comperator_Heavy_Tier3_Ash","Comperator_Heavy_Tier3_Pistols","Comperator_Heavy_Tier4_Rifle",
+                        "Comperator_Heavy_Tier4_Shotgun","Comperator_Heavy_Tier5_LMG","Comperator_Heavy_Tier5_Minigun"],
+                    "Tier1": ["Comperator_Light_Tier1_DoubleBarrels","Comperator_Medium_Tier1_DoubleBarrels","Comperator_Heavy_Tier1_DoubleBarrels"],
+                    "Tier2": ["Comperator_Light_Tier2_Shotgun","Comperator_Medium_Tier2_BoltAction","Comperator_Heavy_Tier2_Shotgun"],
+                    "Tier3": ["Comperator_Light_Tier3_Pistols","Comperator_Medium_Tier3_Pistols","Comperator_Heavy_Tier3_Ash"]
+                    }
+
+enemy_rot = ["RW_Beefkicker","RW_Boner","RW_Driller","RW_Floater","RW_FunGuy","RW_HamFister","RW_Lemonhead","RW_OldSmokey","RW_Pig","RW_Prick","RW_Rot","RW_Spurter","RW_TheHung"]
 
 # Data to be written
 dictionary = {
-    "Name": "All in One (" + enemyType + ")",
+    "Name": "All_in_One_" + enemyType,
     "Description": "The entire H3VR arsenal",
     "OrderType": 1,
     "EnemyType": enemyType,
@@ -27,8 +40,9 @@ BlackList = ["MF_Syringegun","Degle","PotatoGun","Stinger","COOLCLOSEDBOLT","COO
             "HeavyFlintlock18thCenturyRamrod", "SustenanceCrossbow", "MF_Flamethrower", "MF_Medical180", 
             "MF_LongShot", "Pocket1906", "PocketHammer1903","OTS38", "Jackhammer", "Flaregun",
             "JunkyardFlameThrower","M72A7","M320GrenadeLauncher", "M224Mortar","SP5K","SP5KA2","SP5KA3",
-            "Whizzbanger","P6Twelve","MF_Signaler","MP5SFA2","MP5SD1","MP5SD2","MP5SD3","MP5SD5",
-            "MP5SD4","MP5K","MP5KA2","MP5KA3","MP510A4","MP540A4","MP5A2","MP5A3","MP5A4","MP5KN",]
+            "SP5KFolding","Whizzbanger","P6Twelve","MF_Signaler","MP5SFA2","MP5SD1","MP5SD2","MP5SD3","MP5SD5",
+            "MP5SD4","MP5K","MP5KA2","MP5KA3","MP510A4","MP540A4","MP5A2","MP5A3","MP5A4","MP5KN","Quackenbush1886",
+            "Airgun","LadiesPepperbox"]
 mag_BL =    ["MagazineMp515rnd","MagazineAK74_10rnd","MagazineStanag10rnd","MagazineAKMTactical10rnd",
             "MagazineStanag5rnd","MagazineVZ58_10Rnd","MagazineMp515rndStraight", "MagazineMini145rnd",
             "MagazineMini1410rnd","MagazineVSSVintorez10rnd","MagazineEvo315rnd","MagazineModel38_10rnd"]
@@ -104,6 +118,6 @@ print("Cartridge weapon count", dictionary["CategoryIDs"].count(2))
 json_object = json.dumps(dictionary, indent=4)
  
 # Writing to sample.json
-json_name = "GunGameWeaponPool_All in One (" + enemyType + ").json"
+json_name = "GunGameWeaponPool_" + dictionary["Name"] + ".json"
 with open(json_name, "w") as outfile:
     outfile.write(json_object)
