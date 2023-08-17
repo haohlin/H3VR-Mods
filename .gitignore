@@ -4,7 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # User-specific files
-# H3VRMetaRipper/
+Release/
+H3VRMetaRipper/
 *.rsuser
 *.suo
 *.user
