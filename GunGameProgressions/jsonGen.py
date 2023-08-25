@@ -42,7 +42,7 @@ BlackList = ["MF_Syringegun","Degle","PotatoGun","Stinger","COOLCLOSEDBOLT","COO
             "JunkyardFlameThrower","M72A7","M320GrenadeLauncher", "M224Mortar","SP5K","SP5KA2","SP5KA3",
             "SP5KFolding","Whizzbanger","P6Twelve","MF_Signaler","MP5SFA2","MP5SD1","MP5SD2","MP5SD3","MP5SD5",
             "MP5SD4","MP5K","MP5KA2","MP5KA3","MP510A4","MP540A4","MP5A2","MP5A3","MP5A4","MP5KN","Quackenbush1886",
-            "Airgun","LadiesPepperbox"]
+            "Airgun","LadiesPepperbox","LaserPistol","M6Survival"]
 mag_BL =    ["MagazineMp515rnd","MagazineAK74_10rnd","MagazineStanag10rnd","MagazineAKMTactical10rnd",
             "MagazineStanag5rnd","MagazineVZ58_10Rnd","MagazineMp515rndStraight", "MagazineMini145rnd",
             "MagazineMini1410rnd","MagazineVSSVintorez10rnd","MagazineEvo315rnd","MagazineModel38_10rnd"]
@@ -52,7 +52,8 @@ cartridge_BL =  ["12GaugeShellCannonball","12GaugeShellFreedomfetti","12GaugeShe
                 "Cartridge50mmFlareSunburn","27x90mmCartridgeSmokescreen","27x90mmCartridgeTriFlash",
                 "Cartridge366UltraMagnumSalute","Cartridge366UltraMagnumRetort", "18x50mmPackawhallop_Gobsmacka",
                 "Cartridge_40mmCaseless_SMK","Cartridge_40mmCaseless_SF1","Cartridge366UltraMagnumDebuff",
-                "Cartridge_40x46Grenade_M651","23x75mmR_CSGas","Cartridge_40x46Grenade_M781","Cartridge_40x46Grenade_X1776"]
+                "Cartridge_40x46Grenade_M651","23x75mmR_CSGas","Cartridge_40x46Grenade_M781","Cartridge_40x46Grenade_X1776",
+                "Cartridge84mmSMOKE469C","Cartridge13GaugeBlooper","Cartridge84mmILLUM545C"]
 clip_BL =   []
 
 # Opening JSON file
@@ -77,7 +78,7 @@ for obj in json_object:
 
 
 for obj in json_object:
-    if obj['Category'] == "Firearm" and not obj["IsModContent"] and not obj["ObjectID"] in BlackList:
+    if obj['ObjectID'] not in dictionary["GunNames"] and obj['Category'] == "Firearm" and not obj["IsModContent"] and not obj["ObjectID"] in BlackList:
         MagNameFound = 0
         if obj["MagazineType"] != 0:
             random.shuffle(mag_list)

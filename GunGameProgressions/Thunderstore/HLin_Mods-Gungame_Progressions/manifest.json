@@ -1,9 +1,0 @@
-{
-    "name": "GunGame_Progressions",
-    "author": "HLin",
-    "version_number": "1.1.2",
-    "dependencies": ["Kodeman-GunGame-0.5.1"
-    ],
-    "description": "The entire H3VR arsenal (460 firearms)! Change Log: Now only one model for each MP5 variant is included",
-    "website_url": "https://github.com/haohlin/H3VR-Mods.git"
-}
