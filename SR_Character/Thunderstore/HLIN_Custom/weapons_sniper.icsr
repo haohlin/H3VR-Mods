@@ -1,0 +1,288 @@
+{
+    "name": "weapons_sniper",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "AR50a",
+            "objectID": [
+                "AR50a",
+                "50BMGCartridgeMk211",
+                "50BMGCartridgeMk211",
+                "50BMGCartridgeMk211"
+            ]
+        },
+        {
+            "name": "Hecate2",
+            "objectID": [
+                "Hecate2",
+                "MagazineHecate2",
+                "MagazineHecate2",
+                "MagazineHecate2"
+            ]
+        },
+        {
+            "name": "NTW20",
+            "objectID": [
+                "NTW20",
+                "MagazineNTW20",
+                "MagazineNTW20",
+                "MagazineNTW20"
+            ]
+        },
+        {
+            "name": "AWM",
+            "objectID": [
+                "AWM",
+                "MagazineAWM",
+                "MagazineAWM",
+                "MagazineAWM"
+            ]
+        },
+        {
+            "name": "BerthierCarbine",
+            "objectID": [
+                "BerthierCarbine",
+                "MagazineBerthierCarbine",
+                "MagazineBerthierCarbine",
+                "MagazineBerthierCarbine"
+            ]
+        },
+        {
+            "name": "Carcano1891",
+            "objectID": [
+                "Carcano1891",
+                "MagazineEnbloc1891",
+                "MagazineEnbloc1891",
+                "MagazineEnbloc1891"
+            ]
+        },
+        {
+            "name": "FRF2",
+            "objectID": [
+                "FRF2",
+                "MagazineFRF2",
+                "MagazineFRF2",
+                "MagazineFRF2"
+            ]
+        },
+        {
+            "name": "K98k",
+            "objectID": [
+                "K98k",
+                "792x57mmStripperClip",
+                "792x57mmStripperClip",
+                "792x57mmStripperClip"
+            ]
+        },
+        {
+            "name": "LeeEnfieldJungleCarbine",
+            "objectID": [
+                "LeeEnfieldJungleCarbine",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield"
+            ]
+        },
+        {
+            "name": "LeeEnfieldNo4Mk1",
+            "objectID": [
+                "LeeEnfieldNo4Mk1",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield"
+            ]
+        },
+        {
+            "name": "LeeEnfieldObrez",
+            "objectID": [
+                "LeeEnfieldObrez",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield"
+            ]
+        },
+        {
+            "name": "LeeEnfieldSwedeMod",
+            "objectID": [
+                "LeeEnfieldSwedeMod",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield",
+                "MagazineLeeEnfield"
+            ]
+        },
+        {
+            "name": "M200",
+            "objectID": [
+                "M200",
+                "MagazineM200",
+                "MagazineM200",
+                "MagazineM200"
+            ]
+        },
+        {
+            "name": "M40A1",
+            "objectID": [
+                "M40A1",
+                "762x51mmCartridgeJHP",
+                "762x51mmCartridgeJHP",
+                "762x51mmCartridgeJHP"
+            ]
+        },
+        {
+            "name": "Model70",
+            "objectID": [
+                "Model70",
+                "3006SpringfieldStripperClip",
+                "3006SpringfieldStripperClip",
+                "3006SpringfieldStripperClip"
+            ]
+        },
+        {
+            "name": "Mosin91_30",
+            "objectID": [
+                "Mosin91_30",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip"
+            ]
+        },
+        {
+            "name": "MosinM1891",
+            "objectID": [
+                "MosinM1891",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip"
+            ]
+        },
+        {
+            "name": "MosinM38",
+            "objectID": [
+                "MosinM38",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip"
+            ]
+        },
+        {
+            "name": "MosinObrez",
+            "objectID": [
+                "MosinObrez",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip",
+                "762x54mmRStripperClip"
+            ]
+        },
+        {
+            "name": "MRAD",
+            "objectID": [
+                "MRAD",
+                "MagazineMRAD",
+                "MagazineMRAD",
+                "MagazineMRAD"
+            ]
+        },
+        {
+            "name": "R700",
+            "objectID": [
+                "R700",
+                "MagazineR700",
+                "MagazineR700",
+                "MagazineR700"
+            ]
+        },
+        {
+            "name": "Sako85",
+            "objectID": [
+                "Sako85",
+                "MagazineSako85",
+                "MagazineSako85",
+                "MagazineSako85"
+            ]
+        },
+        {
+            "name": "Sako85Obrez",
+            "objectID": [
+                "Sako85Obrez",
+                "MagazineSako85",
+                "MagazineSako85",
+                "MagazineSako85"
+            ]
+        },
+        {
+            "name": "Scout",
+            "objectID": [
+                "Scout",
+                "MagazineScout",
+                "MagazineScout",
+                "MagazineScout"
+            ]
+        },
+        {
+            "name": "Springfield1903",
+            "objectID": [
+                "Springfield1903",
+                "3006SpringfieldStripperClip",
+                "3006SpringfieldStripperClip",
+                "3006SpringfieldStripperClip"
+            ]
+        },
+        {
+            "name": "SV98",
+            "objectID": [
+                "SV98",
+                "MagazineSV98",
+                "MagazineSV98",
+                "MagazineSV98"
+            ]
+        },
+        {
+            "name": "Tactical8400Shorty",
+            "objectID": [
+                "Tactical8400Shorty",
+                "MagazineTactical8400",
+                "MagazineTactical8400",
+                "MagazineTactical8400"
+            ]
+        },
+        {
+            "name": "Tactical8400SuperShorty",
+            "objectID": [
+                "Tactical8400SuperShorty",
+                "MagazineTactical8400",
+                "MagazineTactical8400",
+                "MagazineTactical8400"
+            ]
+        },
+        {
+            "name": "TankGewehr",
+            "objectID": [
+                "TankGewehr",
+                "13_2mmTUFFMJ",
+                "13_2mmTUFFMJ",
+                "13_2mmTUFFMJ"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

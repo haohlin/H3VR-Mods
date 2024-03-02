@@ -1,0 +1,521 @@
+{
+    "name": "ScavSigs",
+    "description": "Sosigs that increase in gear and numbers as rounds increase. Extract wisely...",
+    "category": "Safehouse",
+    "teamID": 1,
+    "levels": [
+        {
+            "name": "Level 0",
+            "enemiesTotal": 8,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 90,
+            "guardCount": 6,
+            "guardPool": {
+               "sosigEnemyID": [
+                  401
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 0,
+            "sniperPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 2,
+            "squadSizeMin": 1,
+            "squadSizeMax": 1,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  401,
+                  401,
+                  402
+               ],
+               "customPool": []
+            }
+        },
+
+        {
+            "name": "Level 1",
+            "enemiesTotal": 12,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 90,
+            "guardCount": 6,
+            "guardPool": {
+               "sosigEnemyID": [
+                  401,
+                  401,
+                  402
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 0,
+            "sniperPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 2,
+            "squadSizeMin": 1,
+            "squadSizeMax": 2,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  401,
+                  402
+               ],
+               "customPool": []
+            }
+        },
+
+        {
+            "name": "Level 2",
+            "enemiesTotal": 12,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 6,
+            "guardPool": {
+               "sosigEnemyID": [
+                  401,
+                  402
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 2,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  408
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 2,
+            "squadSizeMin": 1,
+            "squadSizeMax": 2,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  401,
+                  401,
+                  402,
+                  402,
+                  405
+               ],
+               "customPool": []
+            }
+        },
+
+        {
+            "name": "Level 3",
+            "enemiesTotal": 14,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 6,
+            "guardPool": {
+               "sosigEnemyID": [
+                  401,
+                  401,
+                  402,
+                  402,
+                  403
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 2,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  408
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 2,
+            "squadSizeMin": 1,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  404,
+                  405,
+                  405,
+                  405
+               ],
+               "customPool": []
+            }
+        },
+        {
+            "name": "Level 4",
+            "enemiesTotal": 14,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 6,
+            "guardPool": {
+               "sosigEnemyID": [
+                  405,
+                  405,
+                  403,
+                  403,
+                  404
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 2,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  408
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 2,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  404,
+                  405
+               ],
+               "customPool": []
+            }
+        },
+
+
+
+        {
+            "name": "Level 5",
+            "enemiesTotal": 14,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 8,
+            "guardPool": {
+               "sosigEnemyID": [
+                  100,
+                  100,
+                  104
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 4,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  102,
+                  102,
+                  102,
+                  106
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 3,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  105,
+                  105,
+                  105,
+                  103
+               ],
+               "customPool": []
+            }
+        },
+        {
+            "name": "Level 6",
+            "enemiesTotal": 14,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 8,
+            "guardPool": {
+               "sosigEnemyID": [
+                  100,
+                  101,
+                  104
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 4,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  102,
+                  102,
+                  106
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 3,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  105,
+                  105,
+                  103
+               ],
+               "customPool": []
+            }
+        },
+        {
+            "name": "Level 7",
+            "enemiesTotal": 16,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 10,
+            "guardPool": {
+               "sosigEnemyID": [
+                  101,
+                  104,
+                  105
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 6,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  102,
+                  106
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 3,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  105,
+                  103,
+                  102
+               ],
+               "customPool": []
+            }
+        },
+        {
+            "name": "Level 8",
+            "enemiesTotal": 16,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 10,
+            "guardPool": {
+               "sosigEnemyID": [
+                  104,
+                  105,
+                  105,
+                  103
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 6,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  106
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 3,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  103,
+                  103,
+                  102
+               ],
+               "customPool": []
+            }
+        },
+        {
+            "name": "Level 9",
+            "enemiesTotal": 16,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 10,
+            "guardPool": {
+               "sosigEnemyID": [
+                  104,
+                  107,
+                  103
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 6,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  106
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 3,
+            "squadSizeMin": 2,
+            "squadSizeMax": 3,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  103,
+                  103,
+                  108
+               ],
+               "customPool": []
+            }
+        }
+    ],
+    "endless": [
+        {
+            "name": "Level 10 ENDLESS",
+            "enemiesTotal": 20,
+            "infiniteEnemies": 0,
+            "infiniteSquadEnemies": 1,
+            "enemySpawnTimer": 60,
+            "guardCount": 10,
+            "guardPool": {
+               "sosigEnemyID": [
+                  1001,
+                  1004,
+                  1004
+               ],
+               "customPool": []
+            },
+
+            "sniperCount": 6,
+            "sniperPool": {
+               "sosigEnemyID": [
+                  1003
+               ],
+               "customPool": []
+            },
+
+            "minPatrolSize": 0,
+            "patrolPool": {
+               "sosigEnemyID": [
+               ],
+               "customPool": []
+            },
+
+            "squadTeamRandomized": 1,
+            "squadCount": 4,
+            "squadSizeMin": 3,
+            "squadSizeMax": 4,
+            "squadBehaviour": 1,
+            "squadPool": {
+               "sosigEnemyID": [
+                  1004,
+                  1002,
+                  1002,
+                  1002,
+                  1003
+               ],
+               "customPool": []
+            }
+        }
+    ]
+}

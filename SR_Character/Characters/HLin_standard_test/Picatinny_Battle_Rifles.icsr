@@ -1,0 +1,51 @@
+{
+    "name": "Picatinny Battle Rifles",
+    "minCapacity": 6,
+    "maxCapacity": 31,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 0,
+    "set": [
+        0,
+        1
+    ],
+    "eras": [
+        7,
+        6
+    ],
+    "sizes": [
+        4,
+        5,
+        6
+    ],
+    "actions": [
+        6
+    ],
+    "modes": [
+        1
+    ],
+    "excludeModes": [
+        4
+    ],
+    "feedoptions": [
+        3
+    ],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [
+        5
+    ],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": [
+        "STENOF"
+    ]
+}

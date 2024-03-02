@@ -1,0 +1,81 @@
+{
+    "name": "mags_remnant",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "PP91Mag",
+            "objectID": [
+                "MagazinePP91"
+            ]
+        },
+        {
+            "name": "MagazineSVT40",
+            "objectID": [
+                "MagazineSVT40"
+            ]
+        },
+        {
+            "name": "MagazineThompson30",
+            "objectID": [
+                "MagazineThompson30"
+            ]
+        },
+        {
+            "name": "MagazinePPSH41",
+            "objectID": [
+                "MagazinePPSH41"
+            ]
+        },
+        {
+            "name": "MagazineToz106",
+            "objectID": [
+                "MagazineToz106"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_10Rnd",
+            "objectID": [
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_20Rnd",
+            "objectID": [
+                "MagazineVZ58_20Rnd"
+            ]
+        },
+        {
+            "name": "Vepr5",
+            "objectID": [
+                "Vepr5"
+            ]
+        },
+        {
+            "name": "Vepr10",
+            "objectID": [
+                "Vepr10"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

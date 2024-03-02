@@ -1,0 +1,323 @@
+{
+    "name": "HLin Custom Character",
+    "description": "Made by HLIN",
+    "category": "Standard",
+    "factionName": "Popsicles",
+    "pointsLevel": [
+        15,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60
+    ],
+    "newMagazineCost": 2,
+    "upgradeMagazineCost": 3,
+    "duplicateMagazineCost": 2,
+    "modCost": 5,
+    "recyclerPoints": 1,
+    "modeRearming": 1,
+    "rearmingCost": 1,
+    "modeSpeedLoaders": 1,
+    "speedLoadersCost": 2,
+    "modeClips": 1,
+    "clipsCost": 2,
+    "modeRounds": 1,
+    "roundsCost": 1,
+    "disableAmmoTable": false,
+    "disableModtable": false,
+    "disableBuyMenu": false,
+    "disableDuplicator": false,
+    "disableRecycler": false,
+    "deathMode": 0,
+    "deathCount": 1.0,
+    "ammoUpgradeCost": [
+        0,
+        2,
+        3,
+        4,
+        3,
+        1,
+        2,
+        4,
+        3,
+        2,
+        4,
+        6,
+        0,
+        2,
+        2,
+        1,
+        3,
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        3,
+        1,
+        2,
+        2,
+        2
+    ],
+    "attachmentsCost": [
+        -1,
+        1,
+        2,
+        3,
+        4,
+        2,
+        3,
+        1,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2,
+        4,
+        2
+    ],
+    "startGearCategories": [
+        "weapons_pistols",
+        "rigs_minor",
+        "meds_bandages",
+        "melee_minor",
+        "backpacks_spawn"
+    ],
+    "purchaseCategories": [
+        {
+            "itemCategory": "Point",
+            "cost": 1
+        },
+        {
+            "itemCategory": "69 Cal 1",
+            "cost": 1
+        },
+        {
+            "itemCategory": "weapons_pistols",
+            "cost": 2
+        },
+        {
+            "itemCategory": "weapons_all",
+            "cost": 2
+        },
+        {
+            "itemCategory": "ammobox_pistolE",
+            "cost": 1
+        },
+        {
+            "itemCategory": "ammobox_pistolW",
+            "cost": 1
+        },
+        {
+            "itemCategory": "ammobox_shotgun",
+            "cost": 1
+        },
+        {
+            "itemCategory": "ammobox_full",
+            "cost": 1
+        },
+        {
+            "itemCategory": "ammobox_interAK",
+            "cost": 1
+        },
+        {
+            "itemCategory": "ammobox_interAR",
+            "cost": 1
+        },
+        {
+            "itemCategory": "eddie_muzzles",
+            "cost": 1
+        },
+        {
+            "itemCategory": "eddie_sights",
+            "cost": 3
+        },
+        {
+            "itemCategory": "eddie_lights",
+            "cost": 1
+        },
+        {
+            "itemCategory": "eddie_grips",
+            "cost": 2
+        },
+        {
+            "itemCategory": "eddie_stocks",
+            "cost": 2
+        },
+        {
+            "itemCategory": "Grapple Hook",
+            "cost": 5
+        },
+        {
+            "itemCategory": "eddie_silencer",
+            "cost": 4
+        },
+        {
+            "itemCategory": "eddie_scopes",
+            "cost": 2
+        },
+        {
+            "itemCategory": "eddie_lasers",
+            "cost": 3
+        },
+        {
+            "itemCategory": "eddie_rails",
+            "cost": 1
+        },
+        {
+            "itemCategory": "eddie_random",
+            "cost": 1
+        },
+        {
+            "itemCategory": "meds_bandages",
+            "cost": 1
+        },
+        {
+            "itemCategory": "meds_minor",
+            "cost": 2
+        },
+        {
+            "itemCategory": "meds_mid",
+            "cost": 3
+        },
+        {
+            "itemCategory": "meds_major",
+            "cost": 4
+        },
+        {
+            "itemCategory": "backpacks_shop",
+            "cost": 10
+        },
+        {
+            "itemCategory": "rigs_mid",
+            "cost": 6
+        },
+        {
+            "itemCategory": "melee_all",
+            "cost": 2
+        },
+        {
+            "itemCategory": "grenade_explosive",
+            "cost": 1
+        },
+        {
+            "itemCategory": "grenade_flash",
+            "cost": 1
+        },
+        {
+            "itemCategory": "grenade_smoke",
+            "cost": 1
+        },
+        {
+            "itemCategory": "eddie_wallet",
+            "cost": 0
+        },
+        {
+            "itemCategory": "weapons_sniper",
+            "cost": 3
+        }
+    ],
+    "lootCategories": [
+        {
+            "chance": 0.07000000029802323,
+            "itemCategory": "Point"
+        },
+        {
+            "chance": 0.05000000074505806,
+            "itemCategory": "meds_bandages"
+        },
+        {
+            "chance": 0.019999999552965165,
+            "itemCategory": "mags_remnant"
+        },
+        {
+            "chance": 0.019999999552965165,
+            "itemCategory": "meds_minor"
+        },
+        {
+            "chance": 0.019999999552965165,
+            "itemCategory": "weapons_remnant"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "mags_military"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "meds_mid"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "weapons_military"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "mags_bluesky"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "mags_horizon"
+        },
+        {
+            "chance": 0.0020000000949949028,
+            "itemCategory": "rigs_mid"
+        },
+        {
+            "chance": 0.0020000000949949028,
+            "itemCategory": "grenade_flash"
+        },
+        {
+            "chance": 0.004999999888241291,
+            "itemCategory": "grenade_smoke"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "meds_major"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "weapons_bluesky"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "weapons_horizon"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "eddie_lasers"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "eddie_silencer"
+        },
+        {
+            "chance": 0.0010000000474974514,
+            "itemCategory": "rigs_major"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "backpacks_mid"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "melee_major"
+        },
+        {
+            "chance": 0.019999999552965165,
+            "itemCategory": "ammobox_all"
+        },
+        {
+            "chance": 0.009999999776482582,
+            "itemCategory": "backpacks_major"
+        }
+    ],
+    "subtractionObjectIDs": []
+}

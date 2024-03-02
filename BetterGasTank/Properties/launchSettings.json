@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "BetterGasTank": {
+      "commandName": "Executable"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+    "name": "Modern Flash Grenades",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "Flash",
+            "objectID": [
+                "PinnedGrenadeXM84"
+            ]
+        }
+    ],
+    "type": 2,
+    "set": [
+        0
+    ],
+    "eras": [
+        7,
+        6
+    ],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [
+        2
+    ],
+    "thrownDamage": [
+        4
+    ],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

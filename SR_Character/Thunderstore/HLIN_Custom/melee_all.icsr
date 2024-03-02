@@ -1,0 +1,105 @@
+{
+    "name": "melee_all",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "GarageTool_HandAxe",
+            "objectID": [
+                "GarageTool_HandAxe"
+            ]
+        },
+        {
+            "name": "BodyPillow",
+            "objectID": [
+                "BodyPillow"
+            ]
+        },
+        {
+            "name": "Improvised_Machete",
+            "objectID": [
+                "Improvised_Machete"
+            ]
+        },
+        {
+            "name": "CombatKnife",
+            "objectID": [
+                "CombatKnife"
+            ]
+        },
+        {
+            "name": "Kabartana",
+            "objectID": [
+                "Kabartana"
+            ]
+        },
+        {
+            "name": "Karambit",
+            "objectID": [
+                "Karambit"
+            ]
+        },
+        {
+            "name": "Kukri",
+            "objectID": [
+                "Kukri"
+            ]
+        },
+        {
+            "name": "SurvivalKnife",
+            "objectID": [
+                "SurvivalKnife"
+            ]
+        },
+        {
+            "name": "TacticalKnife",
+            "objectID": [
+                "TacticalKnife"
+            ]
+        },
+        {
+            "name": "BayonetAK",
+            "objectID": [
+                "BayonetAK"
+            ]
+        },
+        {
+            "name": "BayonetM4",
+            "objectID": [
+                "BayonetM4"
+            ]
+        },
+        {
+            "name": "BayonetMosin",
+            "objectID": [
+                "BayonetMosin"
+            ]
+        },
+        {
+            "name": "BayonetUSMC",
+            "objectID": [
+                "BayonetUSMC"
+            ]
+        }
+    ],
+    "type": 4,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}
