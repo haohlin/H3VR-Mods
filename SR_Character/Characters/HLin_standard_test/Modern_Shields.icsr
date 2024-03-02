@@ -1,0 +1,34 @@
+{
+    "name": "Shields",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 4,
+    "set": [
+		0
+    ],
+    "eras": [
+        6,
+        7
+    ],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [
+        5
+    ],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

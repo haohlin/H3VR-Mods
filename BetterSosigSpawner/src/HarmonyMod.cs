@@ -274,7 +274,6 @@ namespace BetterSosigSpawner
                     }
                 }
             }
-            __instance.E.IFFCode = -3;
             for (int j = 0; j < __instance.Hands.Count; j++)
             {
                 __instance.Hands[j].DropHeldObject();
@@ -289,6 +288,8 @@ namespace BetterSosigSpawner
                 }
             }
             GM.CurrentSceneSettings.OnSosigKill(__instance);
+            __instance.TickDownToClear(3.0f);
+            __instance.E.IFFCode = -3;
             return false;
         }
     }

@@ -1,0 +1,142 @@
+{
+    "name": "weapons_bluesky",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "Express870",
+            "objectID": [
+                "Express870",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "CQB870",
+            "objectID": [
+                "CQB870",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "Vector45",
+            "objectID": [
+                "Vector45",
+                "MagazineVector45",
+                "MagazineVector45",
+                "MagazineVector45"
+            ]
+        },
+        {
+            "name": "AWM",
+            "objectID": [
+                "AWM",
+                "MagazineAWM",
+                "MagazineAWM",
+                "MagazineAWM"
+            ]
+        },
+        {
+            "name": "pdsw",
+            "objectID": [
+                "pdsw",
+                "pdswmag",
+                "pdswmag",
+                "pdswmag"
+            ]
+        },
+        {
+            "name": "NWTAQ56",
+            "objectID": [
+                "NWTAQ56",
+                "NWTAQ5630",
+                "NWTAQ5630",
+                "NWTAQ5630"
+            ]
+        },
+        {
+            "name": "NWTAQM",
+            "objectID": [
+                "NWTAQM",
+                "NWTAQM-10",
+                "NWTAQM-10",
+                "NWTAQM-10"
+            ]
+        },
+        {
+            "name": "NWTAQV",
+            "objectID": [
+                "NWTAQV",
+                "NWTAQV-20",
+                "NWTAQV-20",
+                "NWTAQV-20"
+            ]
+        },
+        {
+            "name": "M4A1CarbineBlock1",
+            "objectID": [
+                "M4A1CarbineBlock1",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "M16A4",
+            "objectID": [
+                "M16A4",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "ModulM16A4",
+            "objectID": [
+                "ModulM16A4",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "ModulM4A1",
+            "objectID": [
+                "ModulM4A1",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "Phantom9",
+            "objectID": [
+                "Phantom9",
+                "MagazineG17Standard",
+                "MagazineG17Standard",
+                "MagazineG17Standard"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        0
+    ],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

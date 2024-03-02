@@ -1,0 +1,45 @@
+{
+    "name": "ammobox_shotgun",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 1,
+    "ammoSpawnLockedCount": 1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "12gauge00buck25round.MELON",
+            "objectID": [
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "12gaugeno4buck25round.MELON",
+            "objectID": [
+                "12gaugeno4buck25round.MELON"
+            ]
+        },
+        {
+            "name": "12gaugeSlug25round.MELON",
+            "objectID": [
+                "12gaugeSlug25round.MELON"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

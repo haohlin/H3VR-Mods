@@ -1,0 +1,76 @@
+{
+    "name": "meds_all",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "Bandages",
+            "objectID": [
+                "bandages_pubg.tt",
+                "bandages_pubg.tt"
+            ]
+        },
+        {
+            "name": "HealthWeiner",
+            "objectID": [
+                "PowerUpMeat_Health"
+            ]
+        },
+        {
+            "name": "FirstAidKit",
+            "objectID": [
+                "firstaidkit_pubg.tt"
+            ]
+        },
+        {
+            "name": "MedKit",
+            "objectID": [
+                "medkit_pubg.tt"
+            ]
+        },
+        {
+            "name": "Painkillers",
+            "objectID": [
+                "painkiller_pubg.tt"
+            ]
+        },
+        {
+            "name": "EnergyDrink",
+            "objectID": [
+                "energydrink_pubg.tt"
+            ]
+        },
+        {
+            "name": "AdrenalineSyringe",
+            "objectID": [
+                "adrenalineshot_pubg.tt"
+            ]
+        },
+        {
+            "name": "MedShot",
+            "objectID": [
+                "MPD0_StimAmmo.tt"
+            ]
+        }
+    ],
+    "type": 1,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

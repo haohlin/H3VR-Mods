@@ -1,0 +1,81 @@
+{
+    "name": "rigs_mid",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "6SH112",
+            "objectID": [
+                "6SH112"
+            ]
+        },
+        {
+            "name": "ARSPC",
+            "objectID": [
+                "ARSPC"
+            ]
+        },
+        {
+            "name": "D3CRX",
+            "objectID": [
+                "D3CRX"
+            ]
+        },
+        {
+            "name": "Patrol",
+            "objectID": [
+                "Patrol"
+            ]
+        },
+        {
+            "name": "Tactec",
+            "objectID": [
+                "Tactec"
+            ]
+        },
+        {
+            "name": "Tarzan",
+            "objectID": [
+                "Tarzan"
+            ]
+        },
+        {
+            "name": "Thunderbolt",
+            "objectID": [
+                "Thunderbolt"
+            ]
+        },
+        {
+            "name": "Triton",
+            "objectID": [
+                "Triton"
+            ]
+        },
+        {
+            "name": "RigTV110",
+            "objectID": [
+                "RigTV110"
+            ]
+        }
+    ],
+    "type": 4,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

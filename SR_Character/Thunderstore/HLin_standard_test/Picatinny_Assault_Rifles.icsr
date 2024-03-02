@@ -1,0 +1,51 @@
+{
+    "name": "Picatinny Assault Rifles",
+    "minCapacity": 6,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 0,
+    "set": [
+        0
+    ],
+    "eras": [
+        7,
+        6
+    ],
+    "sizes": [
+        3,
+        4,
+        5
+    ],
+    "actions": [
+        6
+    ],
+    "modes": [
+        3
+    ],
+    "excludeModes": [
+        4
+    ],
+    "feedoptions": [
+        3
+    ],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [
+        4
+    ],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": [
+        "SKSModern",
+        "SCRPistol"
+    ]
+}

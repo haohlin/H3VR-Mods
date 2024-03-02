@@ -1,0 +1,2052 @@
+{
+    "name": "weapons_pistol",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "RemingtonRollingBlockNavy",
+            "objectID": [
+                "RemingtonRollingBlockNavy",
+                "50RemingtonBlackPowderCartridgeJHP",
+                "50RemingtonBlackPowderCartridgeJHP",
+                "50RemingtonBlackPowderCartridgeJHP"
+            ]
+        },
+        {
+            "name": "MF_Backfield",
+            "objectID": [
+                "MF_Backfield",
+                "MF_Pistol_Magazine_Extended",
+                "MF_Pistol_Magazine_Extended",
+                "MF_Pistol_Magazine_Extended"
+            ]
+        },
+        {
+            "name": "MF_BushrangersBoon",
+            "objectID": [
+                "MF_BushrangersBoon",
+                "MF_SMG_Drum",
+                "MF_SMG_Drum",
+                "MF_SMG_Drum"
+            ]
+        },
+        {
+            "name": "MF_PetiteLiasion",
+            "objectID": [
+                "MF_PetiteLiasion",
+                "366UltraMagnumFMJ",
+                "366UltraMagnumFMJ",
+                "366UltraMagnumFMJ"
+            ]
+        },
+        {
+            "name": "MF_Pistol",
+            "objectID": [
+                "MF_Pistol",
+                "MF_Pistol_Magazine_Extended",
+                "MF_Pistol_Magazine_Extended",
+                "MF_Pistol_Magazine_Extended"
+            ]
+        },
+        {
+            "name": "MF_Revolver",
+            "objectID": [
+                "MF_Revolver",
+                "366UltraMagnumFMJ",
+                "366UltraMagnumFMJ",
+                "366UltraMagnumFMJ"
+            ]
+        },
+        {
+            "name": "MF_SoundCheck",
+            "objectID": [
+                "MF_SoundCheck",
+                "MF_SoundCheck_Magazine",
+                "MF_SoundCheck_Magazine",
+                "MF_SoundCheck_Magazine"
+            ]
+        },
+        {
+            "name": "MF_Submachinegun",
+            "objectID": [
+                "MF_Submachinegun",
+                "MF_SMG_Drum",
+                "MF_SMG_Drum",
+                "MF_SMG_Drum"
+            ]
+        },
+        {
+            "name": "Asp",
+            "objectID": [
+                "Asp",
+                "MagazineAsp",
+                "MagazineAsp",
+                "MagazineAsp"
+            ]
+        },
+        {
+            "name": "AMagII",
+            "objectID": [
+                "AMagII",
+                "MagazineAMagII",
+                "MagazineAMagII",
+                "MagazineAMagII"
+            ]
+        },
+        {
+            "name": "AMagV",
+            "objectID": [
+                "AMagV",
+                "MagazineAMagV",
+                "MagazineAMagV",
+                "MagazineAMagV"
+            ]
+        },
+        {
+            "name": "BergmannNo5",
+            "objectID": [
+                "BergmannNo5",
+                "MagazineBergmannNo520Rnd",
+                "MagazineBergmannNo520Rnd",
+                "MagazineBergmannNo520Rnd"
+            ]
+        },
+        {
+            "name": "BergmannNo5Carbine",
+            "objectID": [
+                "BergmannNo5Carbine",
+                "MagazineBergmannNo520Rnd",
+                "MagazineBergmannNo520Rnd",
+                "MagazineBergmannNo520Rnd"
+            ]
+        },
+        {
+            "name": "BrowningHP",
+            "objectID": [
+                "BrowningHP",
+                "MagazineBrowningHP",
+                "MagazineBrowningHP",
+                "MagazineBrowningHP"
+            ]
+        },
+        {
+            "name": "C93Borchardt",
+            "objectID": [
+                "C93Borchardt",
+                "MagazineC93Borchardt",
+                "MagazineC93Borchardt",
+                "MagazineC93Borchardt"
+            ]
+        },
+        {
+            "name": "C96Mauser",
+            "objectID": [
+                "C96Mauser",
+                "C96MauserStripperClip",
+                "C96MauserStripperClip",
+                "C96MauserStripperClip"
+            ]
+        },
+        {
+            "name": "CobbPistol",
+            "objectID": [
+                "CobbPistol",
+                "MagazineCobb",
+                "MagazineCobb",
+                "MagazineCobb"
+            ]
+        },
+        {
+            "name": "CZ75Shadow",
+            "objectID": [
+                "CZ75Shadow",
+                "MagazineCZ75Shadow",
+                "MagazineCZ75Shadow",
+                "MagazineCZ75Shadow"
+            ]
+        },
+        {
+            "name": "Deaglov",
+            "objectID": [
+                "Deaglov",
+                "MagazineDeaglov",
+                "MagazineDeaglov",
+                "MagazineDeaglov"
+            ]
+        },
+        {
+            "name": "Defender45",
+            "objectID": [
+                "Defender45",
+                "MagazineM1911OG",
+                "MagazineM1911OG",
+                "MagazineM1911OG"
+            ]
+        },
+        {
+            "name": "DesertEagle44",
+            "objectID": [
+                "DesertEagle44",
+                "MagazineDeagle44",
+                "MagazineDeagle44",
+                "MagazineDeagle44"
+            ]
+        },
+        {
+            "name": "DesertEagle50",
+            "objectID": [
+                "DesertEagle50",
+                "MagazineDeagle50",
+                "MagazineDeagle50",
+                "MagazineDeagle50"
+            ]
+        },
+        {
+            "name": "DesertEagle5014Inch",
+            "objectID": [
+                "DesertEagle5014Inch",
+                "MagazineDeagle50",
+                "MagazineDeagle50",
+                "MagazineDeagle50"
+            ]
+        },
+        {
+            "name": "DesertEagle50Carbine",
+            "objectID": [
+                "DesertEagle50Carbine",
+                "MagazineDeagle50Ext",
+                "MagazineDeagle50Ext",
+                "MagazineDeagle50Ext"
+            ]
+        },
+        {
+            "name": "DesertEagle50Classic",
+            "objectID": [
+                "DesertEagle50Classic",
+                "MagazineDeagle50",
+                "MagazineDeagle50",
+                "MagazineDeagle50"
+            ]
+        },
+        {
+            "name": "DesertEagle50Longslide",
+            "objectID": [
+                "DesertEagle50Longslide",
+                "MagazineDeagle50",
+                "MagazineDeagle50",
+                "MagazineDeagle50"
+            ]
+        },
+        {
+            "name": "DesertEagle50Marksman",
+            "objectID": [
+                "DesertEagle50Marksman",
+                "MagazineDeagle50Ext",
+                "MagazineDeagle50Ext",
+                "MagazineDeagle50Ext"
+            ]
+        },
+        {
+            "name": "DesertEagle357",
+            "objectID": [
+                "DesertEagle357",
+                "MagazineDesertEagle357",
+                "MagazineDesertEagle357",
+                "MagazineDesertEagle357"
+            ]
+        },
+        {
+            "name": "F12",
+            "objectID": [
+                "F12",
+                "MagazineF12",
+                "MagazineF12",
+                "MagazineF12"
+            ]
+        },
+        {
+            "name": "FiveSevenFDE",
+            "objectID": [
+                "FiveSevenFDE",
+                "MagazineFiveSeven",
+                "MagazineFiveSeven",
+                "MagazineFiveSeven"
+            ]
+        },
+        {
+            "name": "G17",
+            "objectID": [
+                "G17",
+                "MagazineG19_19rnd",
+                "MagazineG19_19rnd",
+                "MagazineG19_19rnd"
+            ]
+        },
+        {
+            "name": "G17Custom",
+            "objectID": [
+                "G17Custom",
+                "MagazineG17Drum",
+                "MagazineG17Drum",
+                "MagazineG17Drum"
+            ]
+        },
+        {
+            "name": "G19",
+            "objectID": [
+                "G19",
+                "MagazineG17Standard",
+                "MagazineG17Standard",
+                "MagazineG17Standard"
+            ]
+        },
+        {
+            "name": "G22",
+            "objectID": [
+                "G22",
+                "MagazineG22Standard",
+                "MagazineG22Standard",
+                "MagazineG22Standard"
+            ]
+        },
+        {
+            "name": "G41",
+            "objectID": [
+                "G41",
+                "MagazineVector45",
+                "MagazineVector45",
+                "MagazineVector45"
+            ]
+        },
+        {
+            "name": "gl",
+            "objectID": [
+                "gl",
+                "MagazineMax9",
+                "MagazineMax9",
+                "MagazineMax9"
+            ]
+        },
+        {
+            "name": "GSh18",
+            "objectID": [
+                "GSh18",
+                "MagazineGSh18",
+                "MagazineGSh18",
+                "MagazineGSh18"
+            ]
+        },
+        {
+            "name": "HH9",
+            "objectID": [
+                "HH9",
+                "MagazineHH9",
+                "MagazineHH9",
+                "MagazineHH9"
+            ]
+        },
+        {
+            "name": "HPoint380",
+            "objectID": [
+                "HPoint380",
+                "MagazineHPoint380_10rnd",
+                "MagazineHPoint380_10rnd",
+                "MagazineHPoint380_10rnd"
+            ]
+        },
+        {
+            "name": "HPoint380Tactical",
+            "objectID": [
+                "HPoint380Tactical",
+                "MagazineHPoint380_8rnd",
+                "MagazineHPoint380_8rnd",
+                "MagazineHPoint380_8rnd"
+            ]
+        },
+        {
+            "name": "LahtiL35",
+            "objectID": [
+                "LahtiL35",
+                "MagazineLahtiL35",
+                "MagazineLahtiL35",
+                "MagazineLahtiL35"
+            ]
+        },
+        {
+            "name": "ll",
+            "objectID": [
+                "ll",
+                "MagazineP08Luger",
+                "MagazineP08Luger",
+                "MagazineP08Luger"
+            ]
+        },
+        {
+            "name": "LugerLP08Artillery",
+            "objectID": [
+                "LugerLP08Artillery",
+                "MagazineMP18Drum",
+                "MagazineMP18Drum",
+                "MagazineMP18Drum"
+            ]
+        },
+        {
+            "name": "LugerP08",
+            "objectID": [
+                "LugerP08",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum"
+            ]
+        },
+        {
+            "name": "M1907Roth",
+            "objectID": [
+                "M1907Roth",
+                "StripperClipM1907Roth",
+                "StripperClipM1907Roth",
+                "StripperClipM1907Roth"
+            ]
+        },
+        {
+            "name": "M1911",
+            "objectID": [
+                "M1911",
+                "MagazineDefender45",
+                "MagazineDefender45",
+                "MagazineDefender45"
+            ]
+        },
+        {
+            "name": "M1911Stamped",
+            "objectID": [
+                "M1911Stamped",
+                "MagazineDefender45",
+                "MagazineDefender45",
+                "MagazineDefender45"
+            ]
+        },
+        {
+            "name": "M1911Classic",
+            "objectID": [
+                "M1911Classic",
+                "MagazineDefender45",
+                "MagazineDefender45",
+                "MagazineDefender45"
+            ]
+        },
+        {
+            "name": "M1911Dillinger",
+            "objectID": [
+                "M1911Dillinger",
+                "MagazineM1911Tactical",
+                "MagazineM1911Tactical",
+                "MagazineM1911Tactical"
+            ]
+        },
+        {
+            "name": "M1911Gold",
+            "objectID": [
+                "M1911Gold",
+                "MagazineM1911Stamped",
+                "MagazineM1911Stamped",
+                "MagazineM1911Stamped"
+            ]
+        },
+        {
+            "name": "M1911Longflop",
+            "objectID": [
+                "M1911Longflop",
+                "MagazineM1911OG",
+                "MagazineM1911OG",
+                "MagazineM1911OG"
+            ]
+        },
+        {
+            "name": "M1911Modern",
+            "objectID": [
+                "M1911Modern",
+                "MagazineM1911Tactical",
+                "MagazineM1911Tactical",
+                "MagazineM1911Tactical"
+            ]
+        },
+        {
+            "name": "M1911Operator",
+            "objectID": [
+                "M1911Operator",
+                "MagazineDeLisleCarbine",
+                "MagazineDeLisleCarbine",
+                "MagazineDeLisleCarbine"
+            ]
+        },
+        {
+            "name": "M1911Tactical",
+            "objectID": [
+                "M1911Tactical",
+                "MagazineM1911Dillinger",
+                "MagazineM1911Dillinger",
+                "MagazineM1911Dillinger"
+            ]
+        },
+        {
+            "name": "M1912",
+            "objectID": [
+                "M1912",
+                "StripperClipM1912",
+                "StripperClipM1912",
+                "StripperClipM1912"
+            ]
+        },
+        {
+            "name": "M1912P16",
+            "objectID": [
+                "M1912P16",
+                "StripperClipM1912",
+                "StripperClipM1912",
+                "StripperClipM1912"
+            ]
+        },
+        {
+            "name": "M1951",
+            "objectID": [
+                "M1951",
+                "MagazineM1951",
+                "MagazineM1951",
+                "MagazineM1951"
+            ]
+        },
+        {
+            "name": "M9",
+            "objectID": [
+                "M9",
+                "MagazineM9A1",
+                "MagazineM9A1",
+                "MagazineM9A1"
+            ]
+        },
+        {
+            "name": "M92fs",
+            "objectID": [
+                "M92fs",
+                "MagazineM9A1",
+                "MagazineM9A1",
+                "MagazineM9A1"
+            ]
+        },
+        {
+            "name": "M9A1",
+            "objectID": [
+                "M9A1",
+                "MagazineM93R",
+                "MagazineM93R",
+                "MagazineM93R"
+            ]
+        },
+        {
+            "name": "M9A3",
+            "objectID": [
+                "M9A3",
+                "MagazineCX4",
+                "MagazineCX4",
+                "MagazineCX4"
+            ]
+        },
+        {
+            "name": "Makarov",
+            "objectID": [
+                "Makarov",
+                "MagazineMakarovDrum",
+                "MagazineMakarovDrum",
+                "MagazineMakarovDrum"
+            ]
+        },
+        {
+            "name": "Max9",
+            "objectID": [
+                "Max9",
+                "MagazineG17Standard",
+                "MagazineG17Standard",
+                "MagazineG17Standard"
+            ]
+        },
+        {
+            "name": "Mk22Mod0",
+            "objectID": [
+                "Mk22Mod0",
+                "MagazineMk22Mod0",
+                "MagazineMk22Mod0",
+                "MagazineMk22Mod0"
+            ]
+        },
+        {
+            "name": "MK23",
+            "objectID": [
+                "MK23",
+                "MagazineMK23",
+                "MagazineMK23",
+                "MagazineMK23"
+            ]
+        },
+        {
+            "name": "P210-1",
+            "objectID": [
+                "P210-1",
+                "MagazineP210",
+                "MagazineP210",
+                "MagazineP210"
+            ]
+        },
+        {
+            "name": "P210-5",
+            "objectID": [
+                "P210-5",
+                "MagazineP210",
+                "MagazineP210",
+                "MagazineP210"
+            ]
+        },
+        {
+            "name": "P226",
+            "objectID": [
+                "P226",
+                "MagazineP226Extended",
+                "MagazineP226Extended",
+                "MagazineP226Extended"
+            ]
+        },
+        {
+            "name": "P250",
+            "objectID": [
+                "P250",
+                "MagazineP250",
+                "MagazineP250",
+                "MagazineP250"
+            ]
+        },
+        {
+            "name": "P38",
+            "objectID": [
+                "P38",
+                "MagazineP38",
+                "MagazineP38",
+                "MagazineP38"
+            ]
+        },
+        {
+            "name": "P38Snub",
+            "objectID": [
+                "P38Snub",
+                "MagazineP38",
+                "MagazineP38",
+                "MagazineP38"
+            ]
+        },
+        {
+            "name": "P5Compact",
+            "objectID": [
+                "P5Compact",
+                "MagazineP5",
+                "MagazineP5",
+                "MagazineP5"
+            ]
+        },
+        {
+            "name": "PL14",
+            "objectID": [
+                "PL14",
+                "MagazinePL14",
+                "MagazinePL14",
+                "MagazinePL14"
+            ]
+        },
+        {
+            "name": "PMM",
+            "objectID": [
+                "PMM",
+                "MagazineMakarovModern",
+                "MagazineMakarovModern",
+                "MagazineMakarovModern"
+            ]
+        },
+        {
+            "name": "PMR30",
+            "objectID": [
+                "PMR30",
+                "MagazinePMR30",
+                "MagazinePMR30",
+                "MagazinePMR30"
+            ]
+        },
+        {
+            "name": "PPK",
+            "objectID": [
+                "PPK",
+                "MagazinePPK",
+                "MagazinePPK",
+                "MagazinePPK"
+            ]
+        },
+        {
+            "name": "PX4Storm",
+            "objectID": [
+                "PX4Storm",
+                "MagazineCX4",
+                "MagazineCX4",
+                "MagazineCX4"
+            ]
+        },
+        {
+            "name": "Ruby",
+            "objectID": [
+                "Ruby",
+                "MagazineRuby",
+                "MagazineRuby",
+                "MagazineRuby"
+            ]
+        },
+        {
+            "name": "ST2111",
+            "objectID": [
+                "ST2111",
+                "MagazineST2111",
+                "MagazineST2111",
+                "MagazineST2111"
+            ]
+        },
+        {
+            "name": "Tec9",
+            "objectID": [
+                "Tec9",
+                "MagazineTec9",
+                "MagazineTec9",
+                "MagazineTec9"
+            ]
+        },
+        {
+            "name": "TT33",
+            "objectID": [
+                "TT33",
+                "MagazineTT33",
+                "MagazineTT33",
+                "MagazineTT33"
+            ]
+        },
+        {
+            "name": "USPMatch",
+            "objectID": [
+                "USPMatch",
+                "MagazineUSP",
+                "MagazineUSP",
+                "MagazineUSP"
+            ]
+        },
+        {
+            "name": "USPMatch9mm",
+            "objectID": [
+                "USPMatch9mm",
+                "MagazineUSP9mm",
+                "MagazineUSP9mm",
+                "MagazineUSP9mm"
+            ]
+        },
+        {
+            "name": "USPTactical",
+            "objectID": [
+                "USPTactical",
+                "MagazineUSP",
+                "MagazineUSP",
+                "MagazineUSP"
+            ]
+        },
+        {
+            "name": "UziPro",
+            "objectID": [
+                "UziPro",
+                "MagazineMicroUzi32rnd",
+                "MagazineMicroUzi32rnd",
+                "MagazineMicroUzi32rnd"
+            ]
+        },
+        {
+            "name": "VP9",
+            "objectID": [
+                "VP9",
+                "MagazineVP9",
+                "MagazineVP9",
+                "MagazineVP9"
+            ]
+        },
+        {
+            "name": "Webley1913",
+            "objectID": [
+                "Webley1913",
+                "MagazineWebley1913",
+                "MagazineWebley1913",
+                "MagazineWebley1913"
+            ]
+        },
+        {
+            "name": "Contender4570",
+            "objectID": [
+                "Contender4570",
+                "45_70Govt_HighGrain",
+                "45_70Govt_HighGrain",
+                "45_70Govt_HighGrain"
+            ]
+        },
+        {
+            "name": "COP357",
+            "objectID": [
+                "COP357",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP"
+            ]
+        },
+        {
+            "name": "DoubleDown",
+            "objectID": [
+                "DoubleDown",
+                "9x19mmCartridgeTracer",
+                "9x19mmCartridgeTracer",
+                "9x19mmCartridgeTracer"
+            ]
+        },
+        {
+            "name": "HS22",
+            "objectID": [
+                "HS22",
+                "22WMCartridgeHVHP",
+                "22WMCartridgeHVHP",
+                "22WMCartridgeHVHP"
+            ]
+        },
+        {
+            "name": "Model6",
+            "objectID": [
+                "Model6",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer"
+            ]
+        },
+        {
+            "name": "Model6XL",
+            "objectID": [
+                "Model6XL",
+                "45_70Govt_Tracer",
+                "45_70Govt_Tracer",
+                "45_70Govt_Tracer"
+            ]
+        },
+        {
+            "name": "PK1",
+            "objectID": [
+                "PK1",
+                "762x39mmCartridgeJHP",
+                "762x39mmCartridgeJHP",
+                "762x39mmCartridgeJHP"
+            ]
+        },
+        {
+            "name": "S9R",
+            "objectID": [
+                "S9R",
+                "MagazineS9R",
+                "MagazineS9R",
+                "MagazineS9R"
+            ]
+        },
+        {
+            "name": "APS",
+            "objectID": [
+                "APS",
+                "MagazineAPS",
+                "MagazineAPS",
+                "MagazineAPS"
+            ]
+        },
+        {
+            "name": "ClericM9",
+            "objectID": [
+                "ClericM9",
+                "MagazinePX4",
+                "MagazinePX4",
+                "MagazinePX4"
+            ]
+        },
+        {
+            "name": "G18",
+            "objectID": [
+                "G18",
+                "MagazineG17Drum",
+                "MagazineG17Drum",
+                "MagazineG17Drum"
+            ]
+        },
+        {
+            "name": "G18C",
+            "objectID": [
+                "G18C",
+                "MagazineG17Drum",
+                "MagazineG17Drum",
+                "MagazineG17Drum"
+            ]
+        },
+        {
+            "name": "G22FullAutoMod",
+            "objectID": [
+                "G22FullAutoMod",
+                "MagazineG22Standard",
+                "MagazineG22Standard",
+                "MagazineG22Standard"
+            ]
+        },
+        {
+            "name": "LilGreasy",
+            "objectID": [
+                "LilGreasy",
+                "MagazineLilGreasy",
+                "MagazineLilGreasy",
+                "MagazineLilGreasy"
+            ]
+        },
+        {
+            "name": "M712Mauser",
+            "objectID": [
+                "M712Mauser",
+                "MagazineMauser20Rnd",
+                "MagazineMauser20Rnd",
+                "MagazineMauser20Rnd"
+            ]
+        },
+        {
+            "name": "M93R",
+            "objectID": [
+                "M93R",
+                "MagazinePX4",
+                "MagazinePX4",
+                "MagazinePX4"
+            ]
+        },
+        {
+            "name": "M93RA9",
+            "objectID": [
+                "M93RA9",
+                "MagazinePX4",
+                "MagazinePX4",
+                "MagazinePX4"
+            ]
+        },
+        {
+            "name": "MicroUzi",
+            "objectID": [
+                "MicroUzi",
+                "MagazineMicroUzi20rnd",
+                "MagazineMicroUzi20rnd",
+                "MagazineMicroUzi20rnd"
+            ]
+        },
+        {
+            "name": "Tec9IllegalFullAutoMod",
+            "objectID": [
+                "Tec9IllegalFullAutoMod",
+                "MagazineTec9",
+                "MagazineTec9",
+                "MagazineTec9"
+            ]
+        },
+        {
+            "name": "VZ61Skorpion",
+            "objectID": [
+                "VZ61Skorpion",
+                "MagazineVZ61",
+                "MagazineVZ61",
+                "MagazineVZ61"
+            ]
+        },
+        {
+            "name": "BFR",
+            "objectID": [
+                "BFR",
+                "45_70Govt_SoftPoint",
+                "45_70Govt_SoftPoint",
+                "45_70Govt_SoftPoint"
+            ]
+        },
+        {
+            "name": "Bodyguard38",
+            "objectID": [
+                "Bodyguard38",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "Bull454",
+            "objectID": [
+                "Bull454",
+                "454Casull_Softpoint",
+                "454Casull_Softpoint",
+                "454Casull_Softpoint"
+            ]
+        },
+        {
+            "name": "C1851Conversion",
+            "objectID": [
+                "C1851Conversion",
+                "Cartridge_38Rimfire_Tracer",
+                "Cartridge_38Rimfire_Tracer",
+                "Cartridge_38Rimfire_Tracer"
+            ]
+        },
+        {
+            "name": "DardickCarbine",
+            "objectID": [
+                "DardickCarbine",
+                "38TroundClip",
+                "38TroundClip",
+                "38TroundClip"
+            ]
+        },
+        {
+            "name": "DardickRevolver",
+            "objectID": [
+                "DardickRevolver",
+                "38TroundClip",
+                "38TroundClip",
+                "38TroundClip"
+            ]
+        },
+        {
+            "name": "Detective Special 38",
+            "objectID": [
+                "Detective Special 38",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "FA83",
+            "objectID": [
+                "FA83",
+                "454Casull_JHP",
+                "454Casull_JHP",
+                "454Casull_JHP"
+            ]
+        },
+        {
+            "name": "Hawk357",
+            "objectID": [
+                "Hawk357",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "Hunter44",
+            "objectID": [
+                "Hunter44",
+                "Cartridge_44Magnum_Tracer",
+                "Cartridge_44Magnum_Tracer",
+                "Cartridge_44Magnum_Tracer"
+            ]
+        },
+        {
+            "name": "Judge",
+            "objectID": [
+                "Judge",
+                "Cartridge410BoreFlechette",
+                "Cartridge410BoreFlechette",
+                "Cartridge410BoreFlechette"
+            ]
+        },
+        {
+            "name": "LC22r",
+            "objectID": [
+                "LC22r",
+                "22LRCartridgeTracer",
+                "22LRCartridgeTracer",
+                "22LRCartridgeTracer"
+            ]
+        },
+        {
+            "name": "M1879",
+            "objectID": [
+                "M1879",
+                "106x25mmRCartridgeTracer",
+                "106x25mmRCartridgeTracer",
+                "106x25mmRCartridgeTracer"
+            ]
+        },
+        {
+            "name": "M1895Nagant",
+            "objectID": [
+                "M1895Nagant",
+                "762x38mmRCartridgeFMJ",
+                "762x38mmRCartridgeFMJ",
+                "762x38mmRCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "MP412REX",
+            "objectID": [
+                "MP412REX",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer"
+            ]
+        },
+        {
+            "name": "Python",
+            "objectID": [
+                "Python",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "R8",
+            "objectID": [
+                "R8",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer"
+            ]
+        },
+        {
+            "name": "Rhino 20DS",
+            "objectID": [
+                "Rhino 20DS",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "Rhino 40",
+            "objectID": [
+                "Rhino 40",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer",
+                "357MagnumCartridgeTracer"
+            ]
+        },
+        {
+            "name": "Rhino 50",
+            "objectID": [
+                "Rhino 50",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP"
+            ]
+        },
+        {
+            "name": "Rhino 60",
+            "objectID": [
+                "Rhino 60",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP",
+                "357MagnumCartridgeJHP"
+            ]
+        },
+        {
+            "name": "RS15",
+            "objectID": [
+                "RS15",
+                "22WMCartridgeSP",
+                "22WMCartridgeSP",
+                "22WMCartridgeSP"
+            ]
+        },
+        {
+            "name": "SchofieldModel3",
+            "objectID": [
+                "SchofieldModel3",
+                "Cartridge_44_40_Tracer",
+                "Cartridge_44_40_Tracer",
+                "Cartridge_44_40_Tracer"
+            ]
+        },
+        {
+            "name": "SingleActionArmy",
+            "objectID": [
+                "SingleActionArmy",
+                "45LongColtCartridgeSP",
+                "45LongColtCartridgeSP",
+                "45LongColtCartridgeSP"
+            ]
+        },
+        {
+            "name": "SW29",
+            "objectID": [
+                "SW29",
+                "Cartridge_44Magnum_FMJ",
+                "Cartridge_44Magnum_FMJ",
+                "Cartridge_44Magnum_FMJ"
+            ]
+        },
+        {
+            "name": "SW500",
+            "objectID": [
+                "SW500",
+                "500SWCartridgeJHP",
+                "500SWCartridgeJHP",
+                "500SWCartridgeJHP"
+            ]
+        },
+        {
+            "name": "SW500Junior",
+            "objectID": [
+                "SW500Junior",
+                "500SWCartridgeTracer",
+                "500SWCartridgeTracer",
+                "500SWCartridgeTracer"
+            ]
+        },
+        {
+            "name": "SW629",
+            "objectID": [
+                "SW629",
+                "Cartridge_44Magnum_JHP",
+                "Cartridge_44Magnum_JHP",
+                "Cartridge_44Magnum_JHP"
+            ]
+        },
+        {
+            "name": "SWModel10",
+            "objectID": [
+                "SWModel10",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ",
+                "38SpecialCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "SWStealth",
+            "objectID": [
+                "SWStealth",
+                "Cartridge_44Magnum_Penetrator",
+                "Cartridge_44Magnum_Penetrator",
+                "Cartridge_44Magnum_Penetrator"
+            ]
+        },
+        {
+            "name": "Unica6",
+            "objectID": [
+                "Unica6",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ",
+                "357MagnumCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "WebleyFosbery",
+            "objectID": [
+                "WebleyFosbery",
+                "455WebleyCartridgeTracer",
+                "455WebleyCartridgeTracer",
+                "455WebleyCartridgeTracer"
+            ]
+        },
+        {
+            "name": "WebleyRevolver",
+            "objectID": [
+                "WebleyRevolver",
+                "455WebleyCartridgeFMJ",
+                "455WebleyCartridgeFMJ",
+                "455WebleyCartridgeFMJ"
+            ]
+        },
+        {
+            "name": "DeLisleCarbine",
+            "objectID": [
+                "DeLisleCarbine",
+                "MagazineM1911",
+                "MagazineM1911",
+                "MagazineM1911"
+            ]
+        },
+        {
+            "name": "M4Survival",
+            "objectID": [
+                "M4Survival",
+                "MagazineM4Survival",
+                "MagazineM4Survival",
+                "MagazineM4Survival"
+            ]
+        },
+        {
+            "name": "APC45",
+            "objectID": [
+                "APC45",
+                "MagazineAPC45",
+                "MagazineAPC45",
+                "MagazineAPC45"
+            ]
+        },
+        {
+            "name": "APC9",
+            "objectID": [
+                "APC9",
+                "MagazineAPC9",
+                "MagazineAPC9",
+                "MagazineAPC9"
+            ]
+        },
+        {
+            "name": "CX4",
+            "objectID": [
+                "CX4",
+                "MagazineCX4",
+                "MagazineCX4",
+                "MagazineCX4"
+            ]
+        },
+        {
+            "name": "KalishniLuger",
+            "objectID": [
+                "KalishniLuger",
+                "MagazineP08Luger",
+                "MagazineP08Luger",
+                "MagazineP08Luger"
+            ]
+        },
+        {
+            "name": "Luger1902Carbine",
+            "objectID": [
+                "Luger1902Carbine",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum"
+            ]
+        },
+        {
+            "name": "MauserAssaultCarbine",
+            "objectID": [
+                "MauserAssaultCarbine",
+                "MagazineMauser40Rnd",
+                "MagazineMauser40Rnd",
+                "MagazineMauser40Rnd"
+            ]
+        },
+        {
+            "name": "MauserTrenchCarbine",
+            "objectID": [
+                "MauserTrenchCarbine",
+                "MagazineMauser10Rnd",
+                "MagazineMauser10Rnd",
+                "MagazineMauser10Rnd"
+            ]
+        },
+        {
+            "name": "MX4",
+            "objectID": [
+                "MX4",
+                "MagazineM93R",
+                "MagazineM93R",
+                "MagazineM93R"
+            ]
+        },
+        {
+            "name": "Phantom9",
+            "objectID": [
+                "Phantom9",
+                "MagazineG18Standard",
+                "MagazineG18Standard",
+                "MagazineG18Standard"
+            ]
+        },
+        {
+            "name": "Vector45Carbine",
+            "objectID": [
+                "Vector45Carbine",
+                "MagazineVector45Drum",
+                "MagazineVector45Drum",
+                "MagazineVector45Drum"
+            ]
+        },
+        {
+            "name": "1860Rifle",
+            "objectID": [
+                "1860Rifle",
+                "44HenryRimfire",
+                "44HenryRimfire",
+                "44HenryRimfire"
+            ]
+        },
+        {
+            "name": "1873Carbine",
+            "objectID": [
+                "1873Carbine",
+                "45LongColtCartridgeTracer",
+                "45LongColtCartridgeTracer",
+                "45LongColtCartridgeTracer"
+            ]
+        },
+        {
+            "name": "1873Chopshop",
+            "objectID": [
+                "1873Chopshop",
+                "45LongColtCartridgeTracer",
+                "45LongColtCartridgeTracer",
+                "45LongColtCartridgeTracer"
+            ]
+        },
+        {
+            "name": "1873Rifle",
+            "objectID": [
+                "1873Rifle",
+                "45LongColtCartridgeSP",
+                "45LongColtCartridgeSP",
+                "45LongColtCartridgeSP"
+            ]
+        },
+        {
+            "name": "MaresLeg1892",
+            "objectID": [
+                "MaresLeg1892",
+                "Cartridge_44_40_Tracer",
+                "Cartridge_44_40_Tracer",
+                "Cartridge_44_40_Tracer"
+            ]
+        },
+        {
+            "name": "1894Rifle",
+            "objectID": [
+                "1894Rifle",
+                "Cartridge_44Magnum_FMJ",
+                "Cartridge_44Magnum_FMJ",
+                "Cartridge_44Magnum_FMJ"
+            ]
+        },
+        {
+            "name": "RioBigBore",
+            "objectID": [
+                "RioBigBore",
+                "45_70Govt_SoftPoint",
+                "45_70Govt_SoftPoint",
+                "45_70Govt_SoftPoint"
+            ]
+        },
+        {
+            "name": "RioBigBoreSalvaged",
+            "objectID": [
+                "RioBigBoreSalvaged",
+                "45_70Govt_HighGrain",
+                "45_70Govt_HighGrain",
+                "45_70Govt_HighGrain"
+            ]
+        },
+        {
+            "name": "S99",
+            "objectID": [
+                "S99",
+                "308WinchesterCartridgeIncendiary",
+                "308WinchesterCartridgeIncendiary",
+                "308WinchesterCartridgeIncendiary"
+            ]
+        },
+        {
+            "name": "Toz81",
+            "objectID": [
+                "Toz81",
+                "Cartridge410BoreBuckshot",
+                "Cartridge410BoreBuckshot",
+                "Cartridge410BoreBuckshot"
+            ]
+        },
+        {
+            "name": "Mp7a1",
+            "objectID": [
+                "Mp7a1",
+                "MagazineMp7",
+                "MagazineMp7",
+                "MagazineMp7"
+            ]
+        },
+        {
+            "name": "Mp7HL",
+            "objectID": [
+                "Mp7HL",
+                "MagazineMp7",
+                "MagazineMp7",
+                "MagazineMp7"
+            ]
+        },
+        {
+            "name": "P90",
+            "objectID": [
+                "P90",
+                "MagazineP90",
+                "MagazineP90",
+                "MagazineP90"
+            ]
+        },
+        {
+            "name": "PP2000",
+            "objectID": [
+                "PP2000",
+                "MagazinePP2000",
+                "MagazinePP2000",
+                "MagazinePP2000"
+            ]
+        },
+        {
+            "name": "PP91KEDR",
+            "objectID": [
+                "PP91KEDR",
+                "MagazinePP91",
+                "MagazinePP91",
+                "MagazinePP91"
+            ]
+        },
+        {
+            "name": "QC9",
+            "objectID": [
+                "QC9",
+                "MagazineAPC9",
+                "MagazineAPC9",
+                "MagazineAPC9"
+            ]
+        },
+        {
+            "name": "MP5 Shadow",
+            "objectID": [
+                "MP5 Shadow",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight"
+            ]
+        },
+        {
+            "name": "AEK919k",
+            "objectID": [
+                "AEK919k",
+                "MagazineAEK919k",
+                "MagazineAEK919k",
+                "MagazineAEK919k"
+            ]
+        },
+        {
+            "name": "Agram2000",
+            "objectID": [
+                "Agram2000",
+                "MagazineAgram2000_32rnd",
+                "MagazineAgram2000_32rnd",
+                "MagazineAgram2000_32rnd"
+            ]
+        },
+        {
+            "name": "Blyskawica",
+            "objectID": [
+                "Blyskawica",
+                "MagazineBlyskawica",
+                "MagazineBlyskawica",
+                "MagazineBlyskawica"
+            ]
+        },
+        {
+            "name": "CBJMS",
+            "objectID": [
+                "CBJMS",
+                "MagazineCBJMSDrum",
+                "MagazineCBJMSDrum",
+                "MagazineCBJMSDrum"
+            ]
+        },
+        {
+            "name": "CobrayM11_9",
+            "objectID": [
+                "CobrayM11_9",
+                "MagazineCobrayM119_16rnd",
+                "MagazineCobrayM119_16rnd",
+                "MagazineCobrayM119_16rnd"
+            ]
+        },
+        {
+            "name": "Evo3",
+            "objectID": [
+                "Evo3",
+                "MagazineEvo3",
+                "MagazineEvo3",
+                "MagazineEvo3"
+            ]
+        },
+        {
+            "name": "Evo3PDW",
+            "objectID": [
+                "Evo3PDW",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd"
+            ]
+        },
+        {
+            "name": "Evo3S1",
+            "objectID": [
+                "Evo3S1",
+                "MagazineEvo350rnd",
+                "MagazineEvo350rnd",
+                "MagazineEvo350rnd"
+            ]
+        },
+        {
+            "name": "Evo3S1Carbine",
+            "objectID": [
+                "Evo3S1Carbine",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd"
+            ]
+        },
+        {
+            "name": "Evo3S2Micro",
+            "objectID": [
+                "Evo3S2Micro",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd"
+            ]
+        },
+        {
+            "name": "Evo3Stealth",
+            "objectID": [
+                "Evo3Stealth",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd",
+                "MagazineEvo310rnd"
+            ]
+        },
+        {
+            "name": "Gepard",
+            "objectID": [
+                "Gepard",
+                "MagazineGepard40rnd",
+                "MagazineGepard40rnd",
+                "MagazineGepard40rnd"
+            ]
+        },
+        {
+            "name": "K50M",
+            "objectID": [
+                "K50M",
+                "MagazineK50M",
+                "MagazineK50M",
+                "MagazineK50M"
+            ]
+        },
+        {
+            "name": "KP31",
+            "objectID": [
+                "KP31",
+                "MagazineKP31",
+                "MagazineKP31",
+                "MagazineKP31"
+            ]
+        },
+        {
+            "name": "M3Greasegun",
+            "objectID": [
+                "M3Greasegun",
+                "MagazineM3Greasegun",
+                "MagazineM3Greasegun",
+                "MagazineM3Greasegun"
+            ]
+        },
+        {
+            "name": "M3GreasegunSuppressed",
+            "objectID": [
+                "M3GreasegunSuppressed",
+                "MagazineM3Greasegun",
+                "MagazineM3Greasegun",
+                "MagazineM3Greasegun"
+            ]
+        },
+        {
+            "name": "Mac10",
+            "objectID": [
+                "Mac10",
+                "MagazineMac10",
+                "MagazineMac10",
+                "MagazineMac10"
+            ]
+        },
+        {
+            "name": "Mac11",
+            "objectID": [
+                "Mac11",
+                "MagazineMac11",
+                "MagazineMac11",
+                "MagazineMac11"
+            ]
+        },
+        {
+            "name": "Model38",
+            "objectID": [
+                "Model38",
+                "MagazineModel38_20rnd",
+                "MagazineModel38_20rnd",
+                "MagazineModel38_20rnd"
+            ]
+        },
+        {
+            "name": "MP18",
+            "objectID": [
+                "MP18",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum",
+                "MagazineP08LugerDrum"
+            ]
+        },
+        {
+            "name": "MP34",
+            "objectID": [
+                "MP34",
+                "MagazineMP34",
+                "MagazineMP34",
+                "MagazineMP34"
+            ]
+        },
+        {
+            "name": "MP40",
+            "objectID": [
+                "MP40",
+                "MagazineMP40",
+                "MagazineMP40",
+                "MagazineMP40"
+            ]
+        },
+        {
+            "name": "MP510A5",
+            "objectID": [
+                "MP510A5",
+                "MagazineMp510_30rndStraight",
+                "MagazineMp510_30rndStraight",
+                "MagazineMp510_30rndStraight"
+            ]
+        },
+        {
+            "name": "MP540A5",
+            "objectID": [
+                "MP540A5",
+                "MagazineMp540_30rndStraight",
+                "MagazineMp540_30rndStraight",
+                "MagazineMp540_30rndStraight"
+            ]
+        },
+        {
+            "name": "MP5A1",
+            "objectID": [
+                "MP5A1",
+                "MagazineMp530rnd",
+                "MagazineMp530rnd",
+                "MagazineMp530rnd"
+            ]
+        },
+        {
+            "name": "MP5A5",
+            "objectID": [
+                "MP5A5",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight"
+            ]
+        },
+        {
+            "name": "MP5KA4",
+            "objectID": [
+                "MP5KA4",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight"
+            ]
+        },
+        {
+            "name": "MP5KPDW",
+            "objectID": [
+                "MP5KPDW",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight"
+            ]
+        },
+        {
+            "name": "MP5SD6",
+            "objectID": [
+                "MP5SD6",
+                "MagazineMp530rnd",
+                "MagazineMp530rnd",
+                "MagazineMp530rnd"
+            ]
+        },
+        {
+            "name": "MP5SFA3",
+            "objectID": [
+                "MP5SFA3",
+                "MagazineMp5100rnd",
+                "MagazineMp5100rnd",
+                "MagazineMp5100rnd"
+            ]
+        },
+        {
+            "name": "MP5WoodFurniture",
+            "objectID": [
+                "MP5WoodFurniture",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight",
+                "MagazineMp530rndStraight"
+            ]
+        },
+        {
+            "name": "Mp9",
+            "objectID": [
+                "Mp9",
+                "MagazineMp9",
+                "MagazineMp9",
+                "MagazineMp9"
+            ]
+        },
+        {
+            "name": "MPK",
+            "objectID": [
+                "MPK",
+                "MagazineMPK",
+                "MagazineMPK",
+                "MagazineMPK"
+            ]
+        },
+        {
+            "name": "Owen",
+            "objectID": [
+                "Owen",
+                "MagazineOwen",
+                "MagazineOwen",
+                "MagazineOwen"
+            ]
+        },
+        {
+            "name": "PP19Vityaz",
+            "objectID": [
+                "PP19Vityaz",
+                "MagazinePP19Vityaz50rnd",
+                "MagazinePP19Vityaz50rnd",
+                "MagazinePP19Vityaz50rnd"
+            ]
+        },
+        {
+            "name": "PPBizon",
+            "objectID": [
+                "PPBizon",
+                "MagazinePPBizon",
+                "MagazinePPBizon",
+                "MagazinePPBizon"
+            ]
+        },
+        {
+            "name": "PPSh41",
+            "objectID": [
+                "PPSh41",
+                "MagazineK50M",
+                "MagazineK50M",
+                "MagazineK50M"
+            ]
+        },
+        {
+            "name": "PPSh41Modern",
+            "objectID": [
+                "PPSh41Modern",
+                "MagazinePPSH41",
+                "MagazinePPSH41",
+                "MagazinePPSH41"
+            ]
+        },
+        {
+            "name": "SpectreM4",
+            "objectID": [
+                "SpectreM4",
+                "MagazineSpectreM4",
+                "MagazineSpectreM4",
+                "MagazineSpectreM4"
+            ]
+        },
+        {
+            "name": "StenMk2",
+            "objectID": [
+                "StenMk2",
+                "MagazineStenMk2",
+                "MagazineStenMk2",
+                "MagazineStenMk2"
+            ]
+        },
+        {
+            "name": "StenMk5",
+            "objectID": [
+                "StenMk5",
+                "MagazineStenMk2_16rnd",
+                "MagazineStenMk2_16rnd",
+                "MagazineStenMk2_16rnd"
+            ]
+        },
+        {
+            "name": "StenMk6",
+            "objectID": [
+                "StenMk6",
+                "MagazineStenMk2",
+                "MagazineStenMk2",
+                "MagazineStenMk2"
+            ]
+        },
+        {
+            "name": "StenMk9",
+            "objectID": [
+                "StenMk9",
+                "MagazineStenMk2",
+                "MagazineStenMk2",
+                "MagazineStenMk2"
+            ]
+        },
+        {
+            "name": "ThompsonM1928",
+            "objectID": [
+                "ThompsonM1928",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd"
+            ]
+        },
+        {
+            "name": "ThompsonM1A1",
+            "objectID": [
+                "ThompsonM1A1",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd"
+            ]
+        },
+        {
+            "name": "Tomacuzi",
+            "objectID": [
+                "Tomacuzi",
+                "MagazineTomacuziDrum",
+                "MagazineTomacuziDrum",
+                "MagazineTomacuziDrum"
+            ]
+        },
+        {
+            "name": "Type100",
+            "objectID": [
+                "Type100",
+                "MagazineType100",
+                "MagazineType100",
+                "MagazineType100"
+            ]
+        },
+        {
+            "name": "UMP45",
+            "objectID": [
+                "UMP45",
+                "MagazineUMP45",
+                "MagazineUMP45",
+                "MagazineUMP45"
+            ]
+        },
+        {
+            "name": "UMP9",
+            "objectID": [
+                "UMP9",
+                "MagazineUMP9",
+                "MagazineUMP9",
+                "MagazineUMP9"
+            ]
+        },
+        {
+            "name": "Uzi_Classic",
+            "objectID": [
+                "Uzi_Classic",
+                "MagazineMicroUzi32rnd",
+                "MagazineMicroUzi32rnd",
+                "MagazineMicroUzi32rnd"
+            ]
+        },
+        {
+            "name": "Uzi_Compact",
+            "objectID": [
+                "Uzi_Compact",
+                "MagazineUzi72rndDrum",
+                "MagazineUzi72rndDrum",
+                "MagazineUzi72rndDrum"
+            ]
+        },
+        {
+            "name": "Uzi_Mini",
+            "objectID": [
+                "Uzi_Mini",
+                "MagazineUzi72rndDrum",
+                "MagazineUzi72rndDrum",
+                "MagazineUzi72rndDrum"
+            ]
+        },
+        {
+            "name": "Uzi_Nano",
+            "objectID": [
+                "Uzi_Nano",
+                "MagazineUziNano",
+                "MagazineUziNano",
+                "MagazineUziNano"
+            ]
+        },
+        {
+            "name": "Vector45",
+            "objectID": [
+                "Vector45",
+                "MagazineVector45Drum",
+                "MagazineVector45Drum",
+                "MagazineVector45Drum"
+            ]
+        },
+        {
+            "name": "Vigneron",
+            "objectID": [
+                "Vigneron",
+                "MagazineVigneron",
+                "MagazineVigneron",
+                "MagazineVigneron"
+            ]
+        },
+        {
+            "name": "ViperMk1",
+            "objectID": [
+                "ViperMk1",
+                "MagazineViperMk1",
+                "MagazineViperMk1",
+                "MagazineViperMk1"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}
