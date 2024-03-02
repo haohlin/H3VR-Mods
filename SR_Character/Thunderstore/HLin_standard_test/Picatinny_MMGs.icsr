@@ -1,0 +1,42 @@
+{
+    "name": "Picatinny MMGs",
+    "minCapacity": 41,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 0,
+    "set": [
+		0
+    ],
+    "eras": [
+        6,
+        7
+    ],
+    "sizes": [
+        6
+    ],
+    "actions": [
+        6
+    ],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [
+        3
+    ],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [
+        5
+    ],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

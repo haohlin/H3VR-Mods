@@ -1,0 +1,229 @@
+{
+    "name": "HLIN",
+    "description": "test",
+    "category": "Standard",
+    "factionName": "Popsicles",
+    "pointsLevel": [
+        15,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+    ],
+    "newMagazineCost": 1,
+    "upgradeMagazineCost": 2,
+    "duplicateMagazineCost": 1,
+    "modCost": 1,
+    "recyclerPoints": 1,
+    "modeRearming": 1,
+    "rearmingCost": 0,
+    "modeSpeedLoaders": 1,
+    "speedLoadersCost": 0,
+    "modeClips": 1,
+    "clipsCost": 0,
+    "modeRounds": 1,
+    "roundsCost": 0,
+    "disableAmmoTable": false,
+    "disableModtable": false,
+    "disableBuyMenu": false,
+    "disableDuplicator": false,
+    "disableRecycler": false,
+    "deathMode": 2,
+    "deathCount": 2.0,
+    "ammoUpgradeCost": [
+        0,
+        1,
+        2,
+        3,
+        2,
+        1,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        0,
+        1,
+        1,
+        1,
+        2,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+    ],
+    "attachmentsCost": [
+        -1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        3,
+        1,
+        1,
+        -1,
+        2,
+        1,
+        1,
+        1,
+        3,
+        1
+    ],
+    "startGearCategories": [
+        "Picatinny Pistols",
+        "Health",
+        "Range Finder",
+        "Grapple Hook",
+        "Backpack"
+    ],
+    "purchaseCategories": [
+        {
+            "itemCategory": "Wallet",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Point",
+            "cost": 1
+        },
+        {
+            "itemCategory": "69 Cal 1",
+            "cost": 1
+        },
+        {
+            "itemCategory": "69 Cal 5",
+            "cost": 5
+        },
+        {
+            "itemCategory": "69 Cal 10",
+            "cost": 10
+        },
+        {
+            "itemCategory": "69 Cal 25",
+            "cost": 25
+        },
+        {
+            "itemCategory": "69 Cal 100",
+            "cost": 100
+        },
+        {
+            "itemCategory": "69 Cal 1000",
+            "cost": 1000
+        },
+        {
+            "itemCategory": "Picatinny Pistols",
+            "cost": 2
+        },
+        {
+            "itemCategory": "Picatinny SMGs",
+            "cost": 3
+        },
+        {
+            "itemCategory": "Picatinny Assault Rifles",
+            "cost": 4
+        },
+        {
+            "itemCategory": "Picatinny Battle Rifles",
+            "cost": 6
+        },
+        {
+            "itemCategory": "Picatinny LMGs",
+            "cost": 7
+        },
+        {
+            "itemCategory": "Picatinny MMGs",
+            "cost": 8
+        },
+        {
+            "itemCategory": "Picatinny Snipers",
+            "cost": 2
+        },
+        {
+            "itemCategory": "Picatinny Anti Material Snipers",
+            "cost": 7
+        },
+        {
+            "itemCategory": "Picatinny Shotguns",
+            "cost": 2
+        },
+        {
+            "itemCategory": "Picatinny AutoShotguns",
+            "cost": 6
+        },
+        {
+            "itemCategory": "Picatinny Launchers",
+            "cost": 7
+        },
+        {
+            "itemCategory": "Picatinny GrenadeLaunchers",
+            "cost": 8
+        },
+        {
+            "itemCategory": "Picatinny ALL",
+            "cost": 7
+        },
+        {
+            "itemCategory": "Picatinny Melees",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Shields",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Health",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Range Finder",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Grapple Hook",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Backpack",
+            "cost": 2
+        },
+        {
+            "itemCategory": "Modern Grenades",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Modern Flash Grenades",
+            "cost": 1
+        },
+        {
+            "itemCategory": "Modern Smoke Grenades",
+            "cost": 1
+        }
+    ],
+    "lootCategories": [
+        {
+            "chance": 0.029999999329447748,
+            "itemCategory": "Point"
+        },
+        {
+            "chance": 0.019999999552965165,
+            "itemCategory": "Health"
+        }
+    ],
+    "subtractionObjectIDs": []
+}

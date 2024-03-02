@@ -1,0 +1,35 @@
+{
+    "name": "eddie_lasers",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 3,
+    "set": [
+        0
+    ],
+    "eras": [
+        6,
+        7
+    ],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [],
+    "features": [
+        6
+    ],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

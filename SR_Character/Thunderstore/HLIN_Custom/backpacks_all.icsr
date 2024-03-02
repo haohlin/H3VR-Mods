@@ -1,0 +1,57 @@
+{
+    "name": "backpacks_all",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "BackPackA",
+            "objectID": [
+                "BackpackA"
+            ]
+        },
+        {
+            "name": "ButtBackpack",
+            "objectID": [
+                "ButtBackpack"
+            ]
+        },
+        {
+            "name": "Wartech",
+            "objectID": [
+                "BackpackWartech"
+            ]
+        },
+        {
+            "name": "CarryAll",
+            "objectID": [
+                "FTW.BackPack.Carryall"
+            ]
+        },
+        {
+            "name": "CarryAllSmall",
+            "objectID": [
+                "FTW.Backpack.CarrySmall"
+            ]
+        }
+    ],
+    "type": 4,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

@@ -1,0 +1,129 @@
+{
+    "name": "mags_military",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MagazineAK12",
+            "objectID": [
+                "MagazineAK12"
+            ]
+        },
+        {
+            "name": "MagazineAK74_10rnd",
+            "objectID": [
+                "MagazineAK74_10rnd"
+            ]
+        },
+        {
+            "name": "MagazineAK74_20rnd",
+            "objectID": [
+                "MagazineAK74_20rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical10rnd",
+            "objectID": [
+                "MagazineAKMTactical10rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical20rnd",
+            "objectID": [
+                "MagazineAKMTactical20rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical",
+            "objectID": [
+                "MagazineAKMTactical"
+            ]
+        },
+        {
+            "name": "MagazineAKS74U2",
+            "objectID": [
+                "MagazineAKS74U2"
+            ]
+        },
+        {
+            "name": "MagazineAK74N",
+            "objectID": [
+                "MagazineAK74N"
+            ]
+        },
+        {
+            "name": "MagazineSKSModern10rnd",
+            "objectID": [
+                "MagazineSKSModern10rnd"
+            ]
+        },
+        {
+            "name": "MagazineSKSModern20rnd",
+            "objectID": [
+                "MagazineSKSModern20rnd"
+            ]
+        },
+        {
+            "name": "MagazineSaiga12k5rnd",
+            "objectID": [
+                "MagazineSaiga12k5rnd"
+            ]
+        },
+        {
+            "name": "MagazineSaiga12k12rnd",
+            "objectID": [
+                "MagazineSaiga12k12rnd"
+            ]
+        },
+        {
+            "name": "MagazineSV98",
+            "objectID": [
+                "MagazineSV98"
+            ]
+        },
+        {
+            "name": "MagazinePP19Vityaz30rnd",
+            "objectID": [
+                "MagazinePP19Vityaz30rnd"
+            ]
+        },
+        {
+            "name": "MagazinePP19Vityaz50rnd",
+            "objectID": [
+                "MagazinePP19Vityaz50rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_10Rnd",
+            "objectID": [
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_20Rnd",
+            "objectID": [
+                "MagazineVZ58_20Rnd"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

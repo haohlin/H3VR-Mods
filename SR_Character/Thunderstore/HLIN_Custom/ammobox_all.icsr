@@ -1,0 +1,177 @@
+{
+    "name": "ammobox_all",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "12gauge00buck25round.MELON",
+            "objectID": [
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "12gaugeno4buck25round.MELON",
+            "objectID": [
+                "12gaugeno4buck25round.MELON"
+            ]
+        },
+        {
+            "name": "12gaugeSlug25round.MELON",
+            "objectID": [
+                "12gaugeSlug25round.MELON"
+            ]
+        },
+        {
+            "name": "556x45AP50round.MELON",
+            "objectID": [
+                "556x45AP50round.MELON"
+            ]
+        },
+        {
+            "name": "556x45fmj50round.MELON",
+            "objectID": [
+                "556x45fmj50round.MELON"
+            ]
+        },
+        {
+            "name": "762x39AP50round.MELON",
+            "objectID": [
+                "762x39AP50round.MELON"
+            ]
+        },
+        {
+            "name": "762x39fmj50round.MELON",
+            "objectID": [
+                "762x39fmj50round.MELON"
+            ]
+        },
+        {
+            "name": "762x54mmrfmj20round.MELON",
+            "objectID": [
+                "762x54mmrfmj20round.MELON"
+            ]
+        },
+        {
+            "name": "9x18mmFMJ50round.MELON",
+            "objectID": [
+                "9x18mmFMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "9x18makJHP50round.MELON",
+            "objectID": [
+                "9x18makJHP50round.MELON"
+            ]
+        },
+        {
+            "name": "9x19FMJ50round.MELON",
+            "objectID": [
+                "9x19FMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "9x19JHP50round.MELON",
+            "objectID": [
+                "9x19JHP50round.MELON"
+            ]
+        },
+        {
+            "name": "545x39AP50round.MELON",
+            "objectID": [
+                "545x39AP50round.MELON"
+            ]
+        },
+        {
+            "name": "545x39fmj50round.MELON",
+            "objectID": [
+                "545x39fmj50round.MELON"
+            ]
+        },
+        {
+            "name": "45acpfmj50round.MELON",
+            "objectID": [
+                "45acpfmj50round.MELON"
+            ]
+        },
+        {
+            "name": "45acpjhp50round.MELON",
+            "objectID": [
+                "45acpjhp50round.MELON"
+            ]
+        },
+        {
+            "name": "762x51AP20round.MELON",
+            "objectID": [
+                "762x51AP20round.MELON"
+            ]
+        },
+        {
+            "name": "762x51fmj20round.MELON",
+            "objectID": [
+                "762x51fmj20round.MELON"
+            ]
+        },
+        {
+            "name": "338lapuaAP20round.MELON",
+            "objectID": [
+                "338lapuaAP20round.MELON"
+            ]
+        },
+        {
+            "name": "338lapuafmj20round.MELON",
+            "objectID": [
+                "338lapuafmj20round.MELON"
+            ]
+        },
+        {
+            "name": "5.7AP50round.MELON",
+            "objectID": [
+                "5.7AP50round.MELON"
+            ]
+        },
+        {
+            "name": "5.7FMJ50round.MELON",
+            "objectID": [
+                "5.7FMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "5.7x28JHP50round.MELON",
+            "objectID": [
+                "5.7x28JHP50round.MELON"
+            ]
+        },
+        {
+            "name": "7.62x25tokFMJ50round.MELON",
+            "objectID": [
+                "7.62x25tokFMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "762x25tokJHP50round.MELON",
+            "objectID": [
+                "762x25tokJHP50round.MELON"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

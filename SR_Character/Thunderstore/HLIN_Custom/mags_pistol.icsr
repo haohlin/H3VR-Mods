@@ -1,0 +1,81 @@
+{
+    "name": "mags_pistol",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 1,
+    "ammoSpawnLockedCount": 1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MakarovMag",
+            "objectID": [
+                "MagazineMakarov"
+            ]
+        },
+        {
+            "name": "APSMag",
+            "objectID": [
+                "MagazineAPS"
+            ]
+        },
+        {
+            "name": "MagazineM9A1",
+            "objectID": [
+                "MagazineM9A1"
+            ]
+        },
+        {
+            "name": "MagazineM9A3",
+            "objectID": [
+                "MagazineM9A3"
+            ]
+        },
+        {
+            "name": "MagazineM1911Tactical",
+            "objectID": [
+                "MagazineM1911Tactical"
+            ]
+        },
+        {
+            "name": "m19mag",
+            "objectID": [
+                "m19mag"
+            ]
+        },
+        {
+            "name": "NWDaemon9-15",
+            "objectID": [
+                "NWDaemon9-15"
+            ]
+        },
+        {
+            "name": "NWP890Mag8",
+            "objectID": [
+                "NWP890Mag8"
+            ]
+        },
+        {
+            "name": "MagazineUSP",
+            "objectID": [
+                "MagazineUSP"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

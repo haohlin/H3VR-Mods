@@ -1,0 +1,93 @@
+{
+    "name": "mags_bluesky",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MagazineStanagPM10rnd",
+            "objectID": [
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "Magazine_PMAG_30Window",
+            "objectID": [
+                "Magazine_PMAG_30Window"
+            ]
+        },
+        {
+            "name": "MagazineVector45",
+            "objectID": [
+                "MagazineVector45"
+            ]
+        },
+        {
+            "name": "MagazineAWM",
+            "objectID": [
+                "MagazineAWM"
+            ]
+        },
+        {
+            "name": "NWTAQ5630",
+            "objectID": [
+                "NWTAQ5630"
+            ]
+        },
+        {
+            "name": "NWTAQM-10",
+            "objectID": [
+                "NWTAQM-10"
+            ]
+        },
+        {
+            "name": "NWTAQM-15",
+            "objectID": [
+                "NWTAQM-15"
+            ]
+        },
+        {
+            "name": "NWTAQV-20",
+            "objectID": [
+                "NWTAQV-20"
+            ]
+        },
+        {
+            "name": "pdswmag",
+            "objectID": [
+                "pdswmag"
+            ]
+        },
+        {
+            "name": "Phantom9",
+            "objectID": [
+                "MagazineG17Standard"
+            ]
+        },
+        {
+            "name": "Phantom930r",
+            "objectID": [
+                "MagazineG19_33rnd"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

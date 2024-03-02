@@ -1,0 +1,41 @@
+{
+    "name": "Picatinny Anti Material Snipers",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 0,
+    "set": [
+		0
+    ],
+    "eras": [
+        7,
+        6
+    ],
+    "sizes": [
+        6
+    ],
+    "actions": [
+        2,
+        6
+    ],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [
+        6
+    ],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

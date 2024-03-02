@@ -1,0 +1,159 @@
+{
+    "name": "mags_horizon",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 1,
+    "ammoSpawnLockedCount": 1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MagazineMp515rnd",
+            "objectID": [
+                "MagazineMp515rnd"
+            ]
+        },
+        {
+            "name": "MagazineMp530rnd",
+            "objectID": [
+                "MagazineMp530rnd"
+            ]
+        },
+        {
+            "name": "MagazineG36Standard",
+            "objectID": [
+                "MagazineG36Standard"
+            ]
+        },
+        {
+            "name": "MagazineUMP45",
+            "objectID": [
+                "MagazineUMP45"
+            ]
+        },
+        {
+            "name": "MagazineUMP9",
+            "objectID": [
+                "MagazineUMP9"
+            ]
+        },
+        {
+            "name": "MagazinePSG110rnd",
+            "objectID": [
+                "MagazinePSG110rnd"
+            ]
+        },
+        {
+            "name": "MagazinePSG120rnd",
+            "objectID": [
+                "MagazinePSG120rnd"
+            ]
+        },
+        {
+            "name": "NWGrauMag20",
+            "objectID": [
+                "NWGrauMag20"
+            ]
+        },
+        {
+            "name": "NWGrauMag30",
+            "objectID": [
+                "NWGrauMag30"
+            ]
+        },
+        {
+            "name": "NWKiloMag30",
+            "objectID": [
+                "NWKiloMag30"
+            ]
+        },
+        {
+            "name": "NWLM56Mag20",
+            "objectID": [
+                "NWLM56Mag20"
+            ]
+        },
+        {
+            "name": "NWLM56Mag30",
+            "objectID": [
+                "NWLM56Mag30"
+            ]
+        },
+        {
+            "name": "NWLM762-20",
+            "objectID": [
+                "NWLM762-20"
+            ]
+        },
+        {
+            "name": "NWLM762-30",
+            "objectID": [
+                "NWLM762-30"
+            ]
+        },
+        {
+            "name": "NWLMS-10",
+            "objectID": [
+                "NWLMS-10"
+            ]
+        },
+        {
+            "name": "NWLMS-15",
+            "objectID": [
+                "NWLMS-15"
+            ]
+        },
+        {
+            "name": "NWLM9Mag15",
+            "objectID": [
+                "NWLM9Mag15"
+            ]
+        },
+        {
+            "name": "NWLM9Mag30",
+            "objectID": [
+                "NWLM9Mag30"
+            ]
+        },
+        {
+            "name": "NWVel46Mag30",
+            "objectID": [
+                "NWVel46Mag30"
+            ]
+        },
+        {
+            "name": "cx9mag",
+            "objectID": [
+                "cx9mag"
+            ]
+        },
+        {
+            "name": "cx9magsmall",
+            "objectID": [
+                "cx9magsmall"
+            ]
+        },
+        {
+            "name": "MagazineCX4",
+            "objectID": [
+                "MagazineCX4"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

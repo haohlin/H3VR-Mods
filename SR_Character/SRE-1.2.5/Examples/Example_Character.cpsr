@@ -1,0 +1,102 @@
+{
+    "name": "Example Character",
+    "description": "Shows off basic functionality of characters",
+    "category": "Example",
+    "factionName": "Example Faction",
+    "pointsLevel": [
+        3,
+        3,
+        4,
+        5,
+        6
+    ],
+    "newMagazineCost": 1,
+    "upgradeMagazineCost": 2,
+    "duplicateMagazineCost": 1,
+    "modCost": 1,
+    "recyclerPoints": 1,
+    "modeRearming": 1,
+    "rearmingCost": 0,
+    "modeSpeedLoaders": 1,
+    "speedLoadersCost": 0,
+    "modeClips": 1,
+    "clipsCost": 0,
+    "modeRounds": 1,
+    "roundsCost": 0,
+    "disableAmmoTable": false,
+    "disableModtable": false,
+    "disableBuyMenu": false,
+    "disableDuplicator": false,
+    "disableRecycler": false,
+    "deathMode": 2,
+    "deathCount": 2.0,
+    "ammoUpgradeCost": [
+        0,
+        1,
+        2,
+        3,
+        2,
+        1,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        0,
+        1,
+        1,
+        1,
+        2,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+    ],
+    "attachmentsCost": [
+        -1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        3,
+        1,
+        1,
+        -1,
+        2,
+        1,
+        1,
+        1,
+        3,
+        1
+    ],
+    "startGearCategories": [
+        "Example SMGs",
+        "Backpack"
+    ],
+    "purchaseCategories": [
+        {
+            "itemCategory": "Example SMGs",
+            "cost": 3
+        },
+        {
+            "itemCategory": "Butt Backpack",
+            "cost": 2
+        }
+    ],
+    "lootCategories": [
+        {
+            "chance": 0.1,
+            "itemCategory": "Example SMGs"
+        }
+    ],
+    "subtractionObjectIDs": []
+}

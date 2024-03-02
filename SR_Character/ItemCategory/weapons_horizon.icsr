@@ -1,0 +1,146 @@
+{
+    "name": "weapons_horizon",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MP5A3",
+            "objectID": [
+                "MP5A3",
+                "MagazineMp515rnd",
+                "MagazineMp515rnd",
+                "MagazineMp515rnd"
+            ]
+        },
+        {
+            "name": "G36",
+            "objectID": [
+                "G36",
+                "MagazineG36Standard",
+                "MagazineG36Standard",
+                "MagazineG36Standard"
+            ]
+        },
+        {
+            "name": "G36C",
+            "objectID": [
+                "G36C",
+                "MagazineG36Standard",
+                "MagazineG36Standard",
+                "MagazineG36Standard"
+            ]
+        },
+        {
+            "name": "UMP45",
+            "objectID": [
+                "UMP45",
+                "MagazineUMP45",
+                "MagazineUMP45",
+                "MagazineUMP45"
+            ]
+        },
+        {
+            "name": "UMP9",
+            "objectID": [
+                "UMP9",
+                "MagazineUMP9",
+                "MagazineUMP9",
+                "MagazineUMP9"
+            ]
+        },
+        {
+            "name": "PSG1",
+            "objectID": [
+                "PSG1",
+                "MagazinePSG110rnd",
+                "MagazinePSG110rnd",
+                "MagazinePSG110rnd"
+            ]
+        },
+        {
+            "name": "NWGrau556",
+            "objectID": [
+                "NWGrau556",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "NWKilo141",
+            "objectID": [
+                "NWKilo141",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd",
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "NWLMRecoil56",
+            "objectID": [
+                "NWLMRecoil56",
+                "NWLM56Mag20",
+                "NWLM56Mag20",
+                "NWLM56Mag20"
+            ]
+        },
+        {
+            "name": "NWVel46Main",
+            "objectID": [
+                "NWVel46Main",
+                "NWVel46Mag30",
+                "NWVel46Mag30",
+                "NWVel46Mag30"
+            ]
+        },
+        {
+            "name": "cx9",
+            "objectID": [
+                "cx9",
+                "cx9magsmall",
+                "cx9magsmall",
+                "cx9magsmall"
+            ]
+        },
+        {
+            "name": "NWLMSReceiver",
+            "objectID": [
+                "NWLMSReceiver",
+                "NWLMS-10",
+                "NWLMS-10",
+                "NWLMS-10"
+            ]
+        },
+        {
+            "name": "CX4",
+            "objectID": [
+                "CX4",
+                "MagazineCX4",
+                "MagazineCX4",
+                "MagazineCX4"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        0
+    ],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

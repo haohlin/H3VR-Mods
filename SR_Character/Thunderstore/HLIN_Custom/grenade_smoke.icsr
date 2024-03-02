@@ -1,0 +1,45 @@
+{
+    "name": "grenade_smoke",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 2,
+    "ammoSpawnLockedCount": 1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "SmokeRED",
+            "objectID": [
+                "PinnedGrenadeM18SmokeGrenadeWhite"
+            ]
+        },
+        {
+            "name": "SmokeWHITE",
+            "objectID": [
+                "PinnedGrenadeM18SmokeGrenadeRed"
+            ]
+        },
+        {
+            "name": "SmokeMURICA",
+            "objectID": [
+                "PinnedGrenadeM18SmokeGrenadeFreedom"
+            ]
+        }
+    ],
+    "type": 2,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

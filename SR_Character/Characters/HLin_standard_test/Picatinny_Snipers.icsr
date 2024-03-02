@@ -1,0 +1,49 @@
+{
+    "name": "Picatinny Snipers",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [
+        3,
+        4,
+        5,
+        6,
+        7
+    ],
+    "actions": [
+        2,
+        6,
+        1,
+        5
+    ],
+    "modes": [],
+    "excludeModes": [
+        3
+    ],
+    "feedoptions": [],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [
+        4,
+        5,
+        6
+    ],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": [
+        "Sako85Obrez",
+        ""
+    ]
+}

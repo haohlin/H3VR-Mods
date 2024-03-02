@@ -1,0 +1,57 @@
+{
+    "name": "ammobox_interAR",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "556x45AP50round.MELON",
+            "objectID": [
+                "556x45AP50round.MELON"
+            ]
+        },
+        {
+            "name": "556x45fmj50round.MELON",
+            "objectID": [
+                "556x45fmj50round.MELON"
+            ]
+        },
+        {
+            "name": "5.7AP50round.MELON",
+            "objectID": [
+                "5.7AP50round.MELON"
+            ]
+        },
+        {
+            "name": "5.7FMJ50round.MELON",
+            "objectID": [
+                "5.7FMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "5.7x28JHP50round.MELON",
+            "objectID": [
+                "5.7x28JHP50round.MELON"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

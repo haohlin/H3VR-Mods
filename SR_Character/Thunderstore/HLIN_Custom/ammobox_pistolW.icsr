@@ -1,0 +1,51 @@
+{
+    "name": "ammobox_pistolW",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "9x19FMJ50round.MELON",
+            "objectID": [
+                "9x19FMJ50round.MELON"
+            ]
+        },
+        {
+            "name": "9x19JHP50round.MELON",
+            "objectID": [
+                "9x19JHP50round.MELON"
+            ]
+        },
+        {
+            "name": "45acpfmj50round.MELON",
+            "objectID": [
+                "45acpfmj50round.MELON"
+            ]
+        },
+        {
+            "name": "45acpjhp50round.MELON",
+            "objectID": [
+                "45acpjhp50round.MELON"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

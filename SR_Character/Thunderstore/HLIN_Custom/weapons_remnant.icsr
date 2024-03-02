@@ -1,0 +1,166 @@
+{
+    "name": "weapons_remnant",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "toz106",
+            "objectID": [
+                "Toz106",
+                "MagazineToz106",
+                "MagazineToz106",
+                "MagazineToz106"
+            ]
+        },
+        {
+            "name": "mosin_m91",
+            "objectID": [
+                "Mosin91_30",
+                "762x54mmrfmj20round.MELON"
+            ]
+        },
+        {
+            "name": "PP91KEDR",
+            "objectID": [
+                "PP91KEDR",
+                "MagazinePP91",
+                "MagazinePP91",
+                "MagazinePP91"
+            ]
+        },
+        {
+            "name": "PPSh41",
+            "objectID": [
+                "PPSh41",
+                "MagazinePPSH41",
+                "MagazinePPSH41",
+                "MagazinePPSH41"
+            ]
+        },
+        {
+            "name": "ThompsonM1A1",
+            "objectID": [
+                "ThompsonM1A1",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd",
+                "MagazineThompson30rnd"
+            ]
+        },
+        {
+            "name": "DoubleBarrel1882",
+            "objectID": [
+                "DoubleBarrel1882",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "IZh18_12g",
+            "objectID": [
+                "IZh18_12g",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "MosinM1891",
+            "objectID": [
+                "MosinM1891",
+                "762x54mmrfmj20round.MELON"
+            ]
+        },
+        {
+            "name": "MosinM38",
+            "objectID": [
+                "MosinM38",
+                "762x54mmrfmj20round.MELON"
+            ]
+        },
+        {
+            "name": "HammerlessLong",
+            "objectID": [
+                "HammerlessLong",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "SVT40",
+            "objectID": [
+                "SVT40",
+                "MagazineSVT40",
+                "MagazineSVT40",
+                "MagazineSVT40"
+            ]
+        },
+        {
+            "name": "SKSClassic",
+            "objectID": [
+                "SKSClassic",
+                "762x39fmj50round.MELON"
+            ]
+        },
+        {
+            "name": "vz58V",
+            "objectID": [
+                "vz58V",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "vz58P",
+            "objectID": [
+                "vz58P",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "DT11Shorty",
+            "objectID": [
+                "DT11Shorty",
+                "12gauge00buck25round.MELON"
+            ]
+        },
+        {
+            "name": "Vepr Hunter",
+            "objectID": [
+                "Vepr Hunter",
+                "Vepr5",
+                "Vepr5",
+                "Vepr5"
+            ]
+        },
+        {
+            "name": "Vepr Hunter (Wood)",
+            "objectID": [
+                "Vepr Hunter",
+                "Vepr5",
+                "Vepr5",
+                "Vepr5"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        0
+    ],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

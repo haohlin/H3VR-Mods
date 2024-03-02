@@ -1,0 +1,45 @@
+{
+    "name": "meds_mid",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "FirstAidKit",
+            "objectID": [
+                "firstaidkit_pubg.tt"
+            ]
+        },
+        {
+            "name": "AdrenalineSyringe",
+            "objectID": [
+                "adrenalineshot_pubg.tt"
+            ]
+        },
+        {
+            "name": "MedShot",
+            "objectID": [
+                "MPD0_StimAmmo.tt"
+            ]
+        }
+    ],
+    "type": 1,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

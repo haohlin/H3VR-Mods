@@ -1,0 +1,39 @@
+{
+    "name": "meds_minor",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "Painkillers",
+            "objectID": [
+                "painkiller_pubg.tt"
+            ]
+        },
+        {
+            "name": "EnergyDrink",
+            "objectID": [
+                "energydrink_pubg.tt"
+            ]
+        }
+    ],
+    "type": 1,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

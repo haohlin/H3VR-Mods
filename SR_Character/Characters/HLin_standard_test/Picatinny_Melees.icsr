@@ -1,0 +1,36 @@
+{
+    "name": "Picatinny Melees",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": true,
+    "objectGroups": [],
+    "type": 4,
+    "set": [
+		0
+    ],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        1
+    ],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [
+        1
+    ],
+    "meleeHandedness": [
+        1,
+        2
+    ],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "thrownDamage": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

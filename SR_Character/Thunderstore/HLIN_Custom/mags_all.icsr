@@ -1,0 +1,381 @@
+{
+    "name": "mags_all",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": -1,
+    "ammoSpawnLockedCount": -1,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "MagazineStanagPM10rnd",
+            "objectID": [
+                "MagazineStanagPM10rnd"
+            ]
+        },
+        {
+            "name": "Magazine_PMAG_30Window",
+            "objectID": [
+                "Magazine_PMAG_30Window"
+            ]
+        },
+        {
+            "name": "MagazineVector45",
+            "objectID": [
+                "MagazineVector45"
+            ]
+        },
+        {
+            "name": "MagazineAWM",
+            "objectID": [
+                "MagazineAWM"
+            ]
+        },
+        {
+            "name": "NWTAQ5630",
+            "objectID": [
+                "NWTAQ5630"
+            ]
+        },
+        {
+            "name": "NWTAQM-10",
+            "objectID": [
+                "NWTAQM-10"
+            ]
+        },
+        {
+            "name": "NWTAQM-15",
+            "objectID": [
+                "NWTAQM-15"
+            ]
+        },
+        {
+            "name": "NWTAQV-20",
+            "objectID": [
+                "NWTAQV-20"
+            ]
+        },
+        {
+            "name": "pdswmag",
+            "objectID": [
+                "pdswmag"
+            ]
+        },
+        {
+            "name": "Phantom9",
+            "objectID": [
+                "MagazineG17Standard"
+            ]
+        },
+        {
+            "name": "Phantom930r",
+            "objectID": [
+                "MagazineG19_33rnd"
+            ]
+        },
+        {
+            "name": "MagazineMp515rnd",
+            "objectID": [
+                "MagazineMp515rnd"
+            ]
+        },
+        {
+            "name": "MagazineMp530rnd",
+            "objectID": [
+                "MagazineMp530rnd"
+            ]
+        },
+        {
+            "name": "MagazineG36Standard",
+            "objectID": [
+                "MagazineG36Standard"
+            ]
+        },
+        {
+            "name": "MagazineUMP45",
+            "objectID": [
+                "MagazineUMP45"
+            ]
+        },
+        {
+            "name": "MagazineUMP9",
+            "objectID": [
+                "MagazineUMP9"
+            ]
+        },
+        {
+            "name": "MagazinePSG110rnd",
+            "objectID": [
+                "MagazinePSG110rnd"
+            ]
+        },
+        {
+            "name": "MagazinePSG120rnd",
+            "objectID": [
+                "MagazinePSG120rnd"
+            ]
+        },
+        {
+            "name": "NWGrauMag20",
+            "objectID": [
+                "NWGrauMag20"
+            ]
+        },
+        {
+            "name": "NWGrauMag30",
+            "objectID": [
+                "NWGrauMag30"
+            ]
+        },
+        {
+            "name": "NWKiloMag30",
+            "objectID": [
+                "NWKiloMag30"
+            ]
+        },
+        {
+            "name": "NWLM56Mag20",
+            "objectID": [
+                "NWLM56Mag20"
+            ]
+        },
+        {
+            "name": "NWLM56Mag30",
+            "objectID": [
+                "NWLM56Mag30"
+            ]
+        },
+        {
+            "name": "NWLM762-20",
+            "objectID": [
+                "NWLM762-20"
+            ]
+        },
+        {
+            "name": "NWLM762-30",
+            "objectID": [
+                "NWLM762-30"
+            ]
+        },
+        {
+            "name": "NWLMS-10",
+            "objectID": [
+                "NWLMS-10"
+            ]
+        },
+        {
+            "name": "NWLMS-15",
+            "objectID": [
+                "NWLMS-15"
+            ]
+        },
+        {
+            "name": "NWLM9Mag15",
+            "objectID": [
+                "NWLM9Mag15"
+            ]
+        },
+        {
+            "name": "NWLM9Mag30",
+            "objectID": [
+                "NWLM9Mag30"
+            ]
+        },
+        {
+            "name": "NWVel46Mag30",
+            "objectID": [
+                "NWVel46Mag30"
+            ]
+        },
+        {
+            "name": "cx9mag",
+            "objectID": [
+                "cx9mag"
+            ]
+        },
+        {
+            "name": "cx9magsmall",
+            "objectID": [
+                "cx9magsmall"
+            ]
+        },
+        {
+            "name": "MagazineCX4",
+            "objectID": [
+                "MagazineCX4"
+            ]
+        },
+        {
+            "name": "MagazineAK12",
+            "objectID": [
+                "MagazineAK12"
+            ]
+        },
+        {
+            "name": "MagazineAK74_10rnd",
+            "objectID": [
+                "MagazineAK74_10rnd"
+            ]
+        },
+        {
+            "name": "MagazineAK74_20rnd",
+            "objectID": [
+                "MagazineAK74_20rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical10rnd",
+            "objectID": [
+                "MagazineAKMTactical10rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical20rnd",
+            "objectID": [
+                "MagazineAKMTactical20rnd"
+            ]
+        },
+        {
+            "name": "MagazineAKMTactical",
+            "objectID": [
+                "MagazineAKMTactical"
+            ]
+        },
+        {
+            "name": "MagazineAKS74U2",
+            "objectID": [
+                "MagazineAKS74U2"
+            ]
+        },
+        {
+            "name": "MagazineAK74N",
+            "objectID": [
+                "MagazineAK74N"
+            ]
+        },
+        {
+            "name": "MagazineSKSModern10rnd",
+            "objectID": [
+                "MagazineSKSModern10rnd"
+            ]
+        },
+        {
+            "name": "MagazineSKSModern20rnd",
+            "objectID": [
+                "MagazineSKSModern20rnd"
+            ]
+        },
+        {
+            "name": "MagazineSaiga12k5rnd",
+            "objectID": [
+                "MagazineSaiga12k5rnd"
+            ]
+        },
+        {
+            "name": "MagazineSaiga12k12rnd",
+            "objectID": [
+                "MagazineSaiga12k12rnd"
+            ]
+        },
+        {
+            "name": "MagazineSV98",
+            "objectID": [
+                "MagazineSV98"
+            ]
+        },
+        {
+            "name": "MagazinePP19Vityaz30rnd",
+            "objectID": [
+                "MagazinePP19Vityaz30rnd"
+            ]
+        },
+        {
+            "name": "MagazinePP19Vityaz50rnd",
+            "objectID": [
+                "MagazinePP19Vityaz50rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_10Rnd",
+            "objectID": [
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_20Rnd",
+            "objectID": [
+                "MagazineVZ58_20Rnd"
+            ]
+        },
+        {
+            "name": "PP91Mag",
+            "objectID": [
+                "MagazinePP91"
+            ]
+        },
+        {
+            "name": "MagazineSVT40",
+            "objectID": [
+                "MagazineSVT40"
+            ]
+        },
+        {
+            "name": "MagazineThompson30",
+            "objectID": [
+                "MagazineThompson30"
+            ]
+        },
+        {
+            "name": "MagazinePPSH41",
+            "objectID": [
+                "MagazinePPSH41"
+            ]
+        },
+        {
+            "name": "MagazineToz106",
+            "objectID": [
+                "MagazineToz106"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_10Rnd",
+            "objectID": [
+                "MagazineVZ58_10Rnd"
+            ]
+        },
+        {
+            "name": "MagazineVZ58_20Rnd",
+            "objectID": [
+                "MagazineVZ58_20Rnd"
+            ]
+        },
+        {
+            "name": "Vepr5",
+            "objectID": [
+                "Vepr5"
+            ]
+        },
+        {
+            "name": "Vepr10",
+            "objectID": [
+                "Vepr10"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

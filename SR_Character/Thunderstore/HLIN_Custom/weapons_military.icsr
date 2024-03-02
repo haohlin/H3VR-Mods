@@ -1,0 +1,101 @@
+{
+    "name": "weapons_military",
+    "minCapacity": -1,
+    "maxCapacity": -1,
+    "ammoLimitedCount": 0,
+    "ammoSpawnLockedCount": 0,
+    "lootTagsEnabled": false,
+    "objectGroups": [
+        {
+            "name": "AK12",
+            "objectID": [
+                "AK12",
+                "MagazineAK74_10rnd",
+                "MagazineAK74_10rnd",
+                "MagazineAK74_10rnd"
+            ]
+        },
+        {
+            "name": "AKS74U",
+            "objectID": [
+                "AKS74UTactical",
+                "MagazineAK74_10rnd",
+                "MagazineAK74_10rnd",
+                "MagazineAK74_10rnd"
+            ]
+        },
+        {
+            "name": "saiga",
+            "objectID": [
+                "saiga12k",
+                "MagazineSaiga12k5rnd",
+                "MagazineSaiga12k5rnd",
+                "MagazineSaiga12k5rnd"
+            ]
+        },
+        {
+            "name": "SV98",
+            "objectID": [
+                "SV98",
+                "MagazineSV98",
+                "MagazineSV98",
+                "MagazineSV98"
+            ]
+        },
+        {
+            "name": "PP19Vityaz",
+            "objectID": [
+                "PP19Vityaz",
+                "MagazinePP19Vityaz30rnd",
+                "MagazinePP19Vityaz30rnd",
+                "MagazinePP19Vityaz30rnd"
+            ]
+        },
+        {
+            "name": "AKMTactical",
+            "objectID": [
+                "AKMTactical",
+                "MagazineAKMTactical10rnd",
+                "MagazineAKMTactical10rnd",
+                "MagazineAKMTactical10rnd"
+            ]
+        },
+        {
+            "name": "SKSModern",
+            "objectID": [
+                "SKSModern",
+                "MagazineSKSModern10rnd",
+                "MagazineSKSModern10rnd",
+                "MagazineSKSModern10rnd"
+            ]
+        },
+        {
+            "name": "vz58Custom",
+            "objectID": [
+                "vz58Custom",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd",
+                "MagazineVZ58_10Rnd"
+            ]
+        }
+    ],
+    "type": 0,
+    "set": [],
+    "eras": [],
+    "sizes": [],
+    "actions": [],
+    "modes": [],
+    "excludeModes": [],
+    "feedoptions": [],
+    "mounts": [
+        0
+    ],
+    "roundPowers": [],
+    "features": [],
+    "meleeStyles": [],
+    "meleeHandedness": [],
+    "powerupTypes": [],
+    "thrownTypes": [],
+    "countryOfOrigins": [],
+    "subtractionID": []
+}

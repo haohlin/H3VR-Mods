@@ -1,0 +1,14 @@
+{
+  "name": "SR_HLIN_CUSTOM",
+  "author": "HLin",
+  "version_number": "1.0.0",
+  "description": "HLin Custom.",
+  "website_url": "",
+  "dependencies": [
+    "Packer-SupplyRaid-1.0.5",
+    "sirpotatos-DrPotatosHomeRemedies-1.0.0",
+    "MelonCorp-MeloncorpBoxes-1.0.8",
+    "Meat_banono-Meats_Rigs-3.0.2",
+    "Andrew_FTW-FTW_Arms_Tactical_Backpack-1.0.0"
+  ]
+}
