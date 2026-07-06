@@ -4,7 +4,10 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Select Sosig type")
 parser.add_argument("sosigType", type=int, default=0)
+parser.add_argument("--seed", type=int, default=0, help="Seed for reproducible feed-item selection")
 args = parser.parse_args()
+
+random.seed(args.seed)
 
 enemyList = ["RW_Lemonhead","M_MercWiener_Scout","M_MercWiener_SpecOps", "M_Swat_Scout","M_Swat_Riflewiener","RW_Beefkicker","RW_Pig","RW_Rot"]
 

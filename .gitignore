@@ -64,6 +64,34 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# H3VR pipeline output
+/build/staging/
+/build/artifacts/
+/build/receipts/
+
+# Local Claude configuration. The repository workflow guide is intentionally tracked.
+/.claude/*
+!/.claude/skills/
+!/.claude/skills/h3vr-mod-development.md
+
+# Accidental copies of user and Git metadata at the repository root.
+/.bash_profile
+/.bashrc
+/.gitconfig
+/.gitmodules
+/.idea
+/.mcp.json
+/.profile
+/.ripgreprc
+/.vscode
+/.zprofile
+/.zshrc
+/HEAD
+/config
+/hooks
+/objects
+/refs
+
 # StyleCop
 StyleCopReport.xml
 

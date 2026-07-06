@@ -1,0 +1,67 @@
+{
+  "mods": {
+    "ThePing": {
+      "kind": "dotnet",
+      "projectDir": "ThePing",
+      "csproj": "ThePing\\ThePing.csproj",
+      "assemblyName": "ThePing",
+      "targetFramework": "net35",
+      "packageSource": "ThePing\\Thunderstore\\HLin_Mods-The_Ping",
+      "packageName": "The_Ping",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-The_Ping",
+      "layout": "legacy-flat",
+      "payload": [
+        {
+          "from": "ThePing\\bin\\Release\\net35\\ThePing.dll",
+          "to": "ThePing.dll"
+        }
+      ],
+      "patchTargets": [
+        {
+          "type": "FVRPooledAudioSource",
+          "method": "Play"
+        }
+      ]
+    },
+    "GunGameProgressions": {
+      "kind": "python",
+      "projectDir": "GunGameProgressions",
+      "packageSource": "Release\\HLin_Mods-GunGameProgression",
+      "packageName": "GunGame_Progressions",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-GunGame_Progressions",
+      "layout": "legacy-flat",
+      "generator": "GunGameProgressions\\jsonGen.py",
+      "payload": [
+        {
+          "from": "generated",
+          "to": "."
+        }
+      ],
+      "patchTargets": []
+    },
+    "Teleport": {
+      "patchTargets": [
+        {
+          "type": "FVRMovementManager",
+          "method": "FindValidPointCurved"
+        }
+      ]
+    },
+    "RemoveWhiteOut": {
+      "patchTargets": [
+        {
+          "type": "WW_TeleportMaster",
+          "method": "UpdateWhiteOut"
+        },
+        {
+          "type": "WW_StandaloneWeatherSystem",
+          "method": "UpdateWhiteOut"
+        }
+      ]
+    }
+  }
+}

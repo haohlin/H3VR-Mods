@@ -9,6 +9,19 @@ description: Use when creating, building, deploying, or modifying H3VR BepInEx m
 
 H3VR mods are BepInEx 5 plugins that use HarmonyX to patch the game at runtime. Development happens in WSL (code editing) with builds executed via Windows `cmd.exe` interop (`dotnet build`). The game namespace is `FistVR`.
 
+## Remote Pipeline
+
+The Windows checkout is canonical. From macOS, use `h3vr-remote run <Action> <Mod>`; temporary fetches are allowed only for review and SHA-verified atomic pushes.
+
+Before changing any Harmony mod, refresh the read-only reference export from the live game assemblies:
+
+```bash
+h3vr-remote run RefreshSource
+h3vr-remote run Verify ThePing
+```
+
+The repository command is `powershell.exe -ExecutionPolicy Bypass -File %H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1`. Its normal release sequence is `Test`, `Package`, `Deploy`, manual VR test, `TailLogs`, then the separately gated `Publish` action.
+
 ## Environment
 
 | Component | Path |
