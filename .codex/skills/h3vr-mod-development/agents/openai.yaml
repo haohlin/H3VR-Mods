@@ -1,0 +1,4 @@
+interface:
+  display_name: "H3VR Mod Development"
+  short_description: "Build, test, package, and release H3VR mods"
+  default_prompt: "Use $h3vr-mod-development to implement and validate this H3VR mod change."
