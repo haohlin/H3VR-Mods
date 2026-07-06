@@ -1,9 +1,9 @@
 {
     "name": "The_Ping",
-    "author": "HLin",
-    "version_number": "1.0.2",
+    "author": "HLin_Mods",
+    "version_number": "1.0.4",
     "dependencies": [
     ],
-    "description": "NEW REALISTIC VOLUME CURVE! Receive sound feedback out to 2500m. Now go ring some steel across the map!",
+    "description": "Extends impact-audio feedback to 4500m with a custom long-range rolloff curve.",
     "website_url": "https://github.com/haohlin/H3VR-Mods.git"
 }

@@ -1,0 +1,13 @@
+{
+  "h3vr": {
+    "managedDlls": "E:\\Steam\\steamapps\\common\\H3VR\\h3vr_Data\\Managed",
+    "dnspySourceRoot": "E:\\Dev\\H3VR-DnSpy-Source",
+    "assemblyCSharpDll": "E:\\Steam\\steamapps\\common\\H3VR\\h3vr_Data\\Managed\\Assembly-CSharp.dll",
+    "assemblyCSharpFirstpassDll": "E:\\Steam\\steamapps\\common\\H3VR\\h3vr_Data\\Managed\\Assembly-CSharp-firstpass.dll"
+  },
+  "r2modman": {
+    "profileRoot": "C:\\Users\\y\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default",
+    "pluginsRoot": "C:\\Users\\y\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default\\BepInEx\\plugins",
+    "logPath": "C:\\Users\\y\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default\\BepInEx\\LogOutput.log"
+  }
+}
