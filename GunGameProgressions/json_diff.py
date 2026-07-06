@@ -2,7 +2,7 @@ import json
 
 # Data to be written
 dictionary = {
-    "Name": "All_in_One_Only_New",
+    "Name": "All_in_One_New_Guns",
     "Description": "The entire H3VR arsenal (Only new guns)",
     "OrderType": 1,
     "EnemyType": "RW_Rot", 
