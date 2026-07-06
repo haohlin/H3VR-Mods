@@ -9,7 +9,7 @@ namespace ThePing
 {
 
     [BepInProcess("h3vr.exe")]
-    [BepInPlugin("HLin-ThePing", PluginInfo.PLUGIN_NAME, "1.0.2")]
+    [BepInPlugin("HLin-ThePing", PluginInfo.PLUGIN_NAME, "1.0.3")]
     public class Plugin : BaseUnityPlugin
     {
         public static AnimationCurve customRolloffCurve;
@@ -25,7 +25,7 @@ namespace ThePing
             customRolloffCurve.AddKey(new Keyframe(50, 0.5f));
             customRolloffCurve.AddKey(new Keyframe(100, 0.3f));
             customRolloffCurve.AddKey(new Keyframe(1000f, 0.125f));
-            customRolloffCurve.AddKey(new Keyframe(2500f, 0.1f));
+            customRolloffCurve.AddKey(new Keyframe(2500f, 0.05f));
             customRolloffCurve.SmoothTangents(1, -0.9f);
             customRolloffCurve.SmoothTangents(2, -0.9f);
             customRolloffCurve.SmoothTangents(3, -0.9f);
@@ -33,7 +33,7 @@ namespace ThePing
 
         public static void Play_MyPatch(FVRPooledAudioSource __instance, AudioEvent audioEvent, Vector3 pos, Vector2 pitch, Vector2 volume, AudioMixerGroup mixerOverride = null)
         {
-            __instance.Source.maxDistance = 2500f;
+            __instance.Source.maxDistance = 4500f;
             __instance.Source.rolloffMode = AudioRolloffMode.Custom;
             __instance.Source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, customRolloffCurve);
         }

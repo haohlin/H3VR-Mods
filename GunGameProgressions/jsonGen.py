@@ -42,10 +42,10 @@ BlackList = ["MF_Syringegun","Degle","PotatoGun","Stinger","COOLCLOSEDBOLT","COO
             "JunkyardFlameThrower","M72A7","M320GrenadeLauncher", "M224Mortar","SP5K","SP5KA2","SP5KA3",
             "SP5KFolding","Whizzbanger","P6Twelve","MF_Signaler","MP5SFA2","MP5SD1","MP5SD2","MP5SD3","MP5SD5",
             "MP5SD4","MP5K","MP5KA2","MP5KA3","MP510A4","MP540A4","MP5A2","MP5A3","MP5A4","MP5KN","Quackenbush1886",
-            "Airgun","LadiesPepperbox","LaserPistol","M6Survival"]
+            "Airgun","LadiesPepperbox","LaserPistol","M6Survival", "P11"]
 mag_BL =    ["MagazineMp515rnd","MagazineAK74_10rnd","MagazineStanag10rnd","MagazineAKMTactical10rnd",
             "MagazineStanag5rnd","MagazineVZ58_10Rnd","MagazineMp515rndStraight", "MagazineMini145rnd",
-            "MagazineMini1410rnd","MagazineVSSVintorez10rnd","MagazineEvo315rnd","MagazineModel38_10rnd"]
+            "MagazineMini1410rnd","MagazineVSSVintorez10rnd","MagazineEvo315rnd","MagazineModel38_10rnd","MagazineStanagPM10rndFDE","MagazineStanagUSGI10rnd","MagazineStanagHBoat10rnd","MagazineEvo310rnd"]
 cartridge_BL =  ["12GaugeShellCannonball","12GaugeShellFreedomfetti","12GaugeShellRedFlare","23x75mmR_Flash",
                 "20GaugeShellFreedomfetti","Cartridge_40mmCaseless_TPM", "Cartridge_16Gauge_Freedomfetti",
                 "Cartridge50mmFlareClassic", "Cartridge50mmFlareConflagration","Cartridge50mmFlareDangerClose",
@@ -53,7 +53,7 @@ cartridge_BL =  ["12GaugeShellCannonball","12GaugeShellFreedomfetti","12GaugeShe
                 "Cartridge366UltraMagnumSalute","Cartridge366UltraMagnumRetort", "18x50mmPackawhallop_Gobsmacka",
                 "Cartridge_40mmCaseless_SMK","Cartridge_40mmCaseless_SF1","Cartridge366UltraMagnumDebuff",
                 "Cartridge_40x46Grenade_M651","23x75mmR_CSGas","Cartridge_40x46Grenade_M781","Cartridge_40x46Grenade_X1776",
-                "Cartridge84mmSMOKE469C","Cartridge13GaugeBlooper","Cartridge84mmILLUM545C"]
+                "Cartridge84mmSMOKE469C","Cartridge13GaugeBlooper","Cartridge84mmILLUM545C", "12GaugeShellFlechette","Cartridge_16Gauge_Flechette","Cartridge410BoreFlechette","Cartridge12GaugeBeltedFlechette","Cartridge20GaugeFlechette"]
 clip_BL =   []
 
 # Opening JSON file
@@ -86,6 +86,7 @@ for obj in json_object:
             for mag_obj in mag_list:
                 if mag_obj["MagazineType"] == obj["MagazineType"]:
                     dictionary["MagNames"].append(mag_obj['ObjectID'])
+                    MagNameFound = 1
                     break
         elif obj["ClipType"] != 0:
             random.shuffle(clip_list)
@@ -93,6 +94,7 @@ for obj in json_object:
             for clip_obj in clip_list:
                 if clip_obj["ClipType"] == obj["ClipType"]:
                     dictionary["MagNames"].append(clip_obj['ObjectID'])
+                    MagNameFound = 1
                     break
         elif obj["RoundType"] != 0:
             random.shuffle(cartridge_list)
@@ -100,11 +102,18 @@ for obj in json_object:
             for cartridge_obj in cartridge_list:
                 if cartridge_obj["RoundType"] == obj["RoundType"]:
                     dictionary["MagNames"].append(cartridge_obj['ObjectID'])
+                    MagNameFound = 1
                     break
         else:
             print(obj["ObjectID"] + " has 000 mag type")
             dictionary["CategoryIDs"].append(2)
-            dictionary["MagNames"].append("22LRCartridgeTracer")
+            dictionary["MagNames"].append("22LRCartridgeTracer")            
+            MagNameFound = 1
+        if not MagNameFound:
+            print("Mag name not found for ", obj["ObjectID"], obj["MagazineType"], obj["ClipType"], obj["RoundType"])
+            # dictionary["CategoryIDs"].append(0)
+            dictionary["MagNames"].append("MagazinePKM")
+
         dictionary["GunNames"].append(obj["ObjectID"])
 
 print(len(dictionary["GunNames"]))
