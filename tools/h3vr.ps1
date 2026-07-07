@@ -267,32 +267,104 @@ function Get-GunGameStagingPath {
 function Test-GunGamePools {
     param([string]$Path)
 
-    $pools = @(Get-ChildItem -LiteralPath $Path -File -Filter 'GunGameWeaponPool_All_in_One_*.json' | Where-Object { $_.Name -notmatch 'OLD|New_Guns' })
-    if ($pools.Count -ne 8) {
-        throw "Expected eight GunGame faction pools, found $($pools.Count)."
+    $offlinePoolNames = @(
+        'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
+        'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json'
+    )
+    $pools = @(Get-ChildItem -LiteralPath $Path -File -Filter 'GunGameWeaponPool_Runtime_*.json' | Where-Object { $_.Name -notmatch 'OLD' } | Sort-Object Name)
+    if ((($pools.Name | Sort-Object) -join '|') -ne (($offlinePoolNames | Sort-Object) -join '|')) {
+        throw "Expected $($offlinePoolNames -join ', '), found $($pools.Name -join ', ')."
     }
 
     foreach ($pool in $pools) {
         $data = Get-Content -LiteralPath $pool.FullName -Raw | ConvertFrom-Json
-        if ($data.GunNames.Count -eq 0 -or $data.GunNames.Count -ne $data.MagNames.Count -or $data.GunNames.Count -ne $data.CategoryIDs.Count) {
-            throw "Invalid GunGame pool alignment: $($pool.Name)"
+        if ($data.WeaponPoolType -ne 'Advanced' -or @($data.Guns).Count -eq 0 -or
+            @($data.Enemies).Count -eq 0) {
+            throw "Invalid GunGame advanced pool: $($pool.Name)"
+        }
+
+        if ($pool.Name -eq 'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json' -and
+            (@($data.Enemies).Count -ne 1 -or $data.Enemies[0].EnemyNameString -ne 'RW_Rot' -or $data.Name -ne 'Runtime 01 - Vanilla Rot')) {
+            throw "Invalid GunGame vanilla Rot fallback: $($pool.Name)"
+        }
+
+        if ($pool.Name -eq 'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json' -and
+            (@($data.Enemies).Count -le 1 -or $data.EnemyProgressionType -ne 0 -or $data.Name -ne 'Runtime 03 - Vanilla Mixed Enemy')) {
+            throw "Invalid GunGame vanilla mixed-enemy fallback: $($pool.Name)"
+        }
+
+        foreach ($gun in @($data.Guns)) {
+            if ([string]::IsNullOrWhiteSpace($gun.GunName) -or
+                [string]::IsNullOrWhiteSpace($gun.MagName) -or
+                @($gun.MagNames).Count -eq 0 -or
+                $gun.CategoryID -notin @(0, 1, 2) -or
+                $gun.MagName -notin @($gun.MagNames)) {
+                throw "Invalid GunGame advanced weapon: $($pool.Name) / $($gun.GunName)"
+            }
         }
     }
 }
 
 function Invoke-GunGameBuild {
+    param([object]$ModConfig)
+
     $stagingPath = Get-GunGameStagingPath
     if (Test-Path -LiteralPath $stagingPath) {
         Remove-Item -LiteralPath $stagingPath -Recurse -Force
     }
     Ensure-Directory $stagingPath
 
+    Invoke-CheckedNative { & dotnet build (Join-Path $RepoRoot $ModConfig.metadataExporterCsproj) -c Release }
+
     $sourcePath = Join-Path $RepoRoot 'GunGameProgressions'
-    Copy-Item -LiteralPath (Join-Path $sourcePath 'ObjectData.json'), (Join-Path $sourcePath 'jsonGen.py') -Destination $stagingPath
+    $profileSourcePath = Join-Path $RepoRoot $ModConfig.profileSource
+    $offlinePoolNames = @(
+        'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
+        'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json'
+    )
+    $offlinePoolPaths = @($offlinePoolNames | ForEach-Object { Join-Path $profileSourcePath $_ })
+    foreach ($offlinePoolPath in $offlinePoolPaths) {
+        if (-not (Test-Path -LiteralPath $offlinePoolPath)) {
+            throw "Missing offline GunGame fallback profile: $offlinePoolPath"
+        }
+    }
+    $runtimeMetadataPath = Join-Path (Join-Path $EnvironmentConfig.r2modman.pluginsRoot $ModConfig.deploymentFolder) 'ObjectData.json'
+    if (-not (Test-Path -LiteralPath $runtimeMetadataPath) -or (Get-Item -LiteralPath $runtimeMetadataPath).Length -le 2) {
+        Write-Host "No runtime GunGame metadata export was found; using tracked GunGame profile assets."
+        Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
+        $offlinePoolPaths | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stagingPath }
+        Test-GunGamePools $stagingPath
+        return $stagingPath
+    }
+
+    $metadataPath = $runtimeMetadataPath
+    if ((Test-Path -LiteralPath $runtimeMetadataPath) -and (Get-Item -LiteralPath $runtimeMetadataPath).Length -gt 2) {
+        Write-Host "Using metadata exported by the installed GunGame package: $metadataPath"
+    }
+
+    Copy-Item -LiteralPath $metadataPath -Destination (Join-Path $stagingPath 'ObjectData.json')
+    Copy-Item -LiteralPath (Join-Path $sourcePath 'jsonGen.py') -Destination $stagingPath
+    Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
     Push-Location $stagingPath
     try {
-        for ($index = 0; $index -lt 8; $index++) {
-            Invoke-CheckedNative { & python .\jsonGen.py $index --seed 0 }
+        Invoke-CheckedNative {
+            & python .\jsonGen.py 0 --seed 0 --rules .\profile-rules.json `
+                --output-name 'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json' `
+                --profile-name 'Runtime 01 - Vanilla Rot' `
+                --description 'A Rot-only random progression using active vanilla firearms.' `
+                --enemy-types 'RW_Rot' `
+                --enemy-progression-type 0 `
+                --order-type 1
+        }
+        Invoke-CheckedNative {
+            & python .\jsonGen.py 0 --seed 0 --rules .\profile-rules.json `
+                --output-name 'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json' `
+                --profile-name 'Runtime 03 - Vanilla Mixed Enemy' `
+                --description 'A weighted mixed-enemy progression using active vanilla firearms.' `
+                --enemy-types 'RW_Rot,M_Swat_Scout,M_MercWiener_Riflewiener,M_Swat_SpecOps,M_Swat_Heavy' `
+                --enemy-values '8,5,3,2,1' `
+                --enemy-progression-type 0 `
+                --order-type 1
         }
     }
     finally {
@@ -312,7 +384,7 @@ function Invoke-Build {
     }
 
     if ($ModConfig.kind -eq 'python') {
-        Invoke-GunGameBuild | Out-Null
+        Invoke-GunGameBuild $ModConfig | Out-Null
         return
     }
 
@@ -331,7 +403,7 @@ function Copy-PackageMetadata {
     )
 
     $source = Join-Path $RepoRoot $ModConfig.packageSource
-    foreach ($name in @('README.md', 'icon.png')) {
+    foreach ($name in @('README.md', 'CHANGELOG.md', 'icon.png')) {
         Copy-Item -LiteralPath (Join-Path $source $name) -Destination (Join-Path $PackageRoot $name)
     }
 
@@ -359,7 +431,14 @@ function Copy-Payload {
         }
 
         if ((Get-Item -LiteralPath $source).PSIsContainer) {
-            Get-ChildItem -LiteralPath $source -File | ForEach-Object {
+            $files = if ($payload.from -eq 'generated') {
+                @(Get-ChildItem -LiteralPath $source -File -Filter 'GunGameWeaponPool_Runtime_*.json') +
+                @(Get-Item -LiteralPath (Join-Path $source 'profile-rules.json'))
+            }
+            else {
+                @(Get-ChildItem -LiteralPath $source -File)
+            }
+            $files | ForEach-Object {
                 Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $PackageRoot $_.Name)
             }
         }

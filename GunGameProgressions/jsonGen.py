@@ -1,136 +1,344 @@
-import json
-import random
 import argparse
-
-parser = argparse.ArgumentParser(description="Select Sosig type")
-parser.add_argument("sosigType", type=int, default=0)
-parser.add_argument("--seed", type=int, default=0, help="Seed for reproducible feed-item selection")
-args = parser.parse_args()
-
-random.seed(args.seed)
-
-enemyList = ["RW_Lemonhead","M_MercWiener_Scout","M_MercWiener_SpecOps", "M_Swat_Scout","M_Swat_Riflewiener","RW_Beefkicker","RW_Pig","RW_Rot"]
-
-enemyType = enemyList[args.sosigType]
-enemy_operator = {  "light": ["Comperator_Light_Tier1_DoubleBarrels",
-                        "Comperator_Light_Tier2_Shotgun","Comperator_Light_Tier3_Pistols","Comperator_Light_Tier4_SMG","Comperator_Light_Tier5_M79","Comperator_Light_Tier5_PDW",
-                        "Comperator_Light_Tier5_PocketToaster"],
-                    "medium": ["Comperator_Medium_Tier1_DoubleBarrels","Comperator_Medium_Tier2_BoltAction","Comperator_Medium_Tier3_Pistols",
-                        "Comperator_Medium_Tier3_Shotgun","Comperator_Medium_Tier4_DMR","Comperator_Medium_Tier4_Rifle","Comperator_Medium_Tier5_LMG","Comperator_Medium_Tier5_RG6"],
-                    "heavy": ["Comperator_Heavy_Tier1_DoubleBarrels","Comperator_Heavy_Tier2_Shotgun","Comperator_Heavy_Tier3_Ash","Comperator_Heavy_Tier3_Pistols","Comperator_Heavy_Tier4_Rifle",
-                        "Comperator_Heavy_Tier4_Shotgun","Comperator_Heavy_Tier5_LMG","Comperator_Heavy_Tier5_Minigun"],
-                    "Tier1": ["Comperator_Light_Tier1_DoubleBarrels","Comperator_Medium_Tier1_DoubleBarrels","Comperator_Heavy_Tier1_DoubleBarrels"],
-                    "Tier2": ["Comperator_Light_Tier2_Shotgun","Comperator_Medium_Tier2_BoltAction","Comperator_Heavy_Tier2_Shotgun"],
-                    "Tier3": ["Comperator_Light_Tier3_Pistols","Comperator_Medium_Tier3_Pistols","Comperator_Heavy_Tier3_Ash"]
-                    }
-
-enemy_rot = ["RW_Beefkicker","RW_Boner","RW_Driller","RW_Floater","RW_FunGuy","RW_HamFister","RW_Lemonhead","RW_OldSmokey","RW_Pig","RW_Prick","RW_Rot","RW_Spurter","RW_TheHung"]
-
-# Data to be written
-dictionary = {
-    "Name": "All_in_One_" + enemyType,
-    "Description": "The entire H3VR arsenal",
-    "OrderType": 1,
-    "EnemyType": enemyType,
-    "Guns": [],
-    "GunNames": [],
-    "MagNames": [],
-    "CategoryIDs": []
-}
-
-BlackList = ["MF_Syringegun","Degle","PotatoGun","Stinger","COOLCLOSEDBOLT","COOLREVOLVER","GrappleGun",
-            "GravitonBeamer","PlungerLauncher","BrownBess","BrownBessRamrod","HeavyFlintlock18thCentury",
-            "HeavyFlintlock18thCenturyRamrod", "SustenanceCrossbow", "MF_Flamethrower", "MF_Medical180", 
-            "MF_LongShot", "Pocket1906", "PocketHammer1903","OTS38", "Jackhammer", "Flaregun",
-            "JunkyardFlameThrower","M72A7","M320GrenadeLauncher", "M224Mortar","SP5K","SP5KA2","SP5KA3",
-            "SP5KFolding","Whizzbanger","P6Twelve","MF_Signaler","MP5SFA2","MP5SD1","MP5SD2","MP5SD3","MP5SD5",
-            "MP5SD4","MP5K","MP5KA2","MP5KA3","MP510A4","MP540A4","MP5A2","MP5A3","MP5A4","MP5KN","Quackenbush1886",
-            "Airgun","LadiesPepperbox","LaserPistol","M6Survival", "P11"]
-mag_BL =    ["MagazineMp515rnd","MagazineAK74_10rnd","MagazineStanag10rnd","MagazineAKMTactical10rnd",
-            "MagazineStanag5rnd","MagazineVZ58_10Rnd","MagazineMp515rndStraight", "MagazineMini145rnd",
-            "MagazineMini1410rnd","MagazineVSSVintorez10rnd","MagazineEvo315rnd","MagazineModel38_10rnd","MagazineStanagPM10rndFDE","MagazineStanagUSGI10rnd","MagazineStanagHBoat10rnd","MagazineEvo310rnd"]
-cartridge_BL =  ["12GaugeShellCannonball","12GaugeShellFreedomfetti","12GaugeShellRedFlare","23x75mmR_Flash",
-                "20GaugeShellFreedomfetti","Cartridge_40mmCaseless_TPM", "Cartridge_16Gauge_Freedomfetti",
-                "Cartridge50mmFlareClassic", "Cartridge50mmFlareConflagration","Cartridge50mmFlareDangerClose",
-                "Cartridge50mmFlareSunburn","27x90mmCartridgeSmokescreen","27x90mmCartridgeTriFlash",
-                "Cartridge366UltraMagnumSalute","Cartridge366UltraMagnumRetort", "18x50mmPackawhallop_Gobsmacka",
-                "Cartridge_40mmCaseless_SMK","Cartridge_40mmCaseless_SF1","Cartridge366UltraMagnumDebuff",
-                "Cartridge_40x46Grenade_M651","23x75mmR_CSGas","Cartridge_40x46Grenade_M781","Cartridge_40x46Grenade_X1776",
-                "Cartridge84mmSMOKE469C","Cartridge13GaugeBlooper","Cartridge84mmILLUM545C", "12GaugeShellFlechette","Cartridge_16Gauge_Flechette","Cartridge410BoreFlechette","Cartridge12GaugeBeltedFlechette","Cartridge20GaugeFlechette"]
-clip_BL =   []
-
-# Opening JSON file
-with open('ObjectData.json', 'r') as openfile:
-    # Reading from json file
-    json_object = json.load(openfile)
-
-mag_list = []
-for obj in json_object:
-    if obj['Category'] == "Magazine" and not obj["IsModContent"] and not obj["ObjectID"] in mag_BL:
-        mag_list.append(obj)
-
-clip_list = []
-for obj in json_object:
-    if obj['Category'] == "Clip" and not obj["IsModContent"] and not obj["ObjectID"] in clip_BL:
-        clip_list.append(obj)
-
-cartridge_list = []
-for obj in json_object:
-    if obj['Category'] == "Cartridge" and not obj["IsModContent"] and not obj["ObjectID"] in cartridge_BL:
-        cartridge_list.append(obj)
+import json
+from pathlib import Path
 
 
-for obj in json_object:
-    if obj['ObjectID'] not in dictionary["GunNames"] and obj['Category'] == "Firearm" and not obj["IsModContent"] and not obj["ObjectID"] in BlackList:
-        MagNameFound = 0
-        if obj["MagazineType"] != 0:
-            random.shuffle(mag_list)
-            dictionary["CategoryIDs"].append(0)
-            for mag_obj in mag_list:
-                if mag_obj["MagazineType"] == obj["MagazineType"]:
-                    dictionary["MagNames"].append(mag_obj['ObjectID'])
-                    MagNameFound = 1
-                    break
-        elif obj["ClipType"] != 0:
-            random.shuffle(clip_list)
-            dictionary["CategoryIDs"].append(1)
-            for clip_obj in clip_list:
-                if clip_obj["ClipType"] == obj["ClipType"]:
-                    dictionary["MagNames"].append(clip_obj['ObjectID'])
-                    MagNameFound = 1
-                    break
-        elif obj["RoundType"] != 0:
-            random.shuffle(cartridge_list)
-            dictionary["CategoryIDs"].append(2)
-            for cartridge_obj in cartridge_list:
-                if cartridge_obj["RoundType"] == obj["RoundType"]:
-                    dictionary["MagNames"].append(cartridge_obj['ObjectID'])
-                    MagNameFound = 1
-                    break
-        else:
-            print(obj["ObjectID"] + " has 000 mag type")
-            dictionary["CategoryIDs"].append(2)
-            dictionary["MagNames"].append("22LRCartridgeTracer")            
-            MagNameFound = 1
-        if not MagNameFound:
-            print("Mag name not found for ", obj["ObjectID"], obj["MagazineType"], obj["ClipType"], obj["RoundType"])
-            # dictionary["CategoryIDs"].append(0)
-            dictionary["MagNames"].append("MagazinePKM")
+ENEMY_TYPES = [
+    "RW_Rot",
+]
 
-        dictionary["GunNames"].append(obj["ObjectID"])
 
-print(len(dictionary["GunNames"]))
-print(len(dictionary["MagNames"]))
-print(len(dictionary["CategoryIDs"]))
-print("Mag weapon count", dictionary["CategoryIDs"].count(0))
-print("Clip weapon count", dictionary["CategoryIDs"].count(1))
-print("Cartridge weapon count", dictionary["CategoryIDs"].count(2))
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate advanced vanilla GunGame pools")
+    parser.add_argument("sosig_type", type=int, choices=range(len(ENEMY_TYPES)))
+    parser.add_argument("--input", type=Path, default=Path("ObjectData.json"), help="GunGame metadata JSON")
+    parser.add_argument("--output-dir", type=Path, default=Path("."), help="Directory for generated pool JSON")
+    parser.add_argument(
+        "--rules",
+        type=Path,
+        default=Path(__file__).with_name("profile-rules.json"),
+        help="Shared GunGame profile rules JSON",
+    )
+    parser.add_argument("--seed", type=int, default=0, help="Retained for backward-compatible automation")
+    parser.add_argument(
+        "--source-profile",
+        type=Path,
+        help="Existing legacy or Advanced profile to convert while preserving its selected guns and metadata",
+    )
+    parser.add_argument(
+        "--output-name",
+        help="Output filename for --source-profile conversion; defaults to the selected faction profile",
+    )
+    parser.add_argument("--profile-name", help="Explicit advanced profile name")
+    parser.add_argument("--description", help="Explicit advanced profile description")
+    parser.add_argument(
+        "--enemy-types",
+        help="Comma-separated enemy identifiers for an advanced profile",
+    )
+    parser.add_argument(
+        "--enemy-values",
+        help="Comma-separated Points or Count values matching --enemy-types",
+    )
+    parser.add_argument(
+        "--enemy-progression-type",
+        type=int,
+        choices=(0, 1, 2),
+        help="GunGame Count (0), Points (1), or Tiers (2) progression mode",
+    )
+    parser.add_argument(
+        "--order-type",
+        type=int,
+        choices=(0, 1, 2),
+        help="GunGame fixed (0), random (1), or random-within-category (2) weapon order",
+    )
+    return parser.parse_args()
 
- 
-# Serializing json
-json_object = json.dumps(dictionary, indent=4)
- 
-# Writing to sample.json
-json_name = "GunGameWeaponPool_" + dictionary["Name"] + ".json"
-with open(json_name, "w") as outfile:
-    outfile.write(json_object)
+
+def load_rules(path):
+    rules = json.loads(path.read_text(encoding="utf-8-sig"))
+    return {
+        "firearms": set(rules.get("firearmBlacklist", [])),
+        "feeds": set(rules.get("feedBlacklist", [])),
+        "offline_primary_feeds": rules.get("offlinePrimaryFeeds", {}),
+    }
+
+
+def vanilla_items(items, category, blacklist):
+    return [
+        item
+        for item in items
+        if item.get("Category") == category
+        and not item.get("IsModContent", False)
+        and item.get("ObjectID") not in blacklist
+    ]
+
+
+def load_pool(path):
+    if path is None or not path.exists():
+        return None
+
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def load_preserved_assignments(existing_pool, available_vanilla_ids):
+    if existing_pool is None:
+        return {}
+
+    assignments = {}
+    if existing_pool.get("WeaponPoolType") == "Advanced":
+        for gun in existing_pool.get("Guns", []):
+            gun_name = gun.get("GunName")
+            mag_name = gun.get("MagName")
+            category_id = gun.get("CategoryID")
+            if gun_name in available_vanilla_ids and mag_name in available_vanilla_ids and category_id in (0, 1, 2):
+                assignments[gun_name] = (mag_name, category_id)
+        return assignments
+
+    for gun_name, mag_name, category_id in zip(
+        existing_pool.get("GunNames", []),
+        existing_pool.get("MagNames", []),
+        existing_pool.get("CategoryIDs", []),
+    ):
+        if gun_name in available_vanilla_ids and mag_name in available_vanilla_ids and category_id in (0, 1, 2):
+            assignments[gun_name] = (mag_name, category_id)
+    return assignments
+
+
+def selected_gun_ids(existing_pool):
+    if existing_pool is None:
+        return None
+
+    if existing_pool.get("WeaponPoolType") == "Advanced":
+        return {gun.get("GunName") for gun in existing_pool.get("Guns", []) if gun.get("GunName")}
+    return {object_id for object_id in existing_pool.get("GunNames", []) if object_id}
+
+
+def profile_enemy_type(existing_pool, fallback):
+    if existing_pool is None:
+        return fallback
+
+    enemy_type = existing_pool.get("EnemyType")
+    if enemy_type:
+        return enemy_type
+
+    enemies = existing_pool.get("Enemies", [])
+    if enemies:
+        return enemies[0].get("EnemyNameString", fallback)
+    return fallback
+
+
+def category_id(item):
+    return {
+        "Magazine": 0,
+        "Clip": 1,
+        "SpeedLoader": 2,
+        "Cartridge": 2,
+    }.get(item.get("Category"))
+
+
+def direct_feed_candidates(firearm, items_by_id, eligible_feed_ids):
+    for key, category in (
+        ("CompatibleMagazines", "Magazine"),
+        ("CompatibleClips", "Clip"),
+        ("CompatibleSpeedLoaders", "SpeedLoader"),
+        ("CompatibleSingleRounds", "Cartridge"),
+    ):
+        direct_ids = firearm.get(key, [])
+        if direct_ids:
+            candidates = []
+            seen = set()
+            for object_id in direct_ids:
+                item = items_by_id.get(object_id)
+                if (
+                    item
+                    and item.get("Category") == category
+                    and object_id in eligible_feed_ids
+                    and object_id not in seen
+                ):
+                    candidates.append(item)
+                    seen.add(object_id)
+            return candidates
+    return None
+
+
+def fallback_feed_candidates(firearm, magazines, clips, speedloaders, cartridges):
+    if firearm.get("MagazineType"):
+        magazine_candidates = [item for item in magazines if item.get("MagazineType") == firearm["MagazineType"]]
+        if magazine_candidates:
+            return magazine_candidates
+    if firearm.get("ClipType"):
+        clip_candidates = [item for item in clips if item.get("ClipType") == firearm["ClipType"]]
+        if clip_candidates:
+            return clip_candidates
+    if firearm.get("RoundType"):
+        speedloader_candidates = [item for item in speedloaders if item.get("RoundType") == firearm["RoundType"]]
+        if speedloader_candidates:
+            return speedloader_candidates
+        return [item for item in cartridges if item.get("RoundType") == firearm["RoundType"]]
+    return []
+
+
+def compatible_feeds(firearm, items_by_id, eligible_feed_ids, magazines, clips, speedloaders, cartridges):
+    candidates = direct_feed_candidates(firearm, items_by_id, eligible_feed_ids)
+    if candidates is None:
+        candidates = fallback_feed_candidates(firearm, magazines, clips, speedloaders, cartridges)
+    return sorted({item["ObjectID"]: item for item in candidates}.values(), key=lambda item: item["ObjectID"])
+
+
+def preferred_feed_category(firearm, feeds):
+    if feeds:
+        return feeds[0].get("Category")
+    if firearm.get("CompatibleMagazines") or firearm.get("MagazineType"):
+        return "Magazine"
+    if firearm.get("CompatibleClips") or firearm.get("ClipType"):
+        return "Clip"
+    if firearm.get("CompatibleSpeedLoaders"):
+        return "SpeedLoader"
+    return "Cartridge"
+
+
+def build_pool(
+    items,
+    enemy_type,
+    output_path,
+    rules,
+    source_pool=None,
+    profile_name=None,
+    description=None,
+    enemy_types=None,
+    enemy_values=None,
+    enemy_progression_type=None,
+    order_type=None,
+):
+    available_vanilla_ids = {
+        item["ObjectID"] for item in items if not item.get("IsModContent", False) and item.get("ObjectID")
+    }
+    items_by_id = {item["ObjectID"]: item for item in items if item.get("ObjectID")}
+    magazines = vanilla_items(items, "Magazine", rules["feeds"])
+    clips = vanilla_items(items, "Clip", rules["feeds"])
+    speedloaders = vanilla_items(items, "SpeedLoader", rules["feeds"])
+    cartridges = vanilla_items(items, "Cartridge", rules["feeds"])
+    eligible_feeds = {
+        item["ObjectID"]
+        for item in magazines + clips + speedloaders + cartridges
+        if item.get("ObjectID")
+    }
+    existing_pool = source_pool if source_pool is not None else load_pool(output_path)
+    preserved_assignments = load_preserved_assignments(existing_pool, available_vanilla_ids)
+    selected_ids = selected_gun_ids(source_pool)
+
+    guns = []
+    seen_ids = set()
+    eligible_firearms = vanilla_items(items, "Firearm", rules["firearms"])
+    if selected_ids is not None:
+        eligible_ids = {item["ObjectID"] for item in eligible_firearms}
+        unavailable = sorted(selected_ids - eligible_ids)
+        if unavailable:
+            raise ValueError("Selected source profile contains unavailable or blacklisted firearms: " + ", ".join(unavailable))
+        eligible_firearms = [item for item in eligible_firearms if item["ObjectID"] in selected_ids]
+
+    for firearm in eligible_firearms:
+        object_id = firearm["ObjectID"]
+        if object_id in seen_ids:
+            continue
+        seen_ids.add(object_id)
+
+        feeds = compatible_feeds(
+            firearm,
+            items_by_id,
+            eligible_feeds,
+            magazines,
+            clips,
+            speedloaders,
+            cartridges,
+        )
+        primary_id = rules["offline_primary_feeds"].get(object_id)
+        primary_category = None
+        if object_id in preserved_assignments:
+            primary_id = preserved_assignments[object_id][0]
+
+        if primary_id and primary_id in eligible_feeds:
+            primary_item = items_by_id[primary_id]
+            if primary_item.get("Category") == preferred_feed_category(firearm, feeds):
+                feeds = [primary_item] + [item for item in feeds if item["ObjectID"] != primary_id]
+                primary_category = category_id(primary_item)
+
+        if not feeds:
+            continue
+
+        primary = feeds[0]
+        guns.append(
+            {
+                "GunName": object_id,
+                "MagName": primary["ObjectID"],
+                "MagNames": [item["ObjectID"] for item in feeds],
+                "CategoryID": primary_category if primary_category is not None else category_id(primary),
+                "Extra": "",
+            }
+        )
+
+    effective_enemy_types = enemy_types or [profile_enemy_type(source_pool, enemy_type)]
+    if enemy_values is None:
+        enemy_values = [1] * len(effective_enemy_types)
+    if len(enemy_values) != len(effective_enemy_types):
+        raise ValueError("--enemy-values must contain one value for each --enemy-types entry")
+
+    return {
+        "WeaponPoolType": "Advanced",
+        "Description": description or (source_pool or {}).get("Description", "The entire H3VR vanilla arsenal"),
+        "EnemyProgressionType": enemy_progression_type if enemy_progression_type is not None else (source_pool or {}).get("EnemyProgressionType", 0),
+        "Enemies": [
+            {"EnemyName": 0, "EnemyNameString": current_enemy_type, "Value": current_value}
+            for current_enemy_type, current_value in zip(effective_enemy_types, enemy_values)
+        ],
+        "Guns": guns,
+        "Name": profile_name or (source_pool or {}).get("Name", f"All_in_One_{enemy_type}"),
+        "OrderType": order_type if order_type is not None else (source_pool or {}).get("OrderType", 1),
+    }
+
+
+def main():
+    args = parse_args()
+    items = json.loads(args.input.read_text(encoding="utf-8-sig"))
+    rules = load_rules(args.rules)
+    source_pool = load_pool(args.source_profile)
+    if args.source_profile and source_pool is None:
+        raise ValueError(f"Unable to read source profile: {args.source_profile}")
+    enemy_type = profile_enemy_type(source_pool, ENEMY_TYPES[args.sosig_type])
+    enemy_types = args.enemy_types.split(",") if args.enemy_types else None
+    enemy_values = [int(value) for value in args.enemy_values.split(",")] if args.enemy_values else None
+    if enemy_types:
+        enemy_types = [value.strip() for value in enemy_types if value.strip()]
+        if not enemy_types:
+            raise ValueError("--enemy-types must include at least one identifier")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    output_name = args.output_name or f"GunGameWeaponPool_All_in_One_{enemy_type}.json"
+    if Path(output_name).name != output_name:
+        raise ValueError("--output-name must be a filename, not a path")
+    output_path = args.output_dir / output_name
+    pool = build_pool(
+        items,
+        enemy_type,
+        output_path,
+        rules,
+        source_pool,
+        args.profile_name,
+        args.description,
+        enemy_types,
+        enemy_values,
+        args.enemy_progression_type,
+        args.order_type,
+    )
+
+    if any(not gun["MagNames"] for gun in pool["Guns"]):
+        raise ValueError("Generated GunGame pool contains a weapon without feed options")
+
+    output_path.write_text(json.dumps(pool, indent=4), encoding="utf-8")
+    print(f"Generated {len(pool['Guns'])} advanced vanilla firearms in {output_path.name}")
+
+
+if __name__ == "__main__":
+    main()

@@ -28,17 +28,23 @@
     "GunGameProgressions": {
       "kind": "python",
       "projectDir": "GunGameProgressions",
-      "packageSource": "Release\\HLin_Mods-GunGameProgression",
+      "packageSource": "GunGameProgressions\\Thunderstore\\HLin_Mods-GunGameProgression",
       "packageName": "GunGame_Progressions",
       "namespace": "HLin_Mods",
       "community": "h3vr",
       "deploymentFolder": "HLin_Mods-GunGame_Progressions",
       "layout": "legacy-flat",
       "generator": "GunGameProgressions\\jsonGen.py",
+      "profileSource": "GunGameProgressions",
+      "metadataExporterCsproj": "GunGameProgressions\\MetadataExporter\\GunGameProgressionsMetadataExporter.csproj",
       "payload": [
         {
           "from": "generated",
           "to": "."
+        },
+        {
+          "from": "GunGameProgressions\\MetadataExporter\\bin\\Release\\net35\\GunGameProgressionsMetadataExporter.dll",
+          "to": "GunGameProgressionsMetadataExporter.dll"
         }
       ],
       "patchTargets": []
