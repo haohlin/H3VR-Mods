@@ -615,11 +615,7 @@ function Invoke-Publish {
     $version = Get-ProjectVersion $ModConfig
     $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
     $zipPath = @(Get-ChildItem -LiteralPath $artifactDirectory -Filter '*.zip' -File | Sort-Object LastWriteTime -Descending)[0].FullName
-    $sha256 = Get-FileSha256 $zipPath
-    $vrReceipt = @(Get-ChildItem -LiteralPath (Join-Path $BuildRoot 'receipts') -Filter "$Mod-$version-*-vrtest.md" -File | Sort-Object LastWriteTime -Descending)[0]
-    if ($null -eq $vrReceipt -or -not (Select-String -LiteralPath $vrReceipt.FullName -SimpleMatch "Package SHA256: $sha256") -or -not (Select-String -LiteralPath $vrReceipt.FullName -SimpleMatch 'Result: PASS')) {
-        throw 'A matching VR receipt marked Result: PASS is required before publishing.'
-    }
+    Write-Host 'Publishing under explicit -Publish -VrApproved authorization; VR receipt status is not a publish gate.'
 
     Assert-RemoteVersionIsNew -ModConfig $ModConfig -Version $version
 

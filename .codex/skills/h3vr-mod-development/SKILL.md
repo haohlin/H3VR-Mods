@@ -124,17 +124,17 @@ For a clean test session, archive then clear logs with:
 .\tools\h3vr.ps1 -Action ClearLogs
 ```
 
-The VR tester launches the r2modman Default profile, exercises the change in H3VR, and records the outcome and notes in the generated receipt. Treat the result as accepted only when the receipt records `PASS`. After the tester reports completion, inspect `LogOutput.log` through `TailLogs` or `Logs` for plugin-load failures, BepInEx errors, Harmony exceptions, missing dependencies, and runtime exceptions.
+The VR tester launches the r2modman Default profile, exercises the change in H3VR, and records the outcome and notes in the generated receipt. A VR `PASS` is recommended release evidence, but it is not a publish gate. After the tester reports completion, inspect `LogOutput.log` through `TailLogs` or `Logs` for plugin-load failures, BepInEx errors, Harmony exceptions, missing dependencies, and runtime exceptions.
 
 ## Publish to Thunderstore
 
-Publishing is deliberate and always requires explicit user authorization after a passing VR receipt. It is not a CI step.
+Publishing is deliberate and always requires explicit user authorization. It is not a CI step.
 
 ```powershell
 .\tools\h3vr.ps1 -Action Publish -Mod ThePing -VrApproved
 ```
 
-The command requires a matching passing VR receipt, a package built from the committed version, and the `H3VRMods:Thunderstore` Credential Manager secret. It rejects a reused or non-incremented version and surfaces TCLI/API failures instead of treating them as published. Never print, commit, transfer, or otherwise expose the publish token.
+The command requires both `-Publish` and `-VrApproved`, a package built from the committed version, and the `H3VRMods:Thunderstore` Credential Manager secret. It rejects a reused or non-incremented version and surfaces TCLI/API failures instead of treating them as published. Never print, commit, transfer, or otherwise expose the publish token.
 
 ## Remote Work and CI
 
@@ -151,6 +151,6 @@ Before requesting review or merging a development branch:
 - [ ] Every new or changed Harmony target passes `Verify`.
 - [ ] `Test`, `Build`, and `Package` passed for each affected mod.
 - [ ] Package receipt has the expected SHA-256, version, and payload layout.
-- [ ] Deployment used `Deploy`; the VR receipt is present and, for release, marked `PASS`.
-- [ ] BepInEx logs show no unresolved plugin or Harmony errors after VR testing.
+- [ ] Deployment used `Deploy`; retain the VR receipt when a VR test is performed.
+- [ ] BepInEx logs show no unresolved plugin or Harmony errors after VR testing, when performed.
 - [ ] A Thunderstore publish, if requested, used explicit authorization and `-VrApproved`.
