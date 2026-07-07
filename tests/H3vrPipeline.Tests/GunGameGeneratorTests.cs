@@ -1,0 +1,806 @@
+using System.Diagnostics;
+using System.Collections;
+using System.Reflection;
+using System.Text.Json;
+using Xunit;
+
+namespace H3vrPipeline.Tests;
+
+public sealed class GunGameGeneratorTests
+{
+    [Fact]
+    public void GunGame_package_includes_the_independent_runtime_metadata_exporter()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(ModsConfigPath));
+        var gunGame = document.RootElement
+            .GetProperty("mods")
+            .GetProperty("GunGameProgressions");
+
+        Assert.Equal(
+            "GunGameProgressions\\MetadataExporter\\GunGameProgressionsMetadataExporter.csproj",
+            gunGame.GetProperty("metadataExporterCsproj").GetString());
+        Assert.Equal("GunGameProgressions", gunGame.GetProperty("profileSource").GetString());
+        Assert.Equal(
+            "GunGameProgressions\\Thunderstore\\HLin_Mods-GunGameProgression",
+            gunGame.GetProperty("packageSource").GetString());
+
+        Assert.Contains(
+            gunGame.GetProperty("payload").EnumerateArray(),
+            payload => payload.GetProperty("to").GetString() == "GunGameProgressionsMetadataExporter.dll");
+    }
+
+    [Fact]
+    public void GunGame_release_metadata_describes_count_mode_and_includes_a_changelog()
+    {
+        var packageSource = Path.Combine(
+            Path.GetDirectoryName(GeneratorPath)!,
+            "Thunderstore",
+            "HLin_Mods-GunGameProgression");
+        var readmePath = Path.Combine(packageSource, "README.md");
+        var changelogPath = Path.Combine(packageSource, "CHANGELOG.md");
+
+        Assert.True(File.Exists(changelogPath));
+        Assert.Contains("Count mode", File.ReadAllText(readmePath), StringComparison.Ordinal);
+        Assert.Contains("## 1.3.3", File.ReadAllText(changelogPath), StringComparison.Ordinal);
+        Assert.Contains("'CHANGELOG.md'", File.ReadAllText(H3vrScriptPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GunGame_metadata_exporter_builds_for_the_runtime()
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release --no-restore",
+            WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.True(
+            process.ExitCode == 0,
+            $"Metadata exporter build failed with exit code {process.ExitCode}:{Environment.NewLine}{standardOutput}{standardError}");
+    }
+
+    [Fact]
+    public void GunGame_offline_baselines_provide_vanilla_rot_and_mixed_enemy_profiles()
+    {
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        var profilePaths = Directory
+            .EnumerateFiles(profileDirectory, "GunGameWeaponPool_Runtime_*.json")
+            .Where(path => !Path.GetFileName(path).Contains("OLD", StringComparison.Ordinal))
+            .OrderBy(Path.GetFileName, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            new[]
+            {
+                "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json",
+                "GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json",
+            },
+            profilePaths.Select(Path.GetFileName).ToArray());
+
+        var pools = profilePaths
+            .Select(path => JsonDocument.Parse(File.ReadAllText(path)))
+            .ToArray();
+        try
+        {
+            Assert.Equal("Runtime 01 - Vanilla Rot", pools[0].RootElement.GetProperty("Name").GetString());
+            Assert.Equal("RW_Rot", pools[0].RootElement.GetProperty("Enemies")[0].GetProperty("EnemyNameString").GetString());
+            Assert.Equal("Runtime 03 - Vanilla Mixed Enemy", pools[1].RootElement.GetProperty("Name").GetString());
+            Assert.True(pools[1].RootElement.GetProperty("Enemies").GetArrayLength() > 1);
+            Assert.Equal(0, pools[1].RootElement.GetProperty("EnemyProgressionType").GetInt32());
+            Assert.Equal(
+                new[] { 8, 5, 3, 2, 1 },
+                pools[1].RootElement.GetProperty("Enemies")
+                    .EnumerateArray()
+                    .Select(enemy => enemy.GetProperty("Value").GetInt32())
+                    .ToArray());
+            Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
+        }
+        finally
+        {
+            foreach (var pool in pools)
+            {
+                pool.Dispose();
+            }
+        }
+
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+        Assert.Contains("$offlinePoolNames = @(", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_profile_rules_load_shared_blacklists_without_System_Web_extensions()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var rulesType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ProfileRules"));
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var load = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static));
+        var isBlacklisted = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("IsBlacklisted", BindingFlags.Public | BindingFlags.Instance));
+
+        using var workspace = TestWorkspace.Create();
+        File.WriteAllText(
+            Path.Combine(workspace.Path, "profile-rules.json"),
+            """
+            {
+              "firearmBlacklist": ["BlockedFirearm"],
+              "feedBlacklist": ["BlockedMagazine"]
+            }
+            """);
+
+        var rules = load.Invoke(null, new object[] { workspace.Path });
+        Assert.NotNull(rules);
+        Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
+        Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedMagazine", "Magazine", false) })!);
+        Assert.False((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "AllowedMagazine", "Magazine", false) })!);
+    }
+
+    [Fact]
+    public void Runtime_metadata_entry_tracks_physical_mount_types_for_verified_optics()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var opticKind = entryType.GetProperty("OpticKind");
+        var physicalMountTypes = entryType.GetProperty("PhysicalMountTypes");
+
+        Assert.NotNull(opticKind);
+        Assert.Equal(typeof(string), opticKind!.PropertyType);
+        Assert.NotNull(physicalMountTypes);
+        Assert.Equal(typeof(List<string>), physicalMountTypes!.PropertyType);
+    }
+
+    [Fact]
+    public void Runtime_enemy_origin_uses_enum_identity_not_ugc_module_ownership()
+    {
+        var pluginSource = File.ReadAllText(PluginSourcePath);
+
+        Assert.Contains("IsModContent = !isKnownVanillaId", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasUgcModule(template)", pluginSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_emits_origin_split_count_progression_runtime_pools()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 6);
+
+        entries.SetValue(RuntimeEntry(entryType, "VanillaGun", "Firearm", false, magazineType: 7), 0);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedGun", "Firearm", true, clipType: 11), 1);
+        entries.SetValue(RuntimeEntry(entryType, "VanillaMagazine", "Magazine", false, magazineType: 7), 2);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedClip", "Clip", true, clipType: 11), 3);
+        entries.SetValue(RuntimeEntry(entryType, "VanillaAttachment", "Attachment", false), 4);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedAttachment", "Attachment", true), 5);
+
+        var enemies = Array.CreateInstance(enemyType, 4);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_Scout", false, 30), 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "Comperator_Heavy_Tier1_Melee", false, 90), 2);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "-55001", true, 45), 3);
+
+        var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
+        var vanillaRot = pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot");
+        var moddedRot = pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot");
+        var vanillaMixed = pools.Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy");
+        var moddedMixed = pools.Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+
+        Assert.Equal(4, pools.Count);
+        Assert.Equal("Runtime 01 - Vanilla Rot", ReadString(pools[0], "Name"));
+        Assert.All(pools, pool => Assert.Equal("Advanced", ReadString(pool, "WeaponPoolType")));
+        Assert.Equal(new[] { "VanillaGun" }, ReadObjects(vanillaRot, "Guns").Select(gun => ReadString(gun, "GunName")).ToArray());
+        Assert.Equal(
+            new[] { "ModdedGun", "VanillaGun" },
+            ReadObjects(moddedRot, "Guns").Select(gun => ReadString(gun, "GunName")).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        Assert.Equal(new[] { "RW_Rot" }, ReadObjects(vanillaRot, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).ToArray());
+        Assert.Equal(new[] { "RW_Rot" }, ReadObjects(moddedRot, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).ToArray());
+        Assert.Equal(
+            new[] { "RW_Rot", "M_Swat_Scout", "Comperator_Heavy_Tier1_Melee" },
+            ReadObjects(vanillaMixed, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).Distinct().ToArray());
+        Assert.Equal(
+            new[] { "RW_Rot", "M_Swat_Scout", "-55001", "Comperator_Heavy_Tier1_Melee" },
+            ReadObjects(moddedMixed, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).Distinct().ToArray());
+        Assert.Equal(0, ReadInt(vanillaMixed, "EnemyProgressionType"));
+        Assert.Equal(0, ReadInt(moddedMixed, "EnemyProgressionType"));
+        var moddedMixedGroups = ReadObjects(moddedMixed, "Enemies")
+            .GroupBy(enemy => ReadString(enemy, "EnemyNameString"))
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+        Assert.Equal(3, moddedMixedGroups["RW_Rot"].Count);
+        Assert.Equal(3, moddedMixedGroups["M_Swat_Scout"].Count);
+        Assert.Equal(3, moddedMixedGroups["Comperator_Heavy_Tier1_Melee"].Count);
+        Assert.Single(moddedMixedGroups["-55001"]);
+        Assert.All(moddedMixedGroups["RW_Rot"], enemy => Assert.Equal(8, ReadInt(enemy, "Value")));
+        Assert.All(moddedMixedGroups["M_Swat_Scout"], enemy => Assert.Equal(5, ReadInt(enemy, "Value")));
+        Assert.All(moddedMixedGroups["Comperator_Heavy_Tier1_Melee"], enemy => Assert.Equal(2, ReadInt(enemy, "Value")));
+        Assert.Equal(1, ReadInt(moddedMixedGroups["-55001"].Single(), "Value"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_uses_count_progression_and_inverse_difficulty_spawn_weights()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 2);
+        entries.SetValue(RuntimeEntry(entryType, "VanillaGun", "Firearm", false, magazineType: 7), 0);
+        entries.SetValue(RuntimeEntry(entryType, "VanillaMagazine", "Magazine", false, magazineType: 7), 1);
+
+        var enemies = Array.CreateInstance(enemyType, 7);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_Scout", false, 30), 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_MercWiener_Riflewiener", false, 45), 2);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_SpecOps", false, 70), 3);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_Heavy", false, 120), 4);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "Comperator_Light_Tier1_Melee", false, 30), 5);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "H_BreadCrabZombie_Standard", false, 30), 6);
+
+        var mixed = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+            .Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy");
+        var grouped = ReadObjects(mixed, "Enemies")
+            .GroupBy(enemy => ReadString(enemy, "EnemyNameString"))
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+
+        Assert.Equal(0, ReadInt(mixed, "EnemyProgressionType"));
+        Assert.All(grouped["RW_Rot"], enemy => Assert.Equal(8, ReadInt(enemy, "Value")));
+        Assert.All(grouped["M_Swat_Scout"], enemy => Assert.Equal(5, ReadInt(enemy, "Value")));
+        Assert.All(grouped["M_MercWiener_Riflewiener"], enemy => Assert.Equal(3, ReadInt(enemy, "Value")));
+        Assert.All(grouped["M_Swat_SpecOps"], enemy => Assert.Equal(2, ReadInt(enemy, "Value")));
+        Assert.All(grouped["M_Swat_Heavy"], enemy => Assert.Equal(1, ReadInt(enemy, "Value")));
+        Assert.Equal(3, grouped["RW_Rot"].Count);
+        Assert.Equal(3, grouped["M_Swat_Scout"].Count);
+        Assert.Equal(3, grouped["M_MercWiener_Riflewiener"].Count);
+        Assert.Equal(3, grouped["Comperator_Light_Tier1_Melee"].Count);
+        Assert.Single(grouped["H_BreadCrabZombie_Standard"]);
+        Assert.Equal(2, ReadInt(grouped["H_BreadCrabZombie_Standard"].Single(), "Value"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_selects_only_exact_mount_verified_optics()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 9);
+
+        var pistol = RuntimeEntry(entryType, "RmrPistol", "Firearm", false);
+        SetRuntimeProperty(entryType, pistol, "CompatibleMagazines", new List<string> { "PistolMagazine" });
+        SetRuntimeProperty(entryType, pistol, "FirearmSize", "Pistol");
+        SetRuntimeProperty(entryType, pistol, "FirearmMounts", new List<string> { "RMR" });
+        SetRuntimeProperty(entryType, pistol, "PhysicalMountTypes", new List<string> { "RMR" });
+        SetRuntimeProperty(entryType, pistol, "BespokeAttachments", new List<string> { "A_PicatinnyReflex", "B_PicatinnyMagnifier", "Y_PicatinnyScope", "Z_RmrReflex" });
+        entries.SetValue(pistol, 0);
+
+        var rifle = RuntimeEntry(entryType, "PicatinnyRifle", "Firearm", true);
+        SetRuntimeProperty(entryType, rifle, "CompatibleMagazines", new List<string> { "RifleMagazine" });
+        SetRuntimeProperty(entryType, rifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, rifle, "FirearmMounts", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, rifle, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(rifle, 1);
+
+        entries.SetValue(RuntimeEntry(entryType, "PistolMagazine", "Magazine", false, magazineType: 1), 2);
+        entries.SetValue(RuntimeEntry(entryType, "RifleMagazine", "Magazine", false, magazineType: 2), 3);
+
+        var picatinnyReflex = RuntimeEntry(entryType, "A_PicatinnyReflex", "Attachment", true);
+        SetRuntimeProperty(entryType, picatinnyReflex, "AttachmentMount", "Picatinny");
+        SetRuntimeProperty(entryType, picatinnyReflex, "AttachmentFeature", "Reflex");
+        SetRuntimeProperty(entryType, picatinnyReflex, "OpticKind", "Reflex");
+        SetRuntimeProperty(entryType, picatinnyReflex, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(picatinnyReflex, 4);
+
+        var magnifier = RuntimeEntry(entryType, "B_PicatinnyMagnifier", "Attachment", true);
+        SetRuntimeProperty(entryType, magnifier, "AttachmentMount", "Picatinny");
+        SetRuntimeProperty(entryType, magnifier, "AttachmentFeature", "Magnification");
+        SetRuntimeProperty(entryType, magnifier, "OpticKind", "Magnifier");
+        SetRuntimeProperty(entryType, magnifier, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(magnifier, 5);
+
+        var scope = RuntimeEntry(entryType, "Y_PicatinnyScope", "Attachment", true);
+        SetRuntimeProperty(entryType, scope, "AttachmentMount", "Picatinny");
+        SetRuntimeProperty(entryType, scope, "AttachmentFeature", "Magnification");
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(scope, 6);
+
+        var reflex = RuntimeEntry(entryType, "Z_RmrReflex", "Attachment", true);
+        SetRuntimeProperty(entryType, reflex, "AttachmentMount", "RMR");
+        SetRuntimeProperty(entryType, reflex, "AttachmentFeature", "Reflex");
+        SetRuntimeProperty(entryType, reflex, "OpticKind", "Reflex");
+        SetRuntimeProperty(entryType, reflex, "PhysicalMountTypes", new List<string> { "RMR" });
+        entries.SetValue(reflex, 7);
+
+        var mismatchedScope = RuntimeEntry(entryType, "WrongTagScope", "Attachment", true);
+        SetRuntimeProperty(entryType, mismatchedScope, "AttachmentMount", "Picatinny");
+        SetRuntimeProperty(entryType, mismatchedScope, "AttachmentFeature", "Magnification");
+        SetRuntimeProperty(entryType, mismatchedScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, mismatchedScope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(mismatchedScope, 8);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var allActive = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+            .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+        var guns = ReadObjects(allActive, "Guns");
+
+        Assert.Equal("Z_RmrReflex", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "RmrPistol"), "Extra"));
+        Assert.Equal("Y_PicatinnyScope", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "PicatinnyRifle"), "Extra"));
+    }
+
+    [Fact]
+    public void Generator_builds_a_vanilla_pool_with_resolved_feed_items()
+    {
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
+        var outputPath = Path.Combine(workspace.Path, "output");
+        File.WriteAllText(inputPath, JsonSerializer.Serialize(FixtureItems));
+
+        var result = RunGenerator(inputPath, outputPath);
+
+        Assert.True(
+            result.ExitCode == 0,
+            $"Generator failed with exit code {result.ExitCode}:{Environment.NewLine}{result.StandardError}");
+
+        var poolPath = Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_RW_Rot.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(poolPath));
+        var root = document.RootElement;
+        var guns = root.GetProperty("Guns").EnumerateArray().ToArray();
+
+        Assert.Equal("Advanced", root.GetProperty("WeaponPoolType").GetString());
+        Assert.Equal(0, root.GetProperty("EnemyProgressionType").GetInt32());
+        Assert.Equal(
+            new[] { "VanillaMagazineGun", "LeverSentinelGun", "PKM" },
+            guns.Select(gun => gun.GetProperty("GunName").GetString()).ToArray());
+        Assert.Equal(
+            new[] { "TestMagazine", "TestCartridge", "MagazinePKM" },
+            guns.Select(gun => gun.GetProperty("MagName").GetString()).ToArray());
+        Assert.Equal(
+            new[] { "TestMagazine" },
+            guns.Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun")
+                .GetProperty("MagNames")
+                .EnumerateArray()
+                .Select(value => value.GetString())
+                .ToArray());
+    }
+
+    [Fact]
+    public void Generator_preserves_existing_valid_feed_assignments()
+    {
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
+        var outputPath = Path.Combine(workspace.Path, "output");
+        Directory.CreateDirectory(outputPath);
+        File.WriteAllText(inputPath, JsonSerializer.Serialize(FixtureItemsWithExistingMagazine));
+        File.WriteAllText(
+            Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_RW_Rot.json"),
+            """
+            {
+              "GunNames": ["VanillaMagazineGun"],
+              "MagNames": ["ExistingCompatibleMagazine"],
+              "CategoryIDs": [0]
+            }
+            """);
+
+        var result = RunGenerator(inputPath, outputPath);
+
+        Assert.True(
+            result.ExitCode == 0,
+            $"Generator failed with exit code {result.ExitCode}:{Environment.NewLine}{result.StandardError}");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_RW_Rot.json")));
+        var root = document.RootElement;
+        var vanillaGun = root.GetProperty("Guns").EnumerateArray()
+            .Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun");
+
+        Assert.Equal("ExistingCompatibleMagazine", vanillaGun.GetProperty("MagName").GetString());
+        Assert.Equal(0, vanillaGun.GetProperty("CategoryID").GetInt32());
+    }
+
+    [Fact]
+    public void Generator_discards_a_legacy_primary_from_a_lower_priority_feed_class()
+    {
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
+        var outputPath = Path.Combine(workspace.Path, "output");
+        Directory.CreateDirectory(outputPath);
+        File.WriteAllText(inputPath, JsonSerializer.Serialize(FixtureItems));
+        File.WriteAllText(
+            Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_RW_Rot.json"),
+            """
+            {
+              "GunNames": ["VanillaMagazineGun"],
+              "MagNames": ["TestCartridge"],
+              "CategoryIDs": [2]
+            }
+            """);
+
+        var result = RunGenerator(inputPath, outputPath);
+
+        Assert.True(
+            result.ExitCode == 0,
+            $"Generator failed with exit code {result.ExitCode}:{Environment.NewLine}{result.StandardError}");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_RW_Rot.json")));
+        var vanillaGun = document.RootElement.GetProperty("Guns").EnumerateArray()
+            .Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun");
+
+        Assert.Equal("TestMagazine", vanillaGun.GetProperty("MagName").GetString());
+        Assert.Equal(0, vanillaGun.GetProperty("CategoryID").GetInt32());
+    }
+
+    [Fact]
+    public void Generator_converts_a_named_legacy_subset_profile_to_advanced()
+    {
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
+        var outputPath = Path.Combine(workspace.Path, "output");
+        var sourceProfilePath = Path.Combine(workspace.Path, "GunGameWeaponPool_All_in_One_New_Guns.json");
+        Directory.CreateDirectory(outputPath);
+        File.WriteAllText(inputPath, JsonSerializer.Serialize(FixtureItems));
+        File.WriteAllText(
+            sourceProfilePath,
+            """
+            {
+              "Name": "All_in_One_New_Guns",
+              "Description": "Only recently added guns",
+              "OrderType": 1,
+              "EnemyType": "RW_Rot",
+              "GunNames": ["VanillaMagazineGun"],
+              "MagNames": ["TestMagazine"],
+              "CategoryIDs": [0]
+            }
+            """);
+
+        var result = RunGenerator(
+            inputPath,
+            outputPath,
+            $"--source-profile \"{sourceProfilePath}\" --output-name GunGameWeaponPool_All_in_One_New_Guns.json");
+
+        Assert.True(
+            result.ExitCode == 0,
+            $"Generator failed with exit code {result.ExitCode}:{Environment.NewLine}{result.StandardError}");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(outputPath, "GunGameWeaponPool_All_in_One_New_Guns.json")));
+        var root = document.RootElement;
+        var guns = root.GetProperty("Guns").EnumerateArray().ToArray();
+
+        Assert.Equal("Advanced", root.GetProperty("WeaponPoolType").GetString());
+        Assert.Equal("All_in_One_New_Guns", root.GetProperty("Name").GetString());
+        Assert.Equal("Only recently added guns", root.GetProperty("Description").GetString());
+        Assert.Single(guns);
+        Assert.Equal("VanillaMagazineGun", guns[0].GetProperty("GunName").GetString());
+    }
+
+    private static readonly object[] FixtureItems =
+    {
+        Item(
+            "VanillaMagazineGun",
+            "Firearm",
+            false,
+            magazineType: 77,
+            compatibleMagazines: new[] { "MagazineMp515rnd", "TestMagazine", "ExistingCompatibleMagazine" },
+            compatibleSingleRounds: new[] { "TestCartridge" }),
+        Item("LeverSentinelGun", "Firearm", false, magazineType: 999, roundType: 2),
+        Item("PKM", "Firearm", false, magazineType: 1968691, roundType: 17),
+        Item("ZeroFeedGun", "Firearm", false),
+        Item("ModdedGun", "Firearm", true, roundType: 2),
+        Item("PotatoGun", "Firearm", false, roundType: 2),
+        Item("TestMagazine", "Magazine", false, magazineType: 1),
+        Item("MagazineMp515rnd", "Magazine", false, magazineType: 77),
+        Item("MagazinePKM", "Magazine", false, magazineType: 155, roundType: 17),
+        Item("TestCartridge", "Cartridge", false, roundType: 2),
+        Item("22LRCartridgeTracer", "Cartridge", false),
+    };
+
+    private static readonly object[] FixtureItemsWithExistingMagazine =
+        FixtureItems.Append(Item("ExistingCompatibleMagazine", "Magazine", false, magazineType: 1)).ToArray();
+
+    private static object Item(
+        string objectId,
+        string category,
+        bool isModContent,
+        int magazineType = 0,
+        int clipType = 0,
+        int roundType = 0,
+        string[]? compatibleMagazines = null,
+        string[]? compatibleSingleRounds = null)
+    {
+        return new
+        {
+            ObjectID = objectId,
+            Category = category,
+            IsModContent = isModContent,
+            MagazineType = magazineType,
+            ClipType = clipType,
+            RoundType = roundType,
+            CompatibleMagazines = compatibleMagazines ?? Array.Empty<string>(),
+            CompatibleSingleRounds = compatibleSingleRounds ?? Array.Empty<string>(),
+        };
+    }
+
+    private static ProcessResult RunGenerator(string inputPath, string outputPath, string extraArguments = "")
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "python",
+            Arguments = $"\"{GeneratorPath}\" 0 --input \"{inputPath}\" --output-dir \"{outputPath}\" --seed 0 {extraArguments}",
+            WorkingDirectory = Path.GetDirectoryName(GeneratorPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        return new ProcessResult(process.ExitCode, standardOutput, standardError);
+    }
+
+    private static string GeneratorPath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current is not null)
+            {
+                var candidate = Path.Combine(current.FullName, "GunGameProgressions", "jsonGen.py");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate GunGameProgressions/jsonGen.py.");
+        }
+    }
+
+    private static string ModsConfigPath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current is not null)
+            {
+                var candidate = Path.Combine(current.FullName, "build", "mods.json");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate build/mods.json.");
+        }
+    }
+
+    private static string H3vrScriptPath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current is not null)
+            {
+                var candidate = Path.Combine(current.FullName, "tools", "h3vr.ps1");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate tools/h3vr.ps1.");
+        }
+    }
+
+    private static string MetadataExporterProjectPath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current is not null)
+            {
+                var candidate = Path.Combine(
+                    current.FullName,
+                    "GunGameProgressions",
+                    "MetadataExporter",
+                    "GunGameProgressionsMetadataExporter.csproj");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate the GunGame metadata exporter project.");
+        }
+    }
+
+    private static string PluginSourcePath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current is not null)
+            {
+                var candidate = Path.Combine(
+                    current.FullName,
+                    "GunGameProgressions",
+                    "MetadataExporter",
+                    "src",
+                    "Plugin.cs");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate the GunGame metadata exporter source.");
+        }
+    }
+
+    private static Assembly LoadBuiltMetadataExporter()
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release --no-restore",
+            WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.True(process.ExitCode == 0, $"Metadata exporter build failed:{Environment.NewLine}{standardOutput}{standardError}");
+
+        var originalPath = Path.Combine(
+            Path.GetDirectoryName(MetadataExporterProjectPath)!,
+            "bin",
+            "Release",
+            "net35",
+            "GunGameProgressionsMetadataExporter.dll");
+        var loadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(loadDirectory);
+        var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
+        File.Copy(originalPath, loadPath);
+        return Assembly.LoadFrom(loadPath);
+    }
+
+    private static object RuntimeEntry(
+        Type entryType,
+        string objectId,
+        string category,
+        bool isModContent,
+        int magazineType = 0,
+        int clipType = 0,
+        int roundType = 0)
+    {
+        var entry = Activator.CreateInstance(entryType)!;
+        entryType.GetProperty("ObjectID")!.SetValue(entry, objectId);
+        entryType.GetProperty("Category")!.SetValue(entry, category);
+        entryType.GetProperty("IsModContent")!.SetValue(entry, isModContent);
+        entryType.GetProperty("MagazineType")!.SetValue(entry, magazineType);
+        entryType.GetProperty("ClipType")!.SetValue(entry, clipType);
+        entryType.GetProperty("RoundType")!.SetValue(entry, roundType);
+        return entry;
+    }
+
+    private static object RuntimeEnemyEntry(Type enemyType, string enemyNameString, bool isModContent, int difficultyScore)
+    {
+        var enemy = Activator.CreateInstance(enemyType)!;
+        enemyType.GetProperty("EnemyNameString")!.SetValue(enemy, enemyNameString);
+        enemyType.GetProperty("DisplayName")!.SetValue(enemy, enemyNameString);
+        enemyType.GetProperty("IsModContent")!.SetValue(enemy, isModContent);
+        enemyType.GetProperty("IsSpawnable")!.SetValue(enemy, true);
+        enemyType.GetProperty("DifficultyScore")!.SetValue(enemy, difficultyScore);
+        return enemy;
+    }
+
+    private static List<object> BuildRuntimePools(MethodInfo build, Array entries, Array enemies, Random random)
+    {
+        var result = Assert.IsAssignableFrom<IEnumerable>(build.Invoke(null, new object[] { entries, enemies, random }));
+        return result.Cast<object>().ToList();
+    }
+
+    private static void SetRuntimeProperty(Type entryType, object entry, string propertyName, object value)
+    {
+        entryType.GetProperty(propertyName)!.SetValue(entry, value);
+    }
+
+    private static List<object> ReadObjects(object value, string propertyName)
+    {
+        return ((IEnumerable)value.GetType().GetProperty(propertyName)!.GetValue(value)!)
+            .Cast<object>()
+            .ToList();
+    }
+
+    private static string ReadString(object value, string propertyName)
+    {
+        return (string)value.GetType().GetProperty(propertyName)!.GetValue(value)!;
+    }
+
+    private static int ReadInt(object value, string propertyName)
+    {
+        return (int)value.GetType().GetProperty(propertyName)!.GetValue(value)!;
+    }
+
+    private static string[] ReadStrings(object value, string propertyName)
+    {
+        return ((IEnumerable)value.GetType().GetProperty(propertyName)!.GetValue(value)!)
+            .Cast<string>()
+            .ToArray();
+    }
+
+    private sealed class SequenceRandom : Random
+    {
+        private readonly Queue<double> samples;
+
+        public SequenceRandom(params double[] samples)
+        {
+            this.samples = new Queue<double>(samples);
+        }
+
+        protected override double Sample()
+        {
+            return samples.Count == 0 ? 0d : samples.Dequeue();
+        }
+    }
+
+    private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
+
+    private sealed class TestWorkspace : IDisposable
+    {
+        private TestWorkspace(string path)
+        {
+            Path = path;
+        }
+
+        public string Path { get; }
+
+        public static TestWorkspace Create()
+        {
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(path);
+            return new TestWorkspace(path);
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(Path, recursive: true);
+        }
+    }
+}

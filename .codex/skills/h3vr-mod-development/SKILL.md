@@ -17,7 +17,7 @@ Use this skill for all work in the canonical Windows repository:
 
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
-The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: regenerate and replace it from those DLLs before developing or changing a Harmony patch. Never edit, commit, or treat the cache as authoritative.
+The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
 
 ## Start Every Change
 
@@ -29,7 +29,13 @@ The managed DLLs are always the current game API. Decompiled source is a disposa
 powershell.exe -ExecutionPolicy Bypass -File %H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1 -Action Preflight
 ```
 
-4. Refresh the decompiled cache before implementing or validating Harmony code:
+4. Check whether the decompiled cache still matches the live DLLs:
+
+```powershell
+.\tools\h3vr.ps1 -Action SourceStatus
+```
+
+Run `RefreshSource` only when `SourceStatus` is stale or the H3VR managed DLLs changed after a game update:
 
 ```powershell
 .\tools\h3vr.ps1 -Action RefreshSource
@@ -48,7 +54,7 @@ Use the generated source only for read-only target discovery and compatibility c
 .\tools\h3vr.ps1 -Action GrepSource -Query UpdateWhiteOut
 ```
 
-Before writing a Harmony patch, inspect the target type and method signature in the fresh cache. Register every runtime target in `build/mods.json`, then use `Verify` to catch target drift before VR testing.
+Before writing a Harmony patch, confirm `SourceStatus` is current, then inspect the target type and method signature. Register every runtime target in `build/mods.json`, then use `Verify` to catch target drift before VR testing.
 
 Current registered targets are:
 
@@ -69,7 +75,7 @@ Use the same rules for a new plugin:
 
 1. Create the project using the existing code-mod structure as the template.
 2. Add the BepInEx plugin metadata and use an explicit `net35` target.
-3. Refresh source, inspect the target API, and declare every Harmony `type`/`method` in `patchTargets`.
+3. Confirm source status is current, inspect the target API, and declare every Harmony `type`/`method` in `patchTargets`.
 4. Add a complete descriptor to `build/mods.json`: `kind`, source project, assembly or generator, package name, deployment folder, layout, payload, and patch targets.
 5. Add Thunderstore metadata and a release icon before packaging.
 
@@ -141,7 +147,7 @@ GitHub Actions runs `.github/workflows/verify.yml` for the pipeline tests and pa
 Before requesting review or merging a development branch:
 
 - [ ] `git status` contains only the intended changes.
-- [ ] Fresh decompilation completed before any Harmony change.
+- [ ] `SourceStatus` is current; source was refreshed after the last managed-DLL change when applicable.
 - [ ] Every new or changed Harmony target passes `Verify`.
 - [ ] `Test`, `Build`, and `Package` passed for each affected mod.
 - [ ] Package receipt has the expected SHA-256, version, and payload layout.

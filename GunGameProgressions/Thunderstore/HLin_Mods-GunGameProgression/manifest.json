@@ -1,0 +1,9 @@
+{
+    "name": "GunGame_Progressions",
+    "author": "HLin_Mods",
+    "version_number": "1.3.3",
+    "dependencies": ["Kodeman-GunGame-1.0.0"
+    ],
+    "description": "Runtime GunGame profiles with compatible loadouts and active vanilla and modded H3VR content.",
+    "website_url": "https://github.com/h3vr-modding/H3VR-Mods"
+}
