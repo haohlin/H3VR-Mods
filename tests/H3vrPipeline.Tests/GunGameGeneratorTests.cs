@@ -46,6 +46,19 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Thunderstore_publish_requires_explicit_approval_without_a_vr_receipt_gate()
+    {
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+        var publishStart = pipeline.IndexOf("function Invoke-Publish", StringComparison.Ordinal);
+        var publishEnd = pipeline.IndexOf("switch ($Action)", StringComparison.Ordinal);
+        var publishFunction = pipeline[publishStart..publishEnd];
+
+        Assert.Contains("if (-not $Publish -or -not $VrApproved)", publishFunction, StringComparison.Ordinal);
+        Assert.DoesNotContain("A matching VR receipt marked Result: PASS is required before publishing.", publishFunction, StringComparison.Ordinal);
+        Assert.DoesNotContain("$vrReceipt =", publishFunction, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GunGame_metadata_exporter_builds_for_the_runtime()
     {
         var startInfo = new ProcessStartInfo
