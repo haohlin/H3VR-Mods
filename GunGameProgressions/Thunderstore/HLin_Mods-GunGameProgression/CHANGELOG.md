@@ -2,6 +2,10 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.3.5
+
+- Simplified the Thunderstore description to the combined compatible-mag count and refreshed the icon with larger, more readable catalog text.
+
 ## 1.3.4
 
 - Refreshed the Thunderstore listing and icon with the verified vanilla catalog counts and runtime support for active modded guns and custom Sosigs.

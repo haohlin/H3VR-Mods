@@ -4,7 +4,7 @@ GunGame Progressions provides Advanced GunGame profiles and a lightweight runtim
 
 ## Current Catalog
 
-The packaged vanilla fallback profiles cover **615 supported vanilla firearms** with **372 magazines, 10 clips, and 171 cartridges** selected from verified compatible loadouts. At runtime, the exporter refreshes the catalog for the player's installed content, adding all supported active modded guns and custom Sosigs without referencing disabled or missing mods.
+The packaged vanilla fallback profiles cover **615 supported vanilla firearms** with **553 compatible mags** selected from verified compatible loadouts. At runtime, the exporter refreshes the catalog for the player's installed content, adding all supported active modded guns and custom Sosigs without referencing disabled or missing mods.
 
 ## Requirement
 
