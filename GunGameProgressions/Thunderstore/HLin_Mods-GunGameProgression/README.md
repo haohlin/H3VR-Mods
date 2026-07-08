@@ -2,6 +2,10 @@
 
 GunGame Progressions provides Advanced GunGame profiles and a lightweight runtime exporter for H3VR. It builds compatible loadouts from the content currently enabled in the player's H3VR profile, without modifying the GunGame plugin.
 
+## Current Catalog
+
+The packaged vanilla fallback profiles cover **615 supported vanilla firearms** with **372 magazines, 10 clips, and 171 cartridges** selected from verified compatible loadouts. At runtime, the exporter refreshes the catalog for the player's installed content, adding all supported active modded guns and custom Sosigs without referencing disabled or missing mods.
+
 ## Requirement
 
 - [GunGame](https://thunderstore.io/c/h3vr/p/Kodeman/GunGame/)
