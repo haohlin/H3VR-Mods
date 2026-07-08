@@ -1,9 +1,9 @@
 {
     "name": "GunGame_Progressions",
     "author": "HLin_Mods",
-    "version_number": "1.3.4",
+    "version_number": "1.3.5",
     "dependencies": ["Kodeman-GunGame-1.0.0"
     ],
-    "description": "GunGame, supercharged: 615 vanilla firearms, 372 magazines, 10 clips, and 171 cartridges, plus all supported active modded guns and custom Sosigs. Fast runtime pools rebuild each launch with compatible loadouts.",
+    "description": "GunGame, supercharged: 615 vanilla firearms and 553 compatible mags, plus all supported active modded guns and custom Sosigs.",
     "website_url": "https://github.com/haohlin/H3VR-Mods"
 }

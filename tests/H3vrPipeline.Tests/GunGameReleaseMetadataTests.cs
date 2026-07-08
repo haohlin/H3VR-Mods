@@ -17,25 +17,25 @@ public sealed class GunGameReleaseMetadataTests
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(packageRoot, "manifest.json")));
         var root = manifest.RootElement;
 
-        Assert.Equal("1.3.4", root.GetProperty("version_number").GetString());
+        Assert.Equal("1.3.5", root.GetProperty("version_number").GetString());
         Assert.Equal(
-            "GunGame, supercharged: 615 vanilla firearms, 372 magazines, 10 clips, and 171 cartridges, plus all supported active modded guns and custom Sosigs. Fast runtime pools rebuild each launch with compatible loadouts.",
+            "GunGame, supercharged: 615 vanilla firearms and 553 compatible mags, plus all supported active modded guns and custom Sosigs.",
             root.GetProperty("description").GetString());
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));
         Assert.Contains("615 supported vanilla firearms", readme);
-        Assert.Contains("372 magazines, 10 clips, and 171 cartridges", readme);
+        Assert.Contains("553 compatible mags", readme);
         Assert.Contains("all supported active modded guns and custom Sosigs", readme);
 
         var changelog = File.ReadAllText(Path.Combine(packageRoot, "CHANGELOG.md"));
-        Assert.Contains("## 1.3.4", changelog);
+        Assert.Contains("## 1.3.5", changelog);
 
         var exporterProject = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(),
             "GunGameProgressions",
             "MetadataExporter",
             "GunGameProgressionsMetadataExporter.csproj"));
-        Assert.Contains("<Version>1.3.4</Version>", exporterProject);
+        Assert.Contains("<Version>1.3.5</Version>", exporterProject);
     }
 
     private static string FindRepositoryRoot()
