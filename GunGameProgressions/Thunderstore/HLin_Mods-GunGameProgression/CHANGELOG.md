@@ -2,6 +2,10 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.3.4
+
+- Refreshed the Thunderstore listing and icon with the verified vanilla catalog counts and runtime support for active modded guns and custom Sosigs.
+
 ## 1.3.3
 
 - Mixed Enemy profiles now use GunGame Count mode: the default is 3 kills to advance and every kill contributes one advance.
