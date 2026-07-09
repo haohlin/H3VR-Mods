@@ -237,7 +237,7 @@ public sealed class Plugin : BaseUnityPlugin
                 .GetComponentsInChildren(componentType, true)
                 .Select(component => typeField.GetValue(component))
                 .Where(value => value != null)
-                .Select(value => value.ToString())
+                .Select(ResolveRuntimeMountName)
                 .Where(value => !string.IsNullOrEmpty(value))
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(value => value, StringComparer.Ordinal)
@@ -248,6 +248,17 @@ public sealed class Plugin : BaseUnityPlugin
             // Unsupported or malformed mod prefabs are never used for automatic optic selection.
             return new List<string>();
         }
+    }
+
+    private static string ResolveRuntimeMountName(object value)
+    {
+        var valueType = value.GetType();
+        if (!valueType.IsEnum || !Enum.IsDefined(valueType, value))
+        {
+            return value.ToString();
+        }
+
+        return Enum.GetName(valueType, value) ?? value.ToString();
     }
 
     private static List<RuntimeEnemyEntry> BuildEnemyEntries()

@@ -4,7 +4,10 @@ All notable changes to GunGame Progressions are documented here.
 
 ## 1.3.5
 
-- Simplified the Thunderstore description to the combined compatible-mag count and refreshed the icon with larger, more readable catalog text.
+- Added separate Vanilla and Modded Rot and Mixed Enemy pools, so modded pools use only the weapon mods currently enabled in your profile.
+- Added mixed enemy pacing: basic Sosigs are common, operators are uncommon, and heavy or high-tier operators are rare.
+- Improved compatible loadouts: firearms receive the right magazines, clips, speedloaders, or cartridges, with suitable optics only on matching mounts.
+- Updated the Thunderstore listing with a clearer player guide to pools, difficulty, and compatible gear.
 
 ## 1.3.4
 

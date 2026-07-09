@@ -216,7 +216,7 @@ public sealed class GunGameGeneratorTests
         Assert.All(pools, pool => Assert.Equal("Advanced", ReadString(pool, "WeaponPoolType")));
         Assert.Equal(new[] { "VanillaGun" }, ReadObjects(vanillaRot, "Guns").Select(gun => ReadString(gun, "GunName")).ToArray());
         Assert.Equal(
-            new[] { "ModdedGun", "VanillaGun" },
+            new[] { "ModdedGun" },
             ReadObjects(moddedRot, "Guns").Select(gun => ReadString(gun, "GunName")).OrderBy(name => name, StringComparer.Ordinal).ToArray());
         Assert.Equal(new[] { "RW_Rot" }, ReadObjects(vanillaRot, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).ToArray());
         Assert.Equal(new[] { "RW_Rot" }, ReadObjects(moddedRot, "Enemies").Select(enemy => ReadString(enemy, "EnemyNameString")).ToArray());
@@ -231,13 +231,13 @@ public sealed class GunGameGeneratorTests
         var moddedMixedGroups = ReadObjects(moddedMixed, "Enemies")
             .GroupBy(enemy => ReadString(enemy, "EnemyNameString"))
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-        Assert.Equal(3, moddedMixedGroups["RW_Rot"].Count);
-        Assert.Equal(3, moddedMixedGroups["M_Swat_Scout"].Count);
-        Assert.Equal(3, moddedMixedGroups["Comperator_Heavy_Tier1_Melee"].Count);
+        Assert.Equal(13, moddedMixedGroups["RW_Rot"].Count);
+        Assert.Equal(8, moddedMixedGroups["M_Swat_Scout"].Count);
+        Assert.Single(moddedMixedGroups["Comperator_Heavy_Tier1_Melee"]);
         Assert.Single(moddedMixedGroups["-55001"]);
         Assert.All(moddedMixedGroups["RW_Rot"], enemy => Assert.Equal(8, ReadInt(enemy, "Value")));
         Assert.All(moddedMixedGroups["M_Swat_Scout"], enemy => Assert.Equal(5, ReadInt(enemy, "Value")));
-        Assert.All(moddedMixedGroups["Comperator_Heavy_Tier1_Melee"], enemy => Assert.Equal(2, ReadInt(enemy, "Value")));
+        Assert.All(moddedMixedGroups["Comperator_Heavy_Tier1_Melee"], enemy => Assert.Equal(1, ReadInt(enemy, "Value")));
         Assert.Equal(1, ReadInt(moddedMixedGroups["-55001"].Single(), "Value"));
     }
 
@@ -254,7 +254,7 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(RuntimeEntry(entryType, "VanillaGun", "Firearm", false, magazineType: 7), 0);
         entries.SetValue(RuntimeEntry(entryType, "VanillaMagazine", "Magazine", false, magazineType: 7), 1);
 
-        var enemies = Array.CreateInstance(enemyType, 7);
+        var enemies = Array.CreateInstance(enemyType, 8);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_Scout", false, 30), 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_MercWiener_Riflewiener", false, 45), 2);
@@ -262,6 +262,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "M_Swat_Heavy", false, 120), 4);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "Comperator_Light_Tier1_Melee", false, 30), 5);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "H_BreadCrabZombie_Standard", false, 30), 6);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "Comperator_Heavy_Tier5_LMG", false, 30), 7);
 
         var mixed = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
             .Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy");
@@ -275,12 +276,54 @@ public sealed class GunGameGeneratorTests
         Assert.All(grouped["M_MercWiener_Riflewiener"], enemy => Assert.Equal(3, ReadInt(enemy, "Value")));
         Assert.All(grouped["M_Swat_SpecOps"], enemy => Assert.Equal(2, ReadInt(enemy, "Value")));
         Assert.All(grouped["M_Swat_Heavy"], enemy => Assert.Equal(1, ReadInt(enemy, "Value")));
-        Assert.Equal(3, grouped["RW_Rot"].Count);
-        Assert.Equal(3, grouped["M_Swat_Scout"].Count);
-        Assert.Equal(3, grouped["M_MercWiener_Riflewiener"].Count);
-        Assert.Equal(3, grouped["Comperator_Light_Tier1_Melee"].Count);
+        Assert.Equal(13, grouped["RW_Rot"].Count);
+        Assert.Equal(8, grouped["M_Swat_Scout"].Count);
+        Assert.Equal(6, grouped["M_MercWiener_Riflewiener"].Count);
+        Assert.Equal(4, grouped["M_Swat_SpecOps"].Count);
+        Assert.Equal(2, grouped["M_Swat_Heavy"].Count);
+        Assert.Equal(2, grouped["Comperator_Light_Tier1_Melee"].Count);
+        Assert.All(grouped["Comperator_Light_Tier1_Melee"], enemy => Assert.Equal(2, ReadInt(enemy, "Value")));
+        Assert.Single(grouped["Comperator_Heavy_Tier5_LMG"]);
+        Assert.Equal(1, ReadInt(grouped["Comperator_Heavy_Tier5_LMG"].Single(), "Value"));
         Assert.Single(grouped["H_BreadCrabZombie_Standard"]);
         Assert.Equal(2, ReadInt(grouped["H_BreadCrabZombie_Standard"].Single(), "Value"));
+    }
+
+    [Fact]
+    public void Mount_resolution_preserves_exact_mounts_maps_the_temporary_rmr_alias_and_rejects_unknown_numeric_mounts()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var resolutionType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.MountResolution"));
+        var resolve = Assert.IsAssignableFrom<MethodInfo>(resolutionType.GetMethod("Resolve", BindingFlags.Public | BindingFlags.Static));
+
+        var rmr = resolve.Invoke(null, new object[] { "99" });
+        var picatinny = resolve.Invoke(null, new object[] { "Picatinny" });
+        var unknown = resolve.Invoke(null, new object[] { "123" });
+
+        Assert.Equal("99", ReadString(rmr!, "RawMount"));
+        Assert.Equal("RMR", ReadString(rmr!, "CanonicalMount"));
+        Assert.True((bool)rmr!.GetType().GetProperty("IsResolved")!.GetValue(rmr)!);
+        Assert.Equal("Picatinny", ReadString(picatinny!, "CanonicalMount"));
+        Assert.True((bool)picatinny!.GetType().GetProperty("IsResolved")!.GetValue(picatinny)!);
+        Assert.Equal(string.Empty, ReadString(unknown!, "CanonicalMount"));
+        Assert.False((bool)unknown!.GetType().GetProperty("IsResolved")!.GetValue(unknown)!);
+    }
+
+    [Fact]
+    public void Enemy_weight_policy_preserves_the_current_operator_tier_weights()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.EnemyWeightPolicy"));
+        var resolve = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("Resolve", BindingFlags.Public | BindingFlags.Static));
+
+        var rot = resolve.Invoke(null, new[] { RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5) })!;
+        var standard = resolve.Invoke(null, new[] { RuntimeEnemyEntry(enemyType, "Comperator_Light_Tier1_Melee", false, 30) })!;
+        var apex = resolve.Invoke(null, new[] { RuntimeEnemyEntry(enemyType, "Comperator_Heavy_Tier5_LMG", false, 30) })!;
+
+        Assert.Equal((8, 13), (ReadInt(rot, "Value"), ReadInt(rot, "Multiplicity")));
+        Assert.Equal((2, 2), (ReadInt(standard, "Value"), ReadInt(standard, "Multiplicity")));
+        Assert.Equal((1, 1), (ReadInt(apex, "Value"), ReadInt(apex, "Multiplicity")));
     }
 
     [Fact]
@@ -294,12 +337,12 @@ public sealed class GunGameGeneratorTests
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
         var entries = Array.CreateInstance(entryType, 9);
 
-        var pistol = RuntimeEntry(entryType, "RmrPistol", "Firearm", false);
+        var pistol = RuntimeEntry(entryType, "RmrPistol", "Firearm", true);
         SetRuntimeProperty(entryType, pistol, "CompatibleMagazines", new List<string> { "PistolMagazine" });
         SetRuntimeProperty(entryType, pistol, "FirearmSize", "Pistol");
         SetRuntimeProperty(entryType, pistol, "FirearmMounts", new List<string> { "RMR" });
-        SetRuntimeProperty(entryType, pistol, "PhysicalMountTypes", new List<string> { "RMR" });
-        SetRuntimeProperty(entryType, pistol, "BespokeAttachments", new List<string> { "A_PicatinnyReflex", "B_PicatinnyMagnifier", "Y_PicatinnyScope", "Z_RmrReflex" });
+        SetRuntimeProperty(entryType, pistol, "PhysicalMountTypes", new List<string> { "99", "Picatinny" });
+        SetRuntimeProperty(entryType, pistol, "BespokeAttachments", new List<string>());
         entries.SetValue(pistol, 0);
 
         var rifle = RuntimeEntry(entryType, "PicatinnyRifle", "Firearm", true);
@@ -349,9 +392,10 @@ public sealed class GunGameGeneratorTests
 
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
-        var allActive = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+        var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
+        var modded = pools
             .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
-        var guns = ReadObjects(allActive, "Guns");
+        var guns = ReadObjects(modded, "Guns");
 
         Assert.Equal("Z_RmrReflex", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "RmrPistol"), "Extra"));
         Assert.Equal("Y_PicatinnyScope", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "PicatinnyRifle"), "Extra"));

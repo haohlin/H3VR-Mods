@@ -1,60 +1,48 @@
 # GunGame Progressions
 
-GunGame Progressions provides Advanced GunGame profiles and a lightweight runtime exporter for H3VR. It builds compatible loadouts from the content currently enabled in the player's H3VR profile, without modifying the GunGame plugin.
+GunGame, supercharged.
 
-## Current Catalog
-
-The packaged vanilla fallback profiles cover **615 supported vanilla firearms** with **553 compatible mags** selected from verified compatible loadouts. At runtime, the exporter refreshes the catalog for the player's installed content, adding all supported active modded guns and custom Sosigs without referencing disabled or missing mods.
+GunGame Progressions expands GunGame with compatible gear, distinct difficulty styles, and weapon and Sosig pools that reflect the content enabled in your H3VR profile.
 
 ## Requirement
 
 - [GunGame](https://thunderstore.io/c/h3vr/p/Kodeman/GunGame/)
 
-## Included Profiles
+## Choose a Pool
 
-The package always includes these safe vanilla fallbacks:
+The built-in vanilla selection covers **615 firearms** with **553 compatible magazines**, ready for a dependable Rot-focused game.
 
-| Profile | Firearms | Enemies |
-| --- | --- | --- |
-| Runtime 01 - Vanilla Rot | Vanilla only | Rotwieners only |
-| Runtime 03 - Vanilla Mixed Enemy | Vanilla only | Rot, Scout, Riflewiener, SpecOps, and Heavy |
+| Profile | Weapons | Enemies | Play style |
+| --- | --- | --- | --- |
+| Runtime 01 - Vanilla Rot | Vanilla firearms | Rotwieners only | A consistent, lower-pressure progression. |
+| Runtime 02 - Modded Rot | Currently enabled mod firearms only | Rotwieners only | Practice your active mod collection without mixing in vanilla guns. |
+| Runtime 03 - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
+| Runtime 04 - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
 
-After H3VR finishes loading active content, the exporter writes runtime profiles from the live object and Sosig registries:
+Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents.
 
-| Profile | Firearms | Enemies |
-| --- | --- | --- |
-| Runtime 01 - Vanilla Rot | Active vanilla | Rotwieners only |
-| Runtime 02 - Modded Rot | Active vanilla and enabled modded firearms | Rotwieners only |
-| Runtime 03 - Vanilla Mixed Enemy | Active vanilla | All active vanilla spawnable Sosigs |
-| Runtime 04 - Modded Mixed Enemy | Active vanilla and enabled modded firearms | All active vanilla and enabled modded spawnable Sosigs |
+## Enemy Pacing
 
-Profiles 02 and 04 are generated only when active modded firearms exist. "Modded" profiles include the vanilla set as well as enabled modded content; they do not reference disabled or absent mods.
+Mixed Enemy pools are built around a steady difficulty rise:
 
-GunGame reads profiles during startup and does not support a live profile reload. The packaged fallbacks are therefore immediately selectable. A runtime profile set refreshed after other mods finish loading is reliably available on the next H3VR launch.
+- Rotwieners and basic front-line Sosigs appear most often.
+- Standard combat Sosigs are common enough to keep runs varied.
+- Specialist and operator Sosigs are uncommon.
+- Heavy and high-tier operators are rare, so they remain a challenge rather than the normal encounter.
 
-## Mixed Enemy Progression
+Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance**. Each kill advances the current weapon by one, and GunGame lets you choose any higher or lower count from its own menu.
 
-Mixed Enemy profiles use **Count mode**. The default is **3 kills to advance**, and each player kill advances the current weapon by exactly one kill. The GunGame menu can change this count from 1 upward.
+## Compatible Loadouts
 
-Enemy values control spawn likelihood only. Core H3VR factions (`RW_*`, `M_Swat_*`, `M_MercWiener_*`, and `Comperator_*`) receive extra weighted entries so they appear more often. Easier core enemies have higher weights: Rot 8, Scout 5, Riflewiener 3, SpecOps 2, and Heavy 1. Other active spawnable Sosigs remain eligible at lower weight.
+- Guns receive usable ammunition: magazines first, then clips or speedloaders, then cartridges when needed.
+- A gun that takes magazines is given magazines rather than loose cartridges.
+- Optics appear only when they fit the firearm's own mounting point.
+- Reflex sights and scopes can appear; magnifiers and unrelated attachments are left out.
+- Every run can offer a different compatible choice, keeping familiar weapons from feeling identical.
 
-## Loadouts and Optics
+## Your Enabled Content
 
-- Every firearm uses compatible ammunition only: magazine first, then clip, then cartridge or speedloader when required.
-- All compatible feed options are recorded in `MagNames`.
-- Optics are assigned only when the firearm and optic have an exact verified physical mount match.
-- Reflex sights and PIP scopes are eligible; magnifiers and unclassified attachments are excluded.
-- Firearms without compatible feeds, and items listed in `profile-rules.json`, are excluded.
-
-## Runtime Files
-
-The exporter writes these files under the installed `HLin_Mods-GunGame_Progressions` folder:
-
-- `ObjectData.json`: active object metadata snapshot.
-- `GunGameWeaponPool_Runtime_*.json`: generated GunGame profiles.
-- `RuntimePools/`: runtime generation receipt and catalog data.
-
-The package contains no game assemblies or static list of modded objects. Each player obtains a profile for their own active mod set at runtime.
+The pools follow the content enabled in your current H3VR profile. Vanilla pools stay vanilla. Modded pools use only enabled mod firearms, so disabled or uninstalled weapon mods are never selected. The mixed modded pool can also draw from enabled custom Sosigs.
 
 ## License
 
