@@ -6,7 +6,7 @@ namespace H3vrPipeline.Tests;
 public sealed class GunGameReleaseMetadataTests
 {
     [Fact]
-    public void Release_metadata_advertises_the_verified_runtime_catalog()
+    public void Release_metadata_keeps_the_stable_listing_description_and_player_guide()
     {
         var packageRoot = Path.Combine(
             FindRepositoryRoot(),
@@ -23,9 +23,11 @@ public sealed class GunGameReleaseMetadataTests
             root.GetProperty("description").GetString());
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));
-        Assert.Contains("615 supported vanilla firearms", readme);
-        Assert.Contains("553 compatible mags", readme);
-        Assert.Contains("all supported active modded guns and custom Sosigs", readme);
+        Assert.Contains("## Choose a Pool", readme);
+        Assert.Contains("Runtime 02 - Modded Rot", readme);
+        Assert.Contains("## Enemy Pacing", readme);
+        Assert.Contains("## Compatible Loadouts", readme);
+        Assert.Contains("## Your Enabled Content", readme);
 
         var changelog = File.ReadAllText(Path.Combine(packageRoot, "CHANGELOG.md"));
         Assert.Contains("## 1.3.5", changelog);

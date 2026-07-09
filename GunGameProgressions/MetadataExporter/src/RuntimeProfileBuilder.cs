@@ -131,6 +131,7 @@ public static class RuntimeProfileBuilder
             .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var vanillaFirearms = firearms.Where(entry => !entry.IsModContent).ToList();
+        var moddedFirearms = firearms.Where(entry => entry.IsModContent).ToList();
         var enemyEntries = sourceEnemies
             .Where(enemy => enemy != null && enemy.IsSpawnable && !string.IsNullOrEmpty(enemy.EnemyNameString))
             .GroupBy(enemy => enemy.EnemyNameString, StringComparer.OrdinalIgnoreCase)
@@ -140,7 +141,7 @@ public static class RuntimeProfileBuilder
         var skipped = new List<string>();
         var noOptic = new List<string>();
         var vanillaWeapons = BuildWeapons(vanillaFirearms, vanillaEntries, vanillaEntriesById, random, skipped, noOptic);
-        var allActiveWeapons = BuildWeapons(firearms, entries, entriesById, random, skipped, noOptic);
+        var moddedWeapons = BuildWeapons(moddedFirearms, entries, entriesById, random, skipped, noOptic);
         var rot = FindRot(enemyEntries);
         var vanillaMixed = BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent));
         var allActiveMixed = BuildMixedEnemies(enemyEntries);
@@ -164,23 +165,23 @@ public static class RuntimeProfileBuilder
                 vanillaWeapons,
                 vanillaMixed.ToArray()),
         };
-        if (allActiveWeapons.Count > vanillaWeapons.Count)
+        if (moddedWeapons.Count > 0)
         {
             pools.Insert(1, CreateScenarioPool(
                 "02_Modded_Rot",
                 "Runtime 02 - Modded Rot",
-                "A Rot-only random progression using all active vanilla and modded firearms.",
+                "A Rot-only random progression using active modded firearms and compatible active feeds.",
                 1,
                 0,
-                allActiveWeapons,
+                moddedWeapons,
                 rot));
             pools.Add(CreateScenarioPool(
                 "04_Modded_Mixed_Enemy",
                 "Runtime 04 - Modded Mixed Enemy",
-                "A weighted mixed-enemy progression using all active vanilla and modded firearms and Sosigs.",
+                "A weighted mixed-enemy progression using active modded firearms and active Sosigs.",
                 1,
                 0,
-                allActiveWeapons,
+                moddedWeapons,
                 allActiveMixed.ToArray()));
         }
 
@@ -253,61 +254,18 @@ public static class RuntimeProfileBuilder
         var weighted = new List<RuntimeEnemy>();
         foreach (var enemy in sorted)
         {
-            var value = EnemyValue(enemy);
-            for (var copy = 0; copy < SpawnMultiplicity(enemy); copy++)
+            var spawnWeight = EnemyWeightPolicy.Resolve(enemy);
+            for (var copy = 0; copy < spawnWeight.Multiplicity; copy++)
             {
                 weighted.Add(new RuntimeEnemy
                 {
                     EnemyNameString = enemy.EnemyNameString,
-                    Value = value,
+                    Value = spawnWeight.Value,
                 });
             }
         }
 
         return weighted;
-    }
-
-    private static int EnemyValue(RuntimeEnemyEntry enemy)
-    {
-        switch (enemy.EnemyNameString)
-        {
-            case "RW_Rot": return 8;
-            case "M_Swat_Scout": return 5;
-            case "M_MercWiener_Riflewiener": return 3;
-            case "M_Swat_SpecOps": return 2;
-            case "M_Swat_Heavy": return 1;
-        }
-
-        return IsCoreEnemyFamily(enemy.EnemyNameString)
-            ? CoreSpawnWeight(enemy.DifficultyScore)
-            : OtherSpawnWeight(enemy.DifficultyScore);
-    }
-
-    private static int CoreSpawnWeight(int score)
-    {
-        if (score <= 15) return 8;
-        if (score <= 40) return 5;
-        if (score <= 65) return 3;
-        if (score <= 100) return 2;
-        return 1;
-    }
-
-    private static int OtherSpawnWeight(int score)
-    {
-        return score <= 40 ? 2 : 1;
-    }
-
-    private static int SpawnMultiplicity(RuntimeEnemyEntry enemy)
-    {
-        return IsCoreEnemyFamily(enemy.EnemyNameString) ? 3 : 1;
-    }
-
-    private static bool IsCoreEnemyFamily(string enemyNameString)
-    {
-        return enemyNameString.StartsWith("RW_", StringComparison.Ordinal) ||
-            enemyNameString.StartsWith("M_Swat_", StringComparison.Ordinal) ||
-            enemyNameString.StartsWith("M_MercWiener_", StringComparison.Ordinal) ||
-            enemyNameString.StartsWith("Comperator_", StringComparison.Ordinal);
     }
 
     private static RuntimeWeaponPool CreateScenarioPool(
@@ -488,11 +446,12 @@ public static class RuntimeProfileBuilder
             }
         }
 
-        var opticCandidates = directCandidates;
+        var opticCandidates = PreferDedicatedCompactOptics(directCandidates, firearm);
         if (opticCandidates.Count == 0)
         {
-            opticCandidates.AddRange(entries.Where(attachment =>
-                IsCompatibleOptic(attachment, firearm, desiredKind)));
+            opticCandidates = PreferDedicatedCompactOptics(
+                entries.Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
+                firearm);
         }
 
         var distinct = opticCandidates
@@ -526,9 +485,53 @@ public static class RuntimeProfileBuilder
         }
 
         var firearmMountSet = new HashSet<string>(
-            firearmMounts.Where(mount => !string.IsNullOrEmpty(mount)),
-            StringComparer.Ordinal);
-        return attachmentMounts.Any(mount => firearmMountSet.Contains(mount));
+            ResolvedMountTypes(firearmMounts),
+            StringComparer.OrdinalIgnoreCase);
+        return ResolvedMountTypes(attachmentMounts).Any(mount => firearmMountSet.Contains(mount));
+    }
+
+    private static List<RuntimeMetadataEntry> PreferDedicatedCompactOptics(
+        List<RuntimeMetadataEntry> candidates,
+        RuntimeMetadataEntry firearm)
+    {
+        if (!IsCompact(firearm.FirearmSize))
+        {
+            return candidates;
+        }
+
+        var dedicatedMounts = ResolvedMountTypes(firearm.PhysicalMountTypes)
+            .Where(IsDedicatedCompactOpticMount)
+            .ToList();
+        if (dedicatedMounts.Count == 0)
+        {
+            return new List<RuntimeMetadataEntry>();
+        }
+
+        return candidates
+            .Where(attachment => HasSharedPhysicalMount(dedicatedMounts, attachment.PhysicalMountTypes))
+            .ToList();
+    }
+
+    private static IEnumerable<string> ResolvedMountTypes(IEnumerable<string> mounts)
+    {
+        return (mounts ?? Enumerable.Empty<string>())
+            .Select(MountResolution.Resolve)
+            .Where(resolution => resolution.IsResolved)
+            .Select(resolution => resolution.CanonicalMount)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool IsDedicatedCompactOpticMount(string mount)
+    {
+        return !string.Equals(mount, "Picatinny", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "Suppressor", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "Stock", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "M203", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "GP25", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "AKFore", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mount, "MLokRail", StringComparison.OrdinalIgnoreCase) &&
+            mount.IndexOf("Bayonet", StringComparison.OrdinalIgnoreCase) < 0 &&
+            mount.IndexOf("Foregrip", StringComparison.OrdinalIgnoreCase) < 0;
     }
 
     private static RuntimeEnemyEntry[] DefaultEnemies()
