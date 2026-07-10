@@ -17,7 +17,7 @@ public sealed class GunGameReleaseMetadataTests
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(packageRoot, "manifest.json")));
         var root = manifest.RootElement;
 
-        Assert.Equal("1.3.5", root.GetProperty("version_number").GetString());
+        Assert.Equal("1.3.6", root.GetProperty("version_number").GetString());
         Assert.Equal(
             "GunGame, supercharged: 615 vanilla firearms and 553 compatible mags, plus all supported active modded guns and custom Sosigs.",
             root.GetProperty("description").GetString());
@@ -30,14 +30,14 @@ public sealed class GunGameReleaseMetadataTests
         Assert.Contains("## Your Enabled Content", readme);
 
         var changelog = File.ReadAllText(Path.Combine(packageRoot, "CHANGELOG.md"));
-        Assert.Contains("## 1.3.5", changelog);
+        Assert.Contains("## 1.3.6", changelog);
 
         var exporterProject = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(),
             "GunGameProgressions",
             "MetadataExporter",
             "GunGameProgressionsMetadataExporter.csproj"));
-        Assert.Contains("<Version>1.3.5</Version>", exporterProject);
+        Assert.Contains("<Version>1.3.6</Version>", exporterProject);
     }
 
     private static string FindRepositoryRoot()

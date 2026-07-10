@@ -340,10 +340,7 @@ public static class RuntimeProfileBuilder
         if (firearm.MagazineType != 0)
         {
             var magazines = GetMatchingFeeds(entries, "Magazine", firearm.MagazineType, entry => entry.MagazineType, 0);
-            if (magazines.Count > 0)
-            {
-                return magazines;
-            }
+            return magazines;
         }
 
         if (firearm.ClipType != 0)
@@ -435,7 +432,7 @@ public static class RuntimeProfileBuilder
         RuntimeMetadataEntry firearm,
         Random random)
     {
-        var desiredKind = IsCompact(firearm.FirearmSize) ? "Reflex" : "Scope";
+        var desiredKind = DesiredOpticKind(firearm);
         var directCandidates = new List<RuntimeMetadataEntry>();
         foreach (var objectId in firearm.BespokeAttachments ?? new List<string>())
         {
@@ -504,7 +501,7 @@ public static class RuntimeProfileBuilder
             .ToList();
         if (dedicatedMounts.Count == 0)
         {
-            return new List<RuntimeMetadataEntry>();
+            return candidates;
         }
 
         return candidates
@@ -551,6 +548,13 @@ public static class RuntimeProfileBuilder
     private static bool IsCompact(string firearmSize)
     {
         return firearmSize == "Pocket" || firearmSize == "Pistol" || firearmSize == "Compact";
+    }
+
+    private static string DesiredOpticKind(RuntimeMetadataEntry firearm)
+    {
+        var hasDedicatedCompactMount = IsCompact(firearm.FirearmSize) &&
+            ResolvedMountTypes(firearm.PhysicalMountTypes).Any(IsDedicatedCompactOpticMount);
+        return hasDedicatedCompactMount ? "Reflex" : "Scope";
     }
 
     private static List<string> DistinctIds(params List<string>[] lists)

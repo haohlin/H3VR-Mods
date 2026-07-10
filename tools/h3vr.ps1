@@ -579,30 +579,20 @@ function Assert-RemoteVersionIsNew {
         [string]$Version
     )
 
-    try {
-        $packages = @(Invoke-RestMethod -Uri "https://$($ModConfig.community).thunderstore.io/api/v1/package/" -TimeoutSec 60)
-    }
-    catch {
-        throw "Unable to query Thunderstore package metadata: $($_.Exception.Message)"
+    $versionUrl = "https://thunderstore.io/c/$($ModConfig.community)/p/$($ModConfig.namespace)/$($ModConfig.packageName)/v/$Version/"
+    $statusCode = & curl.exe -sS -o NUL -w '%{http_code}' --max-time 15 $versionUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to query Thunderstore version metadata for $($ModConfig.namespace)-$($ModConfig.packageName)-$Version."
     }
 
-    $matchingPackages = @($packages | Where-Object {
-        $_.name -eq $ModConfig.packageName -and ($_.owner -eq $ModConfig.namespace -or $_.namespace -eq $ModConfig.namespace)
-    })
-    $remoteVersions = @($matchingPackages | ForEach-Object { $_.versions } | ForEach-Object {
-        if ($_.PSObject.Properties['version_number']) { $_.version_number } elseif ($_.PSObject.Properties['version']) { $_.version }
-    } | Where-Object { $_ })
-
-    if ($remoteVersions -contains $Version) {
+    if ($statusCode -eq '404') {
+        return
+    }
+    if ($statusCode -eq '200') {
         throw "Thunderstore already has $($ModConfig.namespace)-$($ModConfig.packageName)-$Version."
     }
 
-    $localVersion = [Version]$Version
-    foreach ($remoteVersion in $remoteVersions) {
-        if ($localVersion -le [Version]$remoteVersion) {
-            throw "Local version $Version is not greater than published version $remoteVersion."
-        }
-    }
+    throw "Thunderstore version metadata request returned HTTP $statusCode for $($ModConfig.namespace)-$($ModConfig.packageName)-$Version."
 }
 
 function Invoke-Publish {
@@ -619,16 +609,25 @@ function Invoke-Publish {
 
     Assert-RemoteVersionIsNew -ModConfig $ModConfig -Version $version
 
-    if (-not (Get-Command Get-StoredCredential -ErrorAction SilentlyContinue)) {
-        throw 'Install the CredentialManager PowerShell module and run SetPublishToken before publishing.'
+    $token = [Environment]::GetEnvironmentVariable('TCLI_AUTH_TOKEN', 'User')
+    if ([string]::IsNullOrWhiteSpace($token) -and (Get-Command Get-StoredCredential -ErrorAction SilentlyContinue)) {
+        try {
+            $credential = Get-StoredCredential -Target 'H3VRMods:Thunderstore'
+            if ($null -ne $credential) {
+                $token = $credential.Password
+            }
+        }
+        catch {
+            Write-Verbose 'Thunderstore Credential Manager lookup was unavailable in this session.'
+        }
     }
-    $credential = Get-StoredCredential -Target 'H3VRMods:Thunderstore'
-    if ($null -eq $credential) {
-        throw 'No Thunderstore credential is stored. Run SetPublishToken first.'
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        throw 'No Thunderstore publish token is configured. Run SetPublishToken first.'
     }
 
     Push-Location $RepoRoot
     try {
+        Write-Host 'Restoring the Thunderstore CLI tool.'
         Invoke-CheckedNative { & dotnet tool restore }
         $tomlPath = Join-Path $artifactDirectory 'thunderstore.toml'
         @"
@@ -641,7 +640,8 @@ versionNumber = "$version"
 repository = "https://thunderstore.io"
 communities = ["$($ModConfig.community)"]
 "@ | Set-Content -LiteralPath $tomlPath -Encoding UTF8
-        $env:TCLI_AUTH_TOKEN = $credential.Password
+        $env:TCLI_AUTH_TOKEN = $token
+        Write-Host "Publishing $(Split-Path -Leaf $zipPath) with Thunderstore CLI."
         Invoke-CheckedNative { & dotnet tool run tcli -- publish --file $zipPath --config-path $tomlPath }
     }
     finally {
@@ -672,9 +672,16 @@ switch ($Action) {
     'TailLogs' { Invoke-LogAction 'tail' }
     'ClearLogs' { Invoke-LogAction 'clear' }
     'SetPublishToken' {
-        if (-not (Get-Command New-StoredCredential -ErrorAction SilentlyContinue)) { throw 'Install-Module CredentialManager -Scope CurrentUser first.' }
-        $token = Read-Host -Prompt 'Thunderstore service-account token' -AsSecureString
-        New-StoredCredential -Target 'H3VRMods:Thunderstore' -UserName 'HLin_Mods' -Password $token -Persist LocalMachine | Out-Null
+        $secureToken = Read-Host -Prompt 'Thunderstore service-account token' -AsSecureString
+        $tokenPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
+        try {
+            $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($tokenPointer)
+            [Environment]::SetEnvironmentVariable('TCLI_AUTH_TOKEN', $token, 'User')
+            Write-Host 'Thunderstore publish token stored for the current Windows user.'
+        }
+        finally {
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($tokenPointer)
+        }
     }
     'Publish' { Invoke-Publish (Get-ModConfig $Mod) }
 }

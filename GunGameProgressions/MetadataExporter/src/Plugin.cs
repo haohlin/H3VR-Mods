@@ -11,50 +11,22 @@ using UnityEngine;
 
 namespace HLin.GunGameProgressions;
 
-[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.3.5")]
+[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.3.6")]
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
-    private const float InitialSnapshotDeadlineSeconds = 5f;
-    private const float PollIntervalSeconds = 0.25f;
     private const int StableSamplesRequired = 3;
     private const int MaximumSamples = 120;
     private const int MetadataEntriesPerFrame = 64;
 
     private void Start()
     {
-        StartCoroutine(ExportLifecycle());
-    }
-
-    private IEnumerator ExportLifecycle()
-    {
-        var deadline = Time.realtimeSinceStartup + InitialSnapshotDeadlineSeconds;
-        var earlySnapshotWritten = false;
-        while (Time.realtimeSinceStartup < deadline)
-        {
-            Dictionary<string, FVRObject> objects;
-            if (TryGetObjectData(out objects) && objects.Count > 0)
-            {
-                yield return StartCoroutine(WriteRuntimeMetadata(objects, "startup"));
-                earlySnapshotWritten = true;
-                break;
-            }
-
-            yield return new WaitForSeconds(PollIntervalSeconds);
-        }
-
-        if (!earlySnapshotWritten)
-        {
-            Logger.LogWarning("H3VR object metadata was not ready within five seconds; packaged vanilla fallback profiles remain available for this launch.");
-        }
-
-        yield return StartCoroutine(ExportWhenObjectDataIsStable());
+        StartCoroutine(ExportWhenObjectDataIsStable());
     }
 
     private IEnumerator ExportWhenObjectDataIsStable()
     {
-        var previousCount = -1;
-        var stableSamples = 0;
+        var stabilityGate = new RuntimeMetadataStabilityGate(StableSamplesRequired);
         for (var sample = 0; sample < MaximumSamples; sample++)
         {
             Dictionary<string, FVRObject> objects;
@@ -64,18 +36,16 @@ public sealed class Plugin : BaseUnityPlugin
                 continue;
             }
 
-            stableSamples = objects.Count == previousCount ? stableSamples + 1 : 0;
-            previousCount = objects.Count;
-            if (stableSamples >= StableSamplesRequired)
+            if (stabilityGate.Observe(objects.Count))
             {
-                yield return StartCoroutine(WriteRuntimeMetadata(objects, "stable-refresh"));
+                yield return StartCoroutine(WriteRuntimeMetadata(objects, "final-refresh"));
                 yield break;
             }
 
             yield return new WaitForSeconds(1f);
         }
 
-        Logger.LogWarning("Timed out waiting for H3VR object metadata to stabilize; keeping the most recent startup snapshot and packaged fallback profiles.");
+        Logger.LogWarning("Timed out waiting for late H3VR object metadata growth; packaged vanilla fallback profiles remain available for this launch.");
     }
 
     private bool TryGetObjectData(out Dictionary<string, FVRObject> objects)
@@ -107,15 +77,17 @@ public sealed class Plugin : BaseUnityPlugin
                 continue;
             }
 
-            var category = item.Category.ToString();
+            var declaredCategory = item.Category.ToString();
             var opticKind = GetOpticKind(item);
+            var firearmInspection = InspectFirearmPrefab(item, declaredCategory);
+            var category = firearmInspection.Category;
 
             entries.Add(new RuntimeMetadataEntry
             {
                 ObjectID = item.ItemID,
                 Category = category,
                 IsModContent = item.IsModContent,
-                MagazineType = (int)item.MagazineType,
+                MagazineType = firearmInspection.MagazineType ?? (int)item.MagazineType,
                 ClipType = (int)item.ClipType,
                 RoundType = (int)item.RoundType,
                 CompatibleMagazines = ObjectIds(item.CompatibleMagazines),
@@ -131,7 +103,7 @@ public sealed class Plugin : BaseUnityPlugin
                 AttachmentMount = item.TagAttachmentMount.ToString(),
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
                 OpticKind = opticKind,
-                PhysicalMountTypes = GetPhysicalMountTypes(item, category, opticKind),
+                PhysicalMountTypes = firearmInspection.PhysicalMountTypes ?? GetPhysicalMountTypes(item, category, opticKind),
             });
 
             if (index > 0 && index % MetadataEntriesPerFrame == 0)
@@ -201,6 +173,69 @@ public sealed class Plugin : BaseUnityPlugin
             .ToList();
     }
 
+    private static RuntimeFirearmInspection InspectFirearmPrefab(FVRObject item, string declaredCategory)
+    {
+        if (declaredCategory != "Firearm")
+        {
+            return new RuntimeFirearmInspection(declaredCategory, null, null);
+        }
+
+        try
+        {
+            var prefab = item.GetGameObject();
+            if (prefab == null)
+            {
+                return new RuntimeFirearmInspection(declaredCategory, null, null);
+            }
+
+            var physicalObjects = prefab.GetComponentsInChildren<FVRPhysicalObject>(true);
+            FVRFireArm firearm = null;
+            var hasMagazine = false;
+            var hasClip = false;
+            var hasSpeedloader = false;
+            var hasRound = false;
+            foreach (var physicalObject in physicalObjects)
+            {
+                if (physicalObject is FVRFireArm)
+                {
+                    firearm = physicalObject as FVRFireArm;
+                }
+                else if (physicalObject is FVRFireArmMagazine)
+                {
+                    hasMagazine = true;
+                }
+                else if (physicalObject is FVRFireArmClip)
+                {
+                    hasClip = true;
+                }
+                else if (physicalObject is Speedloader)
+                {
+                    hasSpeedloader = true;
+                }
+                else if (physicalObject is FVRFireArmRound)
+                {
+                    hasRound = true;
+                }
+            }
+
+            var category = RuntimeItemRole.Resolve(
+                declaredCategory,
+                firearm != null,
+                hasMagazine,
+                hasClip,
+                hasSpeedloader,
+                hasRound);
+            var magazineType = firearm == null ? (int?)null : (int)firearm.MagazineType;
+            var mounts = firearm == null ? null : GetPhysicalMountTypes(prefab);
+            return new RuntimeFirearmInspection(category, magazineType, mounts);
+        }
+        catch (Exception)
+        {
+            // Preserve the legacy category when a malformed prefab cannot be inspected.
+            return new RuntimeFirearmInspection(declaredCategory, null, null);
+        }
+    }
+
     private static List<string> GetPhysicalMountTypes(FVRObject item, string category, string opticKind)
     {
         var componentTypeName = string.Empty;
@@ -221,19 +256,40 @@ public sealed class Plugin : BaseUnityPlugin
         try
         {
             var prefab = item.GetGameObject();
-            var componentType = typeof(FVRObject).Assembly.GetType(componentTypeName, false);
-            if (prefab == null || componentType == null)
+            if (prefab == null)
             {
                 return new List<string>();
             }
 
-            var typeField = componentType.GetField("Type", BindingFlags.Public | BindingFlags.Instance);
-            if (typeField == null)
-            {
-                return new List<string>();
-            }
+            return GetPhysicalMountTypes(prefab, componentTypeName);
+        }
+        catch (Exception)
+        {
+            // Unsupported or malformed mod prefabs are never used for automatic optic selection.
+            return new List<string>();
+        }
+    }
 
-            return prefab
+    private static List<string> GetPhysicalMountTypes(GameObject prefab)
+    {
+        return GetPhysicalMountTypes(prefab, "FistVR.FVRFireArmAttachmentMount");
+    }
+
+    private static List<string> GetPhysicalMountTypes(GameObject prefab, string componentTypeName)
+    {
+        var componentType = typeof(FVRObject).Assembly.GetType(componentTypeName, false);
+        if (componentType == null)
+        {
+            return new List<string>();
+        }
+
+        var typeField = componentType.GetField("Type", BindingFlags.Public | BindingFlags.Instance);
+        if (typeField == null)
+        {
+            return new List<string>();
+        }
+
+        return prefab
                 .GetComponentsInChildren(componentType, true)
                 .Select(component => typeField.GetValue(component))
                 .Where(value => value != null)
@@ -242,12 +298,20 @@ public sealed class Plugin : BaseUnityPlugin
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList();
-        }
-        catch (Exception)
+    }
+
+    private sealed class RuntimeFirearmInspection
+    {
+        public RuntimeFirearmInspection(string category, int? magazineType, List<string> physicalMountTypes)
         {
-            // Unsupported or malformed mod prefabs are never used for automatic optic selection.
-            return new List<string>();
+            Category = category;
+            MagazineType = magazineType;
+            PhysicalMountTypes = physicalMountTypes;
         }
+
+        public string Category { get; private set; }
+        public int? MagazineType { get; private set; }
+        public List<string> PhysicalMountTypes { get; private set; }
     }
 
     private static string ResolveRuntimeMountName(object value)
@@ -423,15 +487,12 @@ public sealed class Plugin : BaseUnityPlugin
                 return string.Empty;
             }
 
-            if (HasComponent(prefab, "FistVR.PIPScopeController"))
-            {
-                return "Scope";
-            }
-
-            if (HasComponent(prefab, "FistVR.ReflexSightController"))
-            {
-                return "Reflex";
-            }
+            var pipScope = GetComponent(prefab, "FistVR.PIPScopeController");
+            var reflexSight = GetComponent(prefab, "FistVR.ReflexSightController");
+            return PipScopeOpticClassifier.Classify(
+                item.ItemID,
+                pipScope != null,
+                reflexSight != null);
         }
         catch (Exception)
         {
@@ -441,10 +502,10 @@ public sealed class Plugin : BaseUnityPlugin
         return string.Empty;
     }
 
-    private static bool HasComponent(GameObject prefab, string typeName)
+    private static Component GetComponent(GameObject prefab, string typeName)
     {
         var componentType = typeof(FVRObject).Assembly.GetType(typeName, false);
-        return componentType != null && prefab.GetComponentInChildren(componentType, true) != null;
+        return componentType == null ? null : prefab.GetComponentInChildren(componentType, true);
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)
