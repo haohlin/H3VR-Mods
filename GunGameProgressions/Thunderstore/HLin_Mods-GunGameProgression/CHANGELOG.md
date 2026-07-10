@@ -2,6 +2,12 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.3.6
+
+- Runtime pools now refresh once after enabled content finishes loading; the included vanilla profiles remain ready during startup.
+- Prevented magnifier attachments from being selected as automatic scope loadouts.
+- Improved runtime loadout validation for compatible firearms, feeds, and optics.
+
 ## 1.3.5
 
 - Added separate Vanilla and Modded Rot and Mixed Enemy pools, so modded pools use only the weapon mods currently enabled in your profile.
