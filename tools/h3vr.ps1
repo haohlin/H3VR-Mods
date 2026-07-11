@@ -17,8 +17,30 @@ $ErrorActionPreference = 'Stop'
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BuildRoot = Join-Path $RepoRoot 'build'
-$EnvironmentConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'environment.json') -Raw | ConvertFrom-Json
+$PublicEnvironmentConfigPath = Join-Path $BuildRoot 'environment.json'
+$LocalEnvironmentConfigPath = Join-Path $BuildRoot 'environment.local.json'
+$EnvironmentConfigPath = if (Test-Path -LiteralPath $LocalEnvironmentConfigPath) {
+    $LocalEnvironmentConfigPath
+}
+else {
+    $PublicEnvironmentConfigPath
+}
+$EnvironmentConfig = Get-Content -LiteralPath $EnvironmentConfigPath -Raw | ConvertFrom-Json
 $ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw | ConvertFrom-Json
+
+function Expand-EnvironmentConfiguration {
+    param([object]$Config)
+
+    foreach ($section in @($Config.h3vr, $Config.r2modman)) {
+        foreach ($property in $section.PSObject.Properties) {
+            if ($property.Value -is [string]) {
+                $property.Value = [Environment]::ExpandEnvironmentVariables($property.Value)
+            }
+        }
+    }
+}
+
+Expand-EnvironmentConfiguration -Config $EnvironmentConfig
 
 function Ensure-Directory {
     param([string]$Path)
@@ -235,7 +257,11 @@ function Invoke-Preflight {
     }
 
     Write-Host "Repository: $RepoRoot"
-    Write-Host "Git branch: $((git -C $RepoRoot branch --show-current).Trim())"
+    $branch = (& git -C $RepoRoot branch --show-current | Select-Object -First 1)
+    if ([string]::IsNullOrWhiteSpace($branch)) {
+        $branch = 'detached HEAD'
+    }
+    Write-Host "Git branch: $branch"
     git -C $RepoRoot status --short
     & dotnet --version
 

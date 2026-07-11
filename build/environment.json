@@ -1,13 +1,13 @@
 {
   "h3vr": {
-    "managedDlls": "<private-h3vr-install-root>\\steamapps\\common\\H3VR\\h3vr_Data\\Managed",
-    "dnspySourceRoot": "<private-windows-development-root>\\H3VR-DnSpy-Source",
-    "assemblyCSharpDll": "<private-h3vr-install-root>\\steamapps\\common\\H3VR\\h3vr_Data\\Managed\\Assembly-CSharp.dll",
-    "assemblyCSharpFirstpassDll": "<private-h3vr-install-root>\\steamapps\\common\\H3VR\\h3vr_Data\\Managed\\Assembly-CSharp-firstpass.dll"
+    "managedDlls": "%H3VR_MANAGED_DLLS%",
+    "dnspySourceRoot": "%H3VR_DNSPY_SOURCE_ROOT%",
+    "assemblyCSharpDll": "%H3VR_MANAGED_DLLS%\\Assembly-CSharp.dll",
+    "assemblyCSharpFirstpassDll": "%H3VR_MANAGED_DLLS%\\Assembly-CSharp-firstpass.dll"
   },
   "r2modman": {
-    "profileRoot": "<private-windows-user-profile>\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default",
-    "pluginsRoot": "<private-windows-user-profile>\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default\\BepInEx\\plugins",
-    "logPath": "<private-windows-user-profile>\\AppData\\Roaming\\r2modmanPlus-local\\H3VR\\profiles\\Default\\BepInEx\\LogOutput.log"
+    "profileRoot": "%H3VR_R2MODMAN_PROFILE_ROOT%",
+    "pluginsRoot": "%H3VR_R2MODMAN_PROFILE_ROOT%\\BepInEx\\plugins",
+    "logPath": "%H3VR_R2MODMAN_PROFILE_ROOT%\\BepInEx\\LogOutput.log"
   }
 }

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace H3vrPipeline.Tests;
@@ -17,12 +18,10 @@ public sealed class PublicSanitizationTests
                  })
         {
             var content = File.ReadAllText(Path.Combine(RepositoryRoot, relativePath));
-            Assert.DoesNotContain("$H3VR_WINDOWS_HOST", content, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("private-machine-", content, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("private-host", content, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("C:\\Users\\", content, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("/Users/", content, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<private-user>@", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotMatch(new Regex(@"(?im)^\s*ssh\s+(?!""?\$H3VR_WINDOWS_HOST\b)[^\s`]+"), content);
+            Assert.DoesNotMatch(new Regex(@"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(local|ts\.net)\b"), content);
         }
     }
 
@@ -39,6 +38,15 @@ public sealed class PublicSanitizationTests
         Assert.Contains("/build/environment.local.json", ignoreRules, StringComparison.Ordinal);
         Assert.Contains("environment.local.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("ExpandEnvironmentVariables", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Preflight_handles_a_detached_git_worktree()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("detached HEAD", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("branch --show-current).Trim", pipeline, StringComparison.Ordinal);
     }
 
     private static string RepositoryRoot

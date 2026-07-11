@@ -7,13 +7,21 @@ description: Use when implementing, debugging, building, packaging, deploying, V
 
 ## Scope and Authority
 
-Use this skill for all work in the canonical Windows repository:
+Use this skill for all work in the canonical private Windows repository. Keep
+the environment-specific values outside Git:
 
-- Repository: `%H3VR_WINDOWS_REPOSITORY%`
-- SSH target: `$H3VR_WINDOWS_HOST` (`<private-ssh-host>` is the fallback)
-- Live H3VR managed assemblies: `%H3VR_MANAGED_DLLS%`
-- Generated, read-only source cache: `%H3VR_DNSPY_SOURCE_ROOT%`
-- r2modman Default profile: `%H3VR_R2MODMAN_PROFILE_ROOT%`
+| Variable | Supplies |
+| --- | --- |
+| `H3VR_WINDOWS_HOST` | SSH host or private alias |
+| `H3VR_WINDOWS_REPOSITORY` | Windows checkout root |
+| `H3VR_MANAGED_DLLS` | Installed H3VR managed-assemblies directory |
+| `H3VR_DNSPY_SOURCE_ROOT` | Read-only decompiled-source cache |
+| `H3VR_R2MODMAN_PROFILE_ROOT` | Active r2modman H3VR profile |
+
+The tracked `build/environment.json` contains only `%VARIABLE%` placeholders.
+For explicit paths, copy `build/environment.local.example.json` to the ignored
+`build/environment.local.json` and fill it in privately. `tools/h3vr.ps1`
+prefers that file and otherwise expands the environment variables.
 
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
@@ -89,12 +97,14 @@ using the GUI again. Save assets in their owning project root and commit matchin
 
 ## Start Every Change
 
-1. Connect through `ssh $H3VR_WINDOWS_HOST` and preserve any user changes. Inspect `git status --short --branch` before editing; do not reset, clean, or overwrite unrelated files.
+1. Connect through `ssh "$H3VR_WINDOWS_HOST"` and preserve any user changes.
+   Inspect `git status --short --branch` before editing; do not reset, clean,
+   or overwrite unrelated files.
 2. Work on a feature branch, not `main`. Keep each intentional change focused and commit only the relevant files.
 3. Run the pipeline preflight from the repository root:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File %H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1 -Action Preflight
+powershell.exe -ExecutionPolicy Bypass -File "$env:H3VR_WINDOWS_REPOSITORY\tools\h3vr.ps1" -Action Preflight
 ```
 
 4. Check whether the decompiled cache still matches the live DLLs:
@@ -110,7 +120,11 @@ Run `RefreshSource` only when `SourceStatus` is stale or the H3VR managed DLLs c
 .\tools\h3vr.ps1 -Action SourceStatus
 ```
 
-`RefreshSource` replaces `%H3VR_DNSPY_SOURCE_ROOT%` with source generated from the live `Assembly-CSharp.dll` and `Assembly-CSharp-firstpass.dll`. The repository pins `ilspycmd` 8.2 because the Windows build environment has the .NET 7 SDK; do not casually upgrade it to an ILSpy release that requires a newer SDK.
+`RefreshSource` replaces the private cache configured by
+`H3VR_DNSPY_SOURCE_ROOT` with source generated from the live
+`Assembly-CSharp.dll` and `Assembly-CSharp-firstpass.dll`. The repository pins
+`ilspycmd` 8.2 because the Windows build environment has the .NET 7 SDK; do not
+casually upgrade it to an ILSpy release that requires a newer SDK.
 
 ## Investigate the Current Game API
 

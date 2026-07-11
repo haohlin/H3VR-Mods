@@ -68,6 +68,14 @@ artifacts/
 /build/staging/
 /build/artifacts/
 /build/receipts/
+/build/environment.local.json
+
+# Generated release payloads are built into build/artifacts, not versioned with
+# their Thunderstore metadata.
+/ThePing/Thunderstore/HLin_Mods-The_Ping/*.dll
+/ThePing/Thunderstore/HLin_Mods-The_Ping/*.zip
+/RemoveWhiteOut/Thunderstore/HLin_Mods-No_WhiteOut/*.dll
+/RemoveWhiteOut/Thunderstore/HLin_Mods-No_WhiteOut/*.zip
 
 # Local Claude configuration. The repository workflow guide is intentionally tracked.
 /.claude/*

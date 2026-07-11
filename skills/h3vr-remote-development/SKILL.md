@@ -1,36 +1,47 @@
 ---
 name: h3vr-remote-development
-description: Use for any H3VR-Mods change that is reviewed or edited from macOS and built, tested, deployed, or released on the remote Windows H3VR machine.
+description: Use for any H3VR-Mods change reviewed on macOS and built, tested, deployed, or released through the private Windows H3VR environment.
 ---
 
 # Remote H3VR Mod Development
 
 ## Purpose
 
-Use this workflow for all existing and new mods in this repository. The macOS
-checkout is the portable review and Git workspace. The Windows checkout is the
-authoritative game-development workspace: it builds against the installed H3VR
-assemblies, packages releases, deploys into r2modman, and is the only place
-where H3VR is run.
+The macOS checkout is a portable review and Git workspace. The private Windows
+checkout is authoritative: it builds against installed H3VR assemblies,
+packages releases, deploys to r2modman, and is the only H3VR runtime.
 
-Do not treat a macOS build as an H3VR compatibility check. Do not put secrets,
-game assemblies, decompiled game source, generated artifacts, or temporary
-design notes in Git.
+Never commit game assemblies, decompiled source, generated artifacts,
+credentials, local paths, host names, account names, machine IDs, or connection
+details.
 
-## Fixed Environment
+## Private Local Configuration
 
-| Purpose | Location |
+Keep these values outside Git, either in the local shell environment or the
+ignored `build/environment.local.json` file:
+
+| Variable | Supplies |
 | --- | --- |
-| macOS mirror | `<private-macos-h3vr-workspace>` |
-| Windows source of truth | `%H3VR_WINDOWS_REPOSITORY%` |
-| SSH target | `$H3VR_WINDOWS_HOST` or `<private-ssh-host>` |
-| H3VR managed assemblies | configured in `build/environment.json`; always read-only |
-| r2modman Default profile | configured in `build/environment.json` |
-| BepInEx log | configured in `build/environment.json` |
-| release wrapper | `tools/h3vr.ps1` |
+| `H3VR_WINDOWS_HOST` | SSH host or private alias |
+| `H3VR_WINDOWS_REPOSITORY` | Absolute Windows checkout root |
+| `H3VR_MANAGED_DLLS` | Installed H3VR managed assemblies directory |
+| `H3VR_DNSPY_SOURCE_ROOT` | Private read-only decompiled-source cache |
+| `H3VR_R2MODMAN_PROFILE_ROOT` | Active r2modman H3VR profile |
 
-Always resolve current paths from `build/environment.json`; do not hardcode a
-personal profile path in source code or package metadata.
+`build/environment.json` is public and uses only expandable environment-variable
+placeholders. To use explicit local paths, copy
+`build/environment.local.example.json` to the ignored
+`build/environment.local.json`, then fill it in privately. The pipeline prefers
+that local file and otherwise expands the public placeholders.
+
+Set the private shell values before running remote commands:
+
+```bash
+export H3VR_WINDOWS_HOST='<private-ssh-host-or-alias>'
+export H3VR_WINDOWS_REPOSITORY='<private-windows-checkout-path>'
+```
+
+Do not treat a macOS build as an H3VR compatibility check.
 
 ## Start Every Task
 
@@ -38,169 +49,119 @@ personal profile path in source code or package metadata.
    existing dirty changes.
 
    ```bash
-   ssh $H3VR_WINDOWS_HOST 'git -C %H3VR_WINDOWS_REPOSITORY% status --short --branch'
-   ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Preflight'
+   ssh "$H3VR_WINDOWS_HOST" "git -C \"$H3VR_WINDOWS_REPOSITORY\" status --short --branch"
+   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Preflight"
    ```
 
-2. Synchronize through Git deliberately. Before reviewing or editing on macOS,
-   update `<private-macos-h3vr-workspace>` with `git pull --ff-only`. Before a Windows build,
-   ensure the intended commit is present in `%H3VR_WINDOWS_REPOSITORY%`. Keep Windows
-   changes and Mac changes in scoped commits; do not use broad copies to erase
-   someone else's work.
+2. Synchronize through Git deliberately. Before review or edits, update the
+   local checkout with `git pull --ff-only`. Before a Windows build, ensure the
+   intended commit is present in the configured Windows checkout. Keep commits
+   scoped; do not erase another developer's work with broad copies.
 
-3. Read the existing mod, its package source, `build/mods.json`, relevant tests,
-   and `tools/h3vr.ps1` before choosing an implementation. Reuse local patterns.
+3. Read the affected mod, package source, `build/mods.json`, relevant tests, and
+   `tools/h3vr.ps1` before implementation. Reuse existing local patterns.
 
 ## Game Source and Harmony Targets
 
-The installed managed DLLs are the current game API and must remain read-only.
-The decompiled source root is a convenience for searching and Harmony target
-validation; it is not source code for this repository and must never be edited
-or committed.
-
-Check status before Harmony work:
+Installed managed DLLs are the current game API and remain read-only. The
+decompiled source cache is for searching and Harmony-target validation only; it
+is never repository source.
 
 ```bash
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action SourceStatus'
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Verify -Mod ThePing'
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action SourceStatus"
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Verify -Mod ThePing"
 ```
 
-Refresh the decompiled source only after an H3VR game update, or when it is
-missing and the user explicitly requests refresh. Do not refresh it routinely:
+Refresh decompiled source only after a game update or explicit request:
 
 ```bash
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action RefreshSource'
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action RefreshSource"
 ```
 
-Use `FindType`, `FindMethod`, and `GrepSource` for read-only discovery. Register
-Harmony patch targets in `build/mods.json` so `Verify` catches API drift before
-VR testing.
+Use `FindType`, `FindMethod`, and `GrepSource` for read-only discovery.
+Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 
 ## Implement and Test
 
-1. Keep code changes narrow and add focused tests for changed shared behavior.
-   Prefer metadata/component analysis over name-specific rules. Name hard-coding
-   is acceptable only for an explicit blacklist or a documented engine quirk.
-2. Run the repository suite on Windows after changes:
+1. Keep changes narrow; add focused tests for changed shared behavior.
+2. Run the repository suite on Windows:
 
    ```bash
-   ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Test'
+   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Test"
    ```
 
-3. For a single mod, also run `Build` and inspect the output. For Harmony mods,
-   run `Verify` against the current decompiled reference before deployment.
+3. For an affected mod, run `Build` and inspect its output. For Harmony mods,
+   run `Verify` before deployment.
 
    ```bash
-   ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Build -Mod <ModName>'
+   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Build -Mod <ModName>"
    ```
 
-Do not claim a runtime or VR behavior is fixed from a successful compilation
-alone. The build validates managed references; the BepInEx log and a VR test
-validate runtime behavior.
+Compilation proves managed references only. BepInEx logs and a VR test prove
+runtime behavior.
+
+## Unity and MeatKit
+
+For Unity content, close the editor before pull, branch-switch, or merge work.
+Reopen it after import completes. Save assets in their owning project root with
+matching `.meta` files; do not hand-copy Unity assets between projects.
+
+Use the editor for visual placement and subjective feel. Use batch Unity and
+MeatKit for repeatable compile, object-graph, AssetDatabase, and package checks.
+Validate the prefab/scene wiring, MeatKit build profile and dependencies,
+generated package, BepInEx log, and real in-game interaction before calling a
+Unity-content change complete.
 
 ## Add a New Mod
 
-Start from an existing mod with the same delivery style rather than creating a
-new build convention. Add the project, package source, icon, README, changelog,
-and focused tests. Then register the mod in `build/mods.json`, including its
-project/package paths, deployment folder, payload, package layout, and Harmony
-targets when applicable. Extend the `-Mod` `ValidateSet` in `tools/h3vr.ps1` so
-the wrapper accepts the new mod.
-
-Do not add game DLLs, decompiled source, built DLLs, release ZIPs, runtime
-metadata, or generated profile receipts to the repository. A new mod is ready
-only when `Build`, `Test`, `Package`, and `Deploy` work through the wrapper.
+Start from an existing mod with the same delivery style. Add project/package
+source, icon, README, changelog, focused tests, and a `build/mods.json`
+descriptor. Extend `tools/h3vr.ps1` only when a new supported build kind is
+needed. A new mod is ready when `Build`, `Test`, `Package`, and `Deploy` work
+through the wrapper.
 
 ## Package and Deploy
 
-The wrapper is the canonical package/deploy mechanism. It creates staging,
-artifact, and receipt files under `build/`; those generated files are ignored
-and must not be added to Git.
-
-Stop H3VR before deployment. Then package and deploy:
+The wrapper is canonical. It creates ignored staging, artifact, and receipt
+files below `build/`. Stop H3VR before deployment.
 
 ```bash
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Package -Mod <ModName>'
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Deploy -Mod <ModName>'
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Package -Mod <ModName>"
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Deploy -Mod <ModName>"
 ```
 
-`Deploy` repackages the intended source, installs it into the Default r2modman
-profile, backs up the prior plugin folder, and creates a VR-test receipt. Verify
-the installed DLL hash matches the release build for code mods.
-
-After the user tests in VR, inspect the log without launching the game yourself:
+After the user tests in VR, inspect logs without launching the game yourself:
 
 ```bash
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action TailLogs'
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action TailLogs"
 ```
-
-Use `Logs` for the full filtered log and `ClearLogs` only when an archived copy
-is appropriate for a focused retest.
-
-## GunGameProgressions Rules
-
-GunGameProgressions has two packaged offline vanilla fallbacks:
-
-- `Runtime 01 - Vanilla Rot`
-- `Runtime 03 - Vanilla Mixed Enemy`
-
-The metadata exporter generates the runtime set only after the active object
-and Sosig registries have finished late loading. Validate generated runtime
-profiles from live `ObjectData.json`, never from a static list of installed mods.
-They must reference only content enabled for that player and must not replace
-the safe packaged fallbacks before their final refresh completes.
-
-For loadouts, require a compatible feed in this priority order: magazine, then
-clip/speedloader, then cartridges only when the firearm has no compatible
-magazine or clip. Attach optics only after a verified physical mount match;
-exclude magnifiers and non-optic attachments. Validate generated profiles with
-the repository tests and the runtime generation receipt before asking for VR
-testing.
 
 ## Release to Thunderstore
 
-Publish only after the user explicitly requests a release. Bump the version
-only at release time, and keep all version-bearing files and release tests in
-sync: project file, Thunderstore `manifest.json`, changelog, and expectations.
-
-Release sequence:
+Publish only with explicit user authorization. Bump the version only at release
+time, keeping the project, Thunderstore manifest, changelog, and tests in sync.
+Never store a publish token in source, Git configuration, logs, shell history,
+or cross-machine transfers.
 
 ```bash
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Test'
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Package -Mod <ModName>'
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Deploy -Mod <ModName>'
-ssh $H3VR_WINDOWS_HOST 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%H3VR_WINDOWS_REPOSITORY%\tools\h3vr.ps1" -Action Publish -Mod <ModName> -Publish -VrApproved'
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Test"
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Package -Mod <ModName>"
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Deploy -Mod <ModName>"
+ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Publish -Mod <ModName> -Publish -VrApproved"
 ```
 
-The publishing token is a persistent per-user Windows environment variable
-named `TCLI_AUTH_TOKEN`; configure it once through `SetPublishToken`. Never
-write it to source, Git configuration, logs, shell history, or macOS files.
-The wrapper uses `dotnet tool run tcli`, performs a lightweight target-version
-duplicate check, and refuses duplicate releases.
-
-Verify a publish by downloading the exact version URL and reading the ZIP
-manifest. The Thunderstore versions HTML page can be cached and is not primary
-proof of publication:
+Verify a publish from its exact package URL, not a cached versions page:
 
 ```text
 https://thunderstore.io/package/download/<Namespace>/<PackageName>/<Version>/
 ```
 
-## Commit and Sync
-
-After verification, inspect the intended diff, exclude `build/` output and game
-data, then commit only the release source, package metadata, tests, and skill
-changes. Push the Windows `main` branch and update the macOS checkout with a
-fast-forward pull. Do not merge unrelated dirty work as part of a release.
-
 ## Recovery
 
-- SSH unavailable: do not invent a new IP or password path. Retry `$H3VR_WINDOWS_HOST`, then
-  `<private-ssh-host>`, and diagnose connectivity before changing code.
-- Deploy blocked: ensure `h3vr.exe` is stopped; do not overwrite files held by
-  the running game.
+- SSH unavailable: verify `H3VR_WINDOWS_HOST` in your private configuration;
+  do not guess an address, account, password path, or machine name.
+- Deploy blocked: stop H3VR; do not overwrite files held by the game.
 - Runtime error: collect `TailLogs`, compare the deployed DLL hash, and inspect
-  the exact Harmony target or profile entry before altering code.
-- Publish appears successful but the UI is stale: test the version-specific
-  download URL and inspect its `manifest.json` before retrying. Never republish
-  the same version.
+  the exact Harmony target or profile entry before editing.
+- Publish page stale: inspect the version-specific package URL and manifest
+  before retrying; never publish a duplicate version.

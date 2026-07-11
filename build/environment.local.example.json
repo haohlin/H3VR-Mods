@@ -1,0 +1,13 @@
+{
+  "h3vr": {
+    "managedDlls": "<absolute-path-to-h3vr-managed-dlls>",
+    "dnspySourceRoot": "<absolute-path-to-private-decompiled-source-cache>",
+    "assemblyCSharpDll": "<absolute-path-to-h3vr-managed-dlls>\\Assembly-CSharp.dll",
+    "assemblyCSharpFirstpassDll": "<absolute-path-to-h3vr-managed-dlls>\\Assembly-CSharp-firstpass.dll"
+  },
+  "r2modman": {
+    "profileRoot": "<absolute-path-to-r2modman-h3vr-profile>",
+    "pluginsRoot": "<absolute-path-to-r2modman-h3vr-profile>\\BepInEx\\plugins",
+    "logPath": "<absolute-path-to-r2modman-h3vr-profile>\\BepInEx\\LogOutput.log"
+  }
+}
