@@ -46,7 +46,7 @@ The pools follow the content enabled in your current H3VR profile. Vanilla pools
 
 ## License
 
-MIT. See the repository [LICENSE](https://github.com/h3vr-modding/H3VR-Mods/blob/main/LICENSE).
+MIT. See the repository [LICENSE](https://github.com/haohlin/H3VR-Mods/blob/main/LICENSE).
 
 ## Changelog
 
