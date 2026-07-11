@@ -140,8 +140,10 @@ public static class RuntimeProfileBuilder
 
         var skipped = new List<string>();
         var noOptic = new List<string>();
-        var vanillaWeapons = BuildWeapons(vanillaFirearms, vanillaEntries, vanillaEntriesById, random, skipped, noOptic);
-        var moddedWeapons = BuildWeapons(moddedFirearms, entries, entriesById, random, skipped, noOptic);
+        var vanillaIndex = new RuntimeProfileIndex(vanillaEntries, vanillaEntriesById);
+        var moddedIndex = new RuntimeProfileIndex(entries, entriesById);
+        var vanillaWeapons = BuildWeapons(vanillaFirearms, vanillaIndex, random, skipped, noOptic);
+        var moddedWeapons = BuildWeapons(moddedFirearms, moddedIndex, random, skipped, noOptic);
         var rot = FindRot(enemyEntries);
         var vanillaMixed = BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent));
         var allActiveMixed = BuildMixedEnemies(enemyEntries);
@@ -195,8 +197,7 @@ public static class RuntimeProfileBuilder
 
     private static List<RuntimeGun> BuildWeapons(
         IEnumerable<RuntimeMetadataEntry> firearms,
-        List<RuntimeMetadataEntry> entries,
-        IDictionary<string, RuntimeMetadataEntry> entriesById,
+        RuntimeProfileIndex index,
         Random random,
         List<string> skipped,
         List<string> noOptic)
@@ -204,14 +205,14 @@ public static class RuntimeProfileBuilder
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
         {
-            var feeds = GetCompatibleFeeds(entries, entriesById, firearm);
+            var feeds = GetCompatibleFeeds(index, firearm);
             if (feeds.Count == 0)
             {
                 skipped.Add(firearm.ObjectID);
                 continue;
             }
 
-            var extra = SelectOptic(entries, entriesById, firearm, random);
+            var extra = SelectOptic(index, firearm, random);
             if (string.IsNullOrEmpty(extra))
             {
                 noOptic.Add(firearm.ObjectID);
@@ -313,39 +314,37 @@ public static class RuntimeProfileBuilder
     }
 
     private static List<FeedCandidate> GetCompatibleFeeds(
-        List<RuntimeMetadataEntry> entries,
-        IDictionary<string, RuntimeMetadataEntry> entriesById,
+        RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
         if (HasIds(firearm.CompatibleMagazines))
         {
-            return GetDirectFeeds(firearm.CompatibleMagazines, entriesById, "Magazine");
+            return GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine");
         }
 
         if (HasIds(firearm.CompatibleClips))
         {
-            return GetDirectFeeds(firearm.CompatibleClips, entriesById, "Clip");
+            return GetDirectFeeds(firearm.CompatibleClips, index.EntriesById, "Clip");
         }
 
         if (HasIds(firearm.CompatibleSpeedLoaders))
         {
-            return GetDirectFeeds(firearm.CompatibleSpeedLoaders, entriesById, "SpeedLoader");
+            return GetDirectFeeds(firearm.CompatibleSpeedLoaders, index.EntriesById, "SpeedLoader");
         }
 
         if (HasIds(firearm.CompatibleSingleRounds))
         {
-            return GetDirectFeeds(firearm.CompatibleSingleRounds, entriesById, "Cartridge");
+            return GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge");
         }
 
         if (firearm.MagazineType != 0)
         {
-            var magazines = GetMatchingFeeds(entries, "Magazine", firearm.MagazineType, entry => entry.MagazineType, 0);
-            return magazines;
+            return index.GetFeeds("Magazine", firearm.MagazineType);
         }
 
         if (firearm.ClipType != 0)
         {
-            var clips = GetMatchingFeeds(entries, "Clip", firearm.ClipType, entry => entry.ClipType, 1);
+            var clips = index.GetFeeds("Clip", firearm.ClipType);
             if (clips.Count > 0)
             {
                 return clips;
@@ -354,10 +353,10 @@ public static class RuntimeProfileBuilder
 
         if (firearm.RoundType != 0)
         {
-            var speedloaders = GetMatchingFeeds(entries, "SpeedLoader", firearm.RoundType, entry => entry.RoundType, 2);
+            var speedloaders = index.GetFeeds("SpeedLoader", firearm.RoundType);
             return speedloaders.Count > 0
                 ? speedloaders
-                : GetMatchingFeeds(entries, "Cartridge", firearm.RoundType, entry => entry.RoundType, 2);
+                : index.GetFeeds("Cartridge", firearm.RoundType);
         }
 
         return new List<FeedCandidate>();
@@ -381,18 +380,6 @@ public static class RuntimeProfileBuilder
         return candidates;
     }
 
-    private static List<FeedCandidate> GetMatchingFeeds(
-        IEnumerable<RuntimeMetadataEntry> entries,
-        string category,
-        int expectedType,
-        Func<RuntimeMetadataEntry, int> typeSelector,
-        int categoryId)
-    {
-        var candidates = new List<FeedCandidate>();
-        AddMatchingFeeds(candidates, entries, category, expectedType, typeSelector, categoryId);
-        return candidates;
-    }
-
     private static void AddFeedCandidate(List<FeedCandidate> candidates, RuntimeMetadataEntry feed)
     {
         var categoryId = FeedCategoryId(feed.Category);
@@ -404,31 +391,8 @@ public static class RuntimeProfileBuilder
         candidates.Add(new FeedCandidate(feed.ObjectID, categoryId));
     }
 
-    private static void AddMatchingFeeds(
-        List<FeedCandidate> candidates,
-        IEnumerable<RuntimeMetadataEntry> entries,
-        string category,
-        int expectedType,
-        Func<RuntimeMetadataEntry, int> typeSelector,
-        int categoryId)
-    {
-        if (expectedType == 0)
-        {
-            return;
-        }
-
-        foreach (var entry in entries)
-        {
-            if (entry.Category == category && typeSelector(entry) == expectedType)
-            {
-                AddFeedCandidate(candidates, entry);
-            }
-        }
-    }
-
     private static string SelectOptic(
-        List<RuntimeMetadataEntry> entries,
-        IDictionary<string, RuntimeMetadataEntry> entriesById,
+        RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
         Random random)
     {
@@ -437,7 +401,7 @@ public static class RuntimeProfileBuilder
         foreach (var objectId in firearm.BespokeAttachments ?? new List<string>())
         {
             RuntimeMetadataEntry attachment;
-            if (entriesById.TryGetValue(objectId, out attachment) && IsCompatibleOptic(attachment, firearm, desiredKind))
+            if (index.EntriesById.TryGetValue(objectId, out attachment) && IsCompatibleOptic(attachment, firearm, desiredKind))
             {
                 directCandidates.Add(attachment);
             }
@@ -447,7 +411,7 @@ public static class RuntimeProfileBuilder
         if (opticCandidates.Count == 0)
         {
             opticCandidates = PreferDedicatedCompactOptics(
-                entries.Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
+                index.GetOptics(desiredKind).Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
                 firearm);
         }
 
@@ -613,6 +577,102 @@ public static class RuntimeProfileBuilder
             case "Bulky": return 6;
             case "Oversize": return 7;
             default: return 8;
+        }
+    }
+
+    private sealed class RuntimeProfileIndex
+    {
+        private readonly Dictionary<string, Dictionary<int, List<FeedCandidate>>> feedsByCategory =
+            new Dictionary<string, Dictionary<int, List<FeedCandidate>>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<RuntimeMetadataEntry>> opticsByKind =
+            new Dictionary<string, List<RuntimeMetadataEntry>>(StringComparer.Ordinal);
+
+        public RuntimeProfileIndex(
+            IEnumerable<RuntimeMetadataEntry> entries,
+            IDictionary<string, RuntimeMetadataEntry> entriesById)
+        {
+            EntriesById = entriesById;
+            foreach (var entry in entries)
+            {
+                IndexFeed(entry);
+                IndexOptic(entry);
+            }
+        }
+
+        public IDictionary<string, RuntimeMetadataEntry> EntriesById { get; private set; }
+
+        public List<FeedCandidate> GetFeeds(string category, int type)
+        {
+            Dictionary<int, List<FeedCandidate>> byType;
+            List<FeedCandidate> candidates;
+            return type != 0 &&
+                feedsByCategory.TryGetValue(category, out byType) &&
+                byType.TryGetValue(type, out candidates)
+                ? new List<FeedCandidate>(candidates)
+                : new List<FeedCandidate>();
+        }
+
+        public List<RuntimeMetadataEntry> GetOptics(string opticKind)
+        {
+            List<RuntimeMetadataEntry> candidates;
+            return opticsByKind.TryGetValue(opticKind, out candidates)
+                ? new List<RuntimeMetadataEntry>(candidates)
+                : new List<RuntimeMetadataEntry>();
+        }
+
+        private void IndexFeed(RuntimeMetadataEntry entry)
+        {
+            var categoryId = FeedCategoryId(entry.Category);
+            if (categoryId < 0)
+            {
+                return;
+            }
+
+            var type = entry.Category == "Magazine"
+                ? entry.MagazineType
+                : entry.Category == "Clip"
+                    ? entry.ClipType
+                    : entry.RoundType;
+            if (type == 0)
+            {
+                return;
+            }
+
+            Dictionary<int, List<FeedCandidate>> byType;
+            if (!feedsByCategory.TryGetValue(entry.Category, out byType))
+            {
+                byType = new Dictionary<int, List<FeedCandidate>>();
+                feedsByCategory.Add(entry.Category, byType);
+            }
+
+            List<FeedCandidate> candidates;
+            if (!byType.TryGetValue(type, out candidates))
+            {
+                candidates = new List<FeedCandidate>();
+                byType.Add(type, candidates);
+            }
+
+            AddFeedCandidate(candidates, entry);
+        }
+
+        private void IndexOptic(RuntimeMetadataEntry entry)
+        {
+            if (entry.Category != "Attachment" || string.IsNullOrEmpty(entry.OpticKind))
+            {
+                return;
+            }
+
+            List<RuntimeMetadataEntry> candidates;
+            if (!opticsByKind.TryGetValue(entry.OpticKind, out candidates))
+            {
+                candidates = new List<RuntimeMetadataEntry>();
+                opticsByKind.Add(entry.OpticKind, candidates);
+            }
+
+            if (!candidates.Any(candidate => candidate.ObjectID == entry.ObjectID))
+            {
+                candidates.Add(entry);
+            }
         }
     }
 

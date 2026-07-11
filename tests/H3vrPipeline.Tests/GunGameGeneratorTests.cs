@@ -323,25 +323,33 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Scope", classify.Invoke(null, new object[] { "ScopeBR4", true, false }));
         Assert.Equal("Reflex", classify.Invoke(null, new object[] { "ReflexRMR", false, true }));
         Assert.Equal(string.Empty, classify.Invoke(null, new object[] { "Attachment", false, false }));
+
+        var classifyFromMetadata = Assert.IsAssignableFrom<MethodInfo>(classifierType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ClassifyFromMetadata" && method.GetParameters().Length == 2));
+        Assert.Equal("Magnifier", classifyFromMetadata.Invoke(null, new object[] { "AlphaMagnifierBeta", "Magnification" }));
+        Assert.Equal("Reflex", classifyFromMetadata.Invoke(null, new object[] { "ReflexRMR", "Reflex" }));
+        Assert.Equal("Scope", classifyFromMetadata.Invoke(null, new object[] { "ScopeBR4", "Magnification" }));
+        Assert.Equal(string.Empty, classifyFromMetadata.Invoke(null, new object[] { "Attachment", "None" }));
     }
 
     [Fact]
-    public void Runtime_metadata_stability_gate_requires_late_object_data_growth_before_exporting()
+    public void On_demand_generation_gate_releases_exactly_one_original_pool_load()
     {
         var assembly = LoadBuiltMetadataExporter();
-        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataStabilityGate"));
-        var gate = Activator.CreateInstance(gateType, new object[] { 3 });
-        var observe = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("Observe", BindingFlags.Public | BindingFlags.Instance));
+        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.OnDemandGenerationGate"));
+        var gate = Activator.CreateInstance(gateType)!;
+        var tryBegin = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("TryBeginPreparation", BindingFlags.Public | BindingFlags.Instance));
+        var release = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("ReleaseOriginalLoad", BindingFlags.Public | BindingFlags.Instance));
+        var consume = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("ConsumeOriginalLoadPermission", BindingFlags.Public | BindingFlags.Instance));
 
-        Assert.False((bool)observe.Invoke(gate, new object[] { 4381 })!);
-        Assert.False((bool)observe.Invoke(gate, new object[] { 4381 })!);
-        Assert.False((bool)observe.Invoke(gate, new object[] { 4381 })!);
-        Assert.False((bool)observe.Invoke(gate, new object[] { 4381 })!);
+        Assert.True((bool)tryBegin.Invoke(gate, null)!);
+        Assert.False((bool)tryBegin.Invoke(gate, null)!);
+        Assert.False((bool)consume.Invoke(gate, null)!);
 
-        Assert.False((bool)observe.Invoke(gate, new object[] { 5726 })!);
-        Assert.False((bool)observe.Invoke(gate, new object[] { 5726 })!);
-        Assert.False((bool)observe.Invoke(gate, new object[] { 5726 })!);
-        Assert.True((bool)observe.Invoke(gate, new object[] { 5726 })!);
+        release.Invoke(gate, null);
+        Assert.True((bool)consume.Invoke(gate, null)!);
+        Assert.False((bool)consume.Invoke(gate, null)!);
+        Assert.True((bool)tryBegin.Invoke(gate, null)!);
     }
 
     [Fact]

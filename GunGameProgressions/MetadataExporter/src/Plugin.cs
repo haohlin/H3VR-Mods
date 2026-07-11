@@ -1,51 +1,159 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using BepInEx;
 using FistVR;
+using HarmonyLib;
 using UnityEngine;
 
 namespace HLin.GunGameProgressions;
 
 [BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.3.6")]
+[BepInDependency("Kodeman.GunGame", BepInDependency.DependencyFlags.HardDependency)]
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
-    private const int StableSamplesRequired = 3;
-    private const int MaximumSamples = 120;
-    private const int MetadataEntriesPerFrame = 64;
+    private const long CaptureFrameBudgetMilliseconds = 2;
+    private static Plugin instance;
 
-    private void Start()
+    private readonly object poolLoadGateLock = new object();
+    private readonly OnDemandGenerationGate poolLoadGate = new OnDemandGenerationGate();
+    private Harmony harmony;
+    private MethodInfo gunGamePoolLoaderAwake;
+
+    private void Awake()
     {
-        StartCoroutine(ExportWhenObjectDataIsStable());
+        instance = this;
+        InstallGunGamePoolLoaderGate();
     }
 
-    private IEnumerator ExportWhenObjectDataIsStable()
+    private void OnDestroy()
     {
-        var stabilityGate = new RuntimeMetadataStabilityGate(StableSamplesRequired);
-        for (var sample = 0; sample < MaximumSamples; sample++)
+        if (harmony != null)
         {
-            Dictionary<string, FVRObject> objects;
-            if (!TryGetObjectData(out objects) || objects.Count == 0)
-            {
-                yield return new WaitForSeconds(1f);
-                continue;
-            }
-
-            if (stabilityGate.Observe(objects.Count))
-            {
-                yield return StartCoroutine(WriteRuntimeMetadata(objects, "final-refresh"));
-                yield break;
-            }
-
-            yield return new WaitForSeconds(1f);
+            harmony.UnpatchSelf();
         }
 
-        Logger.LogWarning("Timed out waiting for late H3VR object metadata growth; packaged vanilla fallback profiles remain available for this launch.");
+        if (instance == this)
+        {
+            instance = null;
+        }
+    }
+
+    private void InstallGunGamePoolLoaderGate()
+    {
+        var targetType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
+        gunGamePoolLoaderAwake = targetType == null ? null : AccessTools.Method(targetType, "Awake");
+        var prefix = AccessTools.Method(typeof(Plugin), "GunGamePoolLoaderAwakePrefix");
+        if (gunGamePoolLoaderAwake == null || prefix == null)
+        {
+            Logger.LogError("GunGame pool-loader gate could not find WeaponPoolLoader.Awake; packaged fallback pools will be used.");
+            return;
+        }
+
+        harmony = new Harmony("HLin.GunGameProgressionsMetadataExporter.OnDemandPoolGeneration");
+        harmony.Patch(gunGamePoolLoaderAwake, prefix: new HarmonyMethod(prefix));
+        Logger.LogInfo("GunGame pool-loader gate installed; runtime profile generation is deferred until GunGame opens.");
+    }
+
+    private static bool GunGamePoolLoaderAwakePrefix(object __instance)
+    {
+        return instance == null || instance.HandleGunGamePoolLoaderAwake(__instance);
+    }
+
+    private bool HandleGunGamePoolLoaderAwake(object loader)
+    {
+        lock (poolLoadGateLock)
+        {
+            if (poolLoadGate.ConsumeOriginalLoadPermission())
+            {
+                return true;
+            }
+
+            if (!poolLoadGate.TryBeginPreparation())
+            {
+                return false;
+            }
+        }
+
+        StartCoroutine(PreparePoolsThenRunGunGameLoader(loader));
+        return false;
+    }
+
+    private IEnumerator PreparePoolsThenRunGunGameLoader(object loader)
+    {
+        var totalTimer = Stopwatch.StartNew();
+        Dictionary<string, FVRObject> objects;
+        if (!TryGetObjectData(out objects) || objects.Count == 0)
+        {
+            Logger.LogWarning("H3VR object data was unavailable when GunGame opened; using packaged fallback pools.");
+            ResumeGunGamePoolLoader(loader);
+            yield break;
+        }
+
+        RuntimeMetadataCapture metadataCapture = null;
+        yield return StartCoroutine(CaptureRuntimeMetadata(objects, capture => metadataCapture = capture));
+
+        RuntimeEnemyCapture enemyCapture = null;
+        yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
+
+        if (metadataCapture == null)
+        {
+            Logger.LogWarning("GunGame runtime metadata capture failed; using packaged fallback pools.");
+            ResumeGunGamePoolLoader(loader);
+            yield break;
+        }
+
+        var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        var job = new RuntimeGenerationJob(packagePath, metadataCapture.Entries, enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries);
+        job.Start();
+        while (!job.IsCompleted)
+        {
+            yield return null;
+        }
+
+        if (job.Error != null)
+        {
+            Logger.LogError("GunGame runtime pool generation failed; using packaged fallback pools. " + job.Error.Message);
+            ResumeGunGamePoolLoader(loader);
+            yield break;
+        }
+
+        var report = job.Report;
+        Logger.LogInfo(
+            "Prepared " + report.PoolCount + " GunGame runtime pools from " + report.EntryCount +
+            " items (" + report.ModdedEntryCount + " modded) and " + report.EnemyCount +
+            " Sosig types before GunGame loaded; capture " + metadataCapture.ElapsedMilliseconds +
+            "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
+            "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
+        ResumeGunGamePoolLoader(loader);
+    }
+
+    private void ResumeGunGamePoolLoader(object loader)
+    {
+        lock (poolLoadGateLock)
+        {
+            poolLoadGate.ReleaseOriginalLoad();
+        }
+
+        try
+        {
+            gunGamePoolLoaderAwake.Invoke(loader, null);
+        }
+        catch (TargetInvocationException exception)
+        {
+            Logger.LogError("GunGame pool loader could not resume: " + (exception.InnerException ?? exception).Message);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError("GunGame pool loader could not resume: " + exception.Message);
+        }
     }
 
     private bool TryGetObjectData(out Dictionary<string, FVRObject> objects)
@@ -63,31 +171,38 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator WriteRuntimeMetadata(Dictionary<string, FVRObject> objects, string phase)
+    private IEnumerator CaptureRuntimeMetadata(Dictionary<string, FVRObject> objects, Action<RuntimeMetadataCapture> complete)
     {
+        var timer = Stopwatch.StartNew();
         var entries = new List<RuntimeMetadataEntry>();
-        var skipped = 0;
-        var snapshot = objects.Values.Where(item => item != null).ToList();
+        List<FVRObject> snapshot;
+        try
+        {
+            snapshot = objects.Values.Where(item => item != null).ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("Could not snapshot H3VR object data for GunGame: " + exception.Message);
+            complete(null);
+            yield break;
+        }
+
+        var frameStart = Stopwatch.GetTimestamp();
         for (var index = 0; index < snapshot.Count; index++)
         {
             var item = snapshot[index];
             if (item == null || string.IsNullOrEmpty(item.ItemID))
             {
-                skipped++;
                 continue;
             }
 
             var declaredCategory = item.Category.ToString();
-            var opticKind = GetOpticKind(item);
-            var firearmInspection = InspectFirearmPrefab(item, declaredCategory);
-            var category = firearmInspection.Category;
-
             entries.Add(new RuntimeMetadataEntry
             {
                 ObjectID = item.ItemID,
-                Category = category,
+                Category = declaredCategory,
                 IsModContent = item.IsModContent,
-                MagazineType = firearmInspection.MagazineType ?? (int)item.MagazineType,
+                MagazineType = (int)item.MagazineType,
                 ClipType = (int)item.ClipType,
                 RoundType = (int)item.RoundType,
                 CompatibleMagazines = ObjectIds(item.CompatibleMagazines),
@@ -102,60 +217,24 @@ public sealed class Plugin : BaseUnityPlugin
                     : item.TagFirearmMounts.Select(mount => mount.ToString()).ToList(),
                 AttachmentMount = item.TagAttachmentMount.ToString(),
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
-                OpticKind = opticKind,
-                PhysicalMountTypes = firearmInspection.PhysicalMountTypes ?? GetPhysicalMountTypes(item, category, opticKind),
+                OpticKind = GetOpticKind(item),
+                PhysicalMountTypes = GetDeclaredMountTypes(item, declaredCategory),
             });
 
-            if (index > 0 && index % MetadataEntriesPerFrame == 0)
+            if (HasExceededCaptureBudget(frameStart))
             {
                 yield return null;
+                frameStart = Stopwatch.GetTimestamp();
             }
         }
 
         entries.Sort((left, right) => string.CompareOrdinal(left.ObjectID, right.ObjectID));
-        var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
-        WriteTextAtomically(metadataPath, SerializeMetadata(entries));
+        complete(new RuntimeMetadataCapture(entries, timer.ElapsedMilliseconds));
+    }
 
-        ProfileRules rules;
-        try
-        {
-            rules = ProfileRules.Load(packagePath);
-        }
-        catch (Exception exception)
-        {
-            Logger.LogError("Unable to load GunGame profile rules: " + exception.Message);
-            yield break;
-        }
-
-        var profileEntries = entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
-        var randomSeed = Guid.NewGuid().GetHashCode();
-        var enemyEntries = BuildEnemyEntries();
-        var result = RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
-        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
-        Directory.CreateDirectory(runtimePoolsPath);
-        var expectedPoolFiles = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var runtimePool in result.Pools)
-        {
-            var poolFileName = RuntimePoolFileName(runtimePool);
-            expectedPoolFiles.Add(poolFileName);
-            var poolPath = Path.Combine(packagePath, poolFileName);
-            WriteTextAtomically(poolPath, SerializePool(runtimePool));
-        }
-        RemoveStaleRuntimePools(packagePath, expectedPoolFiles);
-        RemoveStaleRuntimePools(runtimePoolsPath, new HashSet<string>(StringComparer.Ordinal));
-
-        var receiptPath = Path.Combine(runtimePoolsPath, "runtime-generation-receipt.json");
-        WriteTextAtomically(receiptPath, SerializeReceipt(entries, enemyEntries, result, randomSeed, phase));
-        WriteTextAtomically(Path.Combine(runtimePoolsPath, "enemy-catalog.json"), SerializeEnemyCatalog(enemyEntries));
-
-        var activeModdedItems = entries.Count(entry => entry.IsModContent);
-        var eligibleWeapons = result.Pools.Count == 0 ? 0 : result.Pools[0].Guns.Count;
-        Logger.LogInfo(
-            "Exported " + entries.Count + " active metadata entries (" + activeModdedItems + " modded) to " + metadataPath +
-            "; generated " + result.Pools.Count + " advanced runtime GunGame pools with " + eligibleWeapons +
-            " firearms and " + enemyEntries.Count + " active Sosig types during " + phase +
-            "; skipped " + result.SkippedFirearms.Count + " without a compatible feed.");
+    private static bool HasExceededCaptureBudget(long frameStart)
+    {
+        return (Stopwatch.GetTimestamp() - frameStart) * 1000L >= Stopwatch.Frequency * CaptureFrameBudgetMilliseconds;
     }
 
     private static List<string> ObjectIds(IEnumerable<FVRObject> objects)
@@ -173,168 +252,45 @@ public sealed class Plugin : BaseUnityPlugin
             .ToList();
     }
 
-    private static RuntimeFirearmInspection InspectFirearmPrefab(FVRObject item, string declaredCategory)
+    private static List<string> GetDeclaredMountTypes(FVRObject item, string category)
     {
-        if (declaredCategory != "Firearm")
-        {
-            return new RuntimeFirearmInspection(declaredCategory, null, null);
-        }
-
-        try
-        {
-            var prefab = item.GetGameObject();
-            if (prefab == null)
-            {
-                return new RuntimeFirearmInspection(declaredCategory, null, null);
-            }
-
-            var physicalObjects = prefab.GetComponentsInChildren<FVRPhysicalObject>(true);
-            FVRFireArm firearm = null;
-            var hasMagazine = false;
-            var hasClip = false;
-            var hasSpeedloader = false;
-            var hasRound = false;
-            foreach (var physicalObject in physicalObjects)
-            {
-                if (physicalObject is FVRFireArm)
-                {
-                    firearm = physicalObject as FVRFireArm;
-                }
-                else if (physicalObject is FVRFireArmMagazine)
-                {
-                    hasMagazine = true;
-                }
-                else if (physicalObject is FVRFireArmClip)
-                {
-                    hasClip = true;
-                }
-                else if (physicalObject is Speedloader)
-                {
-                    hasSpeedloader = true;
-                }
-                else if (physicalObject is FVRFireArmRound)
-                {
-                    hasRound = true;
-                }
-            }
-
-            var category = RuntimeItemRole.Resolve(
-                declaredCategory,
-                firearm != null,
-                hasMagazine,
-                hasClip,
-                hasSpeedloader,
-                hasRound);
-            var magazineType = firearm == null ? (int?)null : (int)firearm.MagazineType;
-            var mounts = firearm == null ? null : GetPhysicalMountTypes(prefab);
-            return new RuntimeFirearmInspection(category, magazineType, mounts);
-        }
-        catch (Exception)
-        {
-            // Preserve the legacy category when a malformed prefab cannot be inspected.
-            return new RuntimeFirearmInspection(declaredCategory, null, null);
-        }
-    }
-
-    private static List<string> GetPhysicalMountTypes(FVRObject item, string category, string opticKind)
-    {
-        var componentTypeName = string.Empty;
         if (category == "Firearm")
         {
-            componentTypeName = "FistVR.FVRFireArmAttachmentMount";
-        }
-        else if (category == "Attachment" && !string.IsNullOrEmpty(opticKind))
-        {
-            componentTypeName = "FistVR.FVRFireArmAttachment";
-        }
-
-        if (string.IsNullOrEmpty(componentTypeName))
-        {
-            return new List<string>();
+            return item.TagFirearmMounts == null
+                ? new List<string>()
+                : item.TagFirearmMounts
+                    .Select(mount => mount.ToString())
+                    .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(mount => mount, StringComparer.Ordinal)
+                    .ToList();
         }
 
-        try
+        if (category == "Attachment")
         {
-            var prefab = item.GetGameObject();
-            if (prefab == null)
-            {
-                return new List<string>();
-            }
+            var mount = item.TagAttachmentMount.ToString();
+            return string.IsNullOrEmpty(mount) || mount == "None"
+                ? new List<string>()
+                : new List<string> { mount };
+        }
 
-            return GetPhysicalMountTypes(prefab, componentTypeName);
-        }
-        catch (Exception)
-        {
-            // Unsupported or malformed mod prefabs are never used for automatic optic selection.
-            return new List<string>();
-        }
+        return new List<string>();
     }
 
-    private static List<string> GetPhysicalMountTypes(GameObject prefab)
+    private IEnumerator CaptureEnemyEntries(Action<RuntimeEnemyCapture> complete)
     {
-        return GetPhysicalMountTypes(prefab, "FistVR.FVRFireArmAttachmentMount");
-    }
-
-    private static List<string> GetPhysicalMountTypes(GameObject prefab, string componentTypeName)
-    {
-        var componentType = typeof(FVRObject).Assembly.GetType(componentTypeName, false);
-        if (componentType == null)
-        {
-            return new List<string>();
-        }
-
-        var typeField = componentType.GetField("Type", BindingFlags.Public | BindingFlags.Instance);
-        if (typeField == null)
-        {
-            return new List<string>();
-        }
-
-        return prefab
-                .GetComponentsInChildren(componentType, true)
-                .Select(component => typeField.GetValue(component))
-                .Where(value => value != null)
-                .Select(ResolveRuntimeMountName)
-                .Where(value => !string.IsNullOrEmpty(value))
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToList();
-    }
-
-    private sealed class RuntimeFirearmInspection
-    {
-        public RuntimeFirearmInspection(string category, int? magazineType, List<string> physicalMountTypes)
-        {
-            Category = category;
-            MagazineType = magazineType;
-            PhysicalMountTypes = physicalMountTypes;
-        }
-
-        public string Category { get; private set; }
-        public int? MagazineType { get; private set; }
-        public List<string> PhysicalMountTypes { get; private set; }
-    }
-
-    private static string ResolveRuntimeMountName(object value)
-    {
-        var valueType = value.GetType();
-        if (!valueType.IsEnum || !Enum.IsDefined(valueType, value))
-        {
-            return value.ToString();
-        }
-
-        return Enum.GetName(valueType, value) ?? value.ToString();
-    }
-
-    private static List<RuntimeEnemyEntry> BuildEnemyEntries()
-    {
+        var timer = Stopwatch.StartNew();
         var entries = new List<RuntimeEnemyEntry>();
         var itemManager = ManagerSingleton<IM>.Instance;
         if (itemManager == null || itemManager.odicSosigObjsByID == null)
         {
-            return entries;
+            complete(new RuntimeEnemyCapture(entries, timer.ElapsedMilliseconds));
+            yield break;
         }
 
-        foreach (var pair in itemManager.odicSosigObjsByID)
+        var snapshot = itemManager.odicSosigObjsByID.ToList();
+        var frameStart = Stopwatch.GetTimestamp();
+        foreach (var pair in snapshot)
         {
             var template = pair.Value;
             if (template == null || (int)pair.Key == 0)
@@ -362,12 +318,20 @@ public sealed class Plugin : BaseUnityPlugin
                 SpecialThreatScore = specialThreatScore,
                 DifficultyScore = Math.Max(1, healthScore + armorScore + weaponThreatScore + specialThreatScore),
             });
+
+            if (HasExceededCaptureBudget(frameStart))
+            {
+                yield return null;
+                frameStart = Stopwatch.GetTimestamp();
+            }
         }
 
-        return entries
-            .OrderBy(entry => entry.DifficultyScore)
-            .ThenBy(entry => entry.EnemyNameString, StringComparer.Ordinal)
-            .ToList();
+        complete(new RuntimeEnemyCapture(
+            entries
+                .OrderBy(entry => entry.DifficultyScore)
+                .ThenBy(entry => entry.EnemyNameString, StringComparer.Ordinal)
+                .ToList(),
+            timer.ElapsedMilliseconds));
     }
 
     private static int EnemyHealthScore(SosigEnemyTemplate template)
@@ -473,39 +437,7 @@ public sealed class Plugin : BaseUnityPlugin
             return string.Empty;
         }
 
-        var feature = item.TagAttachmentFeature.ToString();
-        if (feature != "Reflex" && feature != "Magnification")
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var prefab = item.GetGameObject();
-            if (prefab == null)
-            {
-                return string.Empty;
-            }
-
-            var pipScope = GetComponent(prefab, "FistVR.PIPScopeController");
-            var reflexSight = GetComponent(prefab, "FistVR.ReflexSightController");
-            return PipScopeOpticClassifier.Classify(
-                item.ItemID,
-                pipScope != null,
-                reflexSight != null);
-        }
-        catch (Exception)
-        {
-            // A failed or unsupported mod prefab is not safe to auto-equip.
-        }
-
-        return string.Empty;
-    }
-
-    private static Component GetComponent(GameObject prefab, string typeName)
-    {
-        var componentType = typeof(FVRObject).Assembly.GetType(typeName, false);
-        return componentType == null ? null : prefab.GetComponentInChildren(componentType, true);
+        return PipScopeOpticClassifier.ClassifyFromMetadata(item.ItemID, item.TagAttachmentFeature.ToString());
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)
@@ -775,5 +707,181 @@ public sealed class Plugin : BaseUnityPlugin
                     break;
             }
         }
+    }
+
+    private static RuntimeGenerationReport GenerateRuntimeFiles(
+        string packagePath,
+        List<RuntimeMetadataEntry> entries,
+        List<RuntimeEnemyEntry> enemyEntries)
+    {
+        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
+        WriteTextAtomically(metadataPath, SerializeMetadata(entries));
+
+        var rules = ProfileRules.Load(packagePath);
+        var profileEntries = entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
+        var randomSeed = Guid.NewGuid().GetHashCode();
+        var result = RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
+        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
+        Directory.CreateDirectory(runtimePoolsPath);
+        var expectedPoolFiles = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var runtimePool in result.Pools)
+        {
+            var poolFileName = RuntimePoolFileName(runtimePool);
+            expectedPoolFiles.Add(poolFileName);
+            WriteTextAtomically(Path.Combine(packagePath, poolFileName), SerializePool(runtimePool));
+        }
+
+        RemoveStaleRuntimePools(packagePath, expectedPoolFiles);
+        RemoveStaleRuntimePools(runtimePoolsPath, new HashSet<string>(StringComparer.Ordinal));
+        WriteTextAtomically(
+            Path.Combine(runtimePoolsPath, "runtime-generation-receipt.json"),
+            SerializeReceipt(entries, enemyEntries, result, randomSeed, "on-demand-gungame-load"));
+        WriteTextAtomically(Path.Combine(runtimePoolsPath, "enemy-catalog.json"), SerializeEnemyCatalog(enemyEntries));
+
+        return new RuntimeGenerationReport(
+            entries.Count,
+            entries.Count(entry => entry.IsModContent),
+            enemyEntries.Count,
+            result.Pools.Count,
+            result.Pools.Count == 0 ? 0 : result.Pools[0].Guns.Count,
+            result.SkippedFirearms.Count);
+    }
+
+    private sealed class RuntimeGenerationJob
+    {
+        private readonly object sync = new object();
+        private readonly string packagePath;
+        private readonly List<RuntimeMetadataEntry> entries;
+        private readonly List<RuntimeEnemyEntry> enemyEntries;
+        private bool isCompleted;
+        private Exception error;
+        private RuntimeGenerationReport report;
+
+        public RuntimeGenerationJob(
+            string packagePath,
+            List<RuntimeMetadataEntry> entries,
+            List<RuntimeEnemyEntry> enemyEntries)
+        {
+            this.packagePath = packagePath;
+            this.entries = entries;
+            this.enemyEntries = enemyEntries;
+        }
+
+        public bool IsCompleted
+        {
+            get
+            {
+                lock (sync)
+                {
+                    return isCompleted;
+                }
+            }
+        }
+
+        public Exception Error
+        {
+            get
+            {
+                lock (sync)
+                {
+                    return error;
+                }
+            }
+        }
+
+        public RuntimeGenerationReport Report
+        {
+            get
+            {
+                lock (sync)
+                {
+                    return report;
+                }
+            }
+        }
+
+        public void Start()
+        {
+            var worker = new Thread(Generate)
+            {
+                IsBackground = true,
+            };
+            worker.Priority = ThreadPriority.BelowNormal;
+            worker.Start();
+        }
+
+        private void Generate()
+        {
+            var timer = Stopwatch.StartNew();
+            RuntimeGenerationReport generated = null;
+            Exception failure = null;
+            try
+            {
+                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries);
+                generated.ElapsedMilliseconds = timer.ElapsedMilliseconds;
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+
+            lock (sync)
+            {
+                report = generated;
+                error = failure;
+                isCompleted = true;
+            }
+        }
+    }
+
+    private sealed class RuntimeMetadataCapture
+    {
+        public RuntimeMetadataCapture(List<RuntimeMetadataEntry> entries, long elapsedMilliseconds)
+        {
+            Entries = entries;
+            ElapsedMilliseconds = elapsedMilliseconds;
+        }
+
+        public List<RuntimeMetadataEntry> Entries { get; private set; }
+        public long ElapsedMilliseconds { get; private set; }
+    }
+
+    private sealed class RuntimeEnemyCapture
+    {
+        public RuntimeEnemyCapture(List<RuntimeEnemyEntry> entries, long elapsedMilliseconds)
+        {
+            Entries = entries;
+            ElapsedMilliseconds = elapsedMilliseconds;
+        }
+
+        public List<RuntimeEnemyEntry> Entries { get; private set; }
+        public long ElapsedMilliseconds { get; private set; }
+    }
+
+    private sealed class RuntimeGenerationReport
+    {
+        public RuntimeGenerationReport(
+            int entryCount,
+            int moddedEntryCount,
+            int enemyCount,
+            int poolCount,
+            int eligibleWeaponsPerPool,
+            int skippedFirearmCount)
+        {
+            EntryCount = entryCount;
+            ModdedEntryCount = moddedEntryCount;
+            EnemyCount = enemyCount;
+            PoolCount = poolCount;
+            EligibleWeaponsPerPool = eligibleWeaponsPerPool;
+            SkippedFirearmCount = skippedFirearmCount;
+        }
+
+        public int EntryCount { get; private set; }
+        public int ModdedEntryCount { get; private set; }
+        public int EnemyCount { get; private set; }
+        public int PoolCount { get; private set; }
+        public int EligibleWeaponsPerPool { get; private set; }
+        public int SkippedFirearmCount { get; private set; }
+        public long ElapsedMilliseconds { get; set; }
     }
 }
