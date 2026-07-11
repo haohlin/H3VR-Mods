@@ -53,13 +53,13 @@ public sealed class Plugin : BaseUnityPlugin
         var prefix = AccessTools.Method(typeof(Plugin), "GunGamePoolLoaderAwakePrefix");
         if (gunGamePoolLoaderAwake == null || prefix == null)
         {
-            Logger.LogError("GunGame pool-loader gate could not find WeaponPoolLoader.Awake; packaged fallback pools will be used.");
+            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony("HLin.GunGameProgressionsMetadataExporter.OnDemandPoolGeneration");
         harmony.Patch(gunGamePoolLoaderAwake, prefix: new HarmonyMethod(prefix));
-        Logger.LogInfo("GunGame pool-loader gate installed; runtime profile generation is deferred until GunGame opens.");
+        Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
     private static bool GunGamePoolLoaderAwakePrefix(object __instance)
@@ -89,10 +89,11 @@ public sealed class Plugin : BaseUnityPlugin
     private IEnumerator PreparePoolsThenRunGunGameLoader(object loader)
     {
         var totalTimer = Stopwatch.StartNew();
+        Logger.LogInfo(RuntimeStatusMessages.Preparing);
         Dictionary<string, FVRObject> objects;
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
-            Logger.LogWarning("H3VR object data was unavailable when GunGame opened; using packaged fallback pools.");
+            Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             ResumeGunGamePoolLoader(loader);
             yield break;
         }
@@ -105,7 +106,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (metadataCapture == null)
         {
-            Logger.LogWarning("GunGame runtime metadata capture failed; using packaged fallback pools.");
+            Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             ResumeGunGamePoolLoader(loader);
             yield break;
         }
@@ -120,16 +121,17 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (job.Error != null)
         {
-            Logger.LogError("GunGame runtime pool generation failed; using packaged fallback pools. " + job.Error.Message);
+            Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
+            Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
             ResumeGunGamePoolLoader(loader);
             yield break;
         }
 
         var report = job.Report;
-        Logger.LogInfo(
-            "Prepared " + report.PoolCount + " GunGame runtime pools from " + report.EntryCount +
-            " items (" + report.ModdedEntryCount + " modded) and " + report.EnemyCount +
-            " Sosig types before GunGame loaded; capture " + metadataCapture.ElapsedMilliseconds +
+        Logger.LogInfo(RuntimeStatusMessages.PoolsReady);
+        Logger.LogDebug(
+            "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
+            " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
         ResumeGunGamePoolLoader(loader);
@@ -148,11 +150,13 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (TargetInvocationException exception)
         {
-            Logger.LogError("GunGame pool loader could not resume: " + (exception.InnerException ?? exception).Message);
+            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
+            Logger.LogDebug("GunGame pool loader could not resume: " + (exception.InnerException ?? exception));
         }
         catch (Exception exception)
         {
-            Logger.LogError("GunGame pool loader could not resume: " + exception.Message);
+            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
+            Logger.LogDebug("GunGame pool loader could not resume: " + exception);
         }
     }
 
@@ -166,7 +170,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (Exception exception)
         {
-            Logger.LogWarning("H3VR object data is not ready: " + exception.Message);
+            Logger.LogDebug("H3VR object data is not ready: " + exception);
             return false;
         }
     }
@@ -182,7 +186,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (Exception exception)
         {
-            Logger.LogWarning("Could not snapshot H3VR object data for GunGame: " + exception.Message);
+            Logger.LogDebug("Could not snapshot H3VR object data for GunGame: " + exception);
             complete(null);
             yield break;
         }

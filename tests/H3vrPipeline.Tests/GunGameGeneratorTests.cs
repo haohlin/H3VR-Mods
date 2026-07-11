@@ -353,6 +353,22 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_status_messages_are_concise_and_cover_pool_generation()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var messages = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeStatusMessages"));
+        var lifecycle = new[] { "Ready", "Preparing", "PoolsReady", "FallbackPools" }
+            .Select(name => (string)messages.GetField(name, BindingFlags.Public | BindingFlags.Static)!.GetRawConstantValue()!)
+            .ToArray();
+
+        Assert.Equal("GunGame Progressions: ready.", lifecycle[0]);
+        Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[1]);
+        Assert.Equal("GunGame Progressions: pools ready.", lifecycle[2]);
+        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[3]);
+        Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
+    }
+
+    [Fact]
     public void Runtime_item_role_reclassifies_mislabeled_firearm_metadata_from_prefab_components()
     {
         var assembly = LoadBuiltMetadataExporter();
