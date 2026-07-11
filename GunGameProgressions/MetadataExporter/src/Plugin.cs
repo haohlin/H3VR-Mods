@@ -806,7 +806,7 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 IsBackground = true,
             };
-            worker.Priority = ThreadPriority.BelowNormal;
+            worker.Priority = System.Threading.ThreadPriority.BelowNormal;
             worker.Start();
         }
 
