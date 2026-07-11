@@ -1,6 +1,6 @@
 ---
 name: h3vr-mod-development
-description: Implement, debug, build, package, deploy, VR-test, and publish H3VR BepInEx/Harmony mods from the Windows H3VR-Mods repository. Use for any current or new H3VR mod, including ThePing, GunGame Progressions, Teleport, RemoveWhiteOut, source decompilation, r2modman logs, and Thunderstore releases.
+description: Use when implementing, debugging, building, packaging, deploying, VR-testing, or publishing an H3VR Unity/MeatKit, BepInEx/Harmony, data, map, asset-replacement, or Thunderstore mod from the Windows H3VR-Mods repository.
 ---
 
 # H3VR Mod Development
@@ -18,6 +18,74 @@ Use this skill for all work in the canonical Windows repository:
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
+
+## Unity Reference — Only When Needed
+
+Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
+`references/unity-content-source-roots.md` **only** when a task creates or
+changes Unity content: a scene, `GameObject`, prefab, component, `MonoBehaviour`,
+material, mesh, texture, audio, shader, ID, or AssetBundle. They are reference
+guidance for Unity/MeatKit, Atlas, and asset-replacement work; the current
+Windows repository, live assemblies, and wrapper remain authoritative.
+
+For established code-only or data-only work—such as `GunGameProgressions`
+generation—do not read the Unity references or run a Unity workflow. Follow the
+relevant code/data section below and consult the wiki only if Unity content
+becomes part of the requested change.
+
+## Choose the development route
+
+```text
+Requested change
+├─ Runtime code, Harmony, configuration, or generated data
+│  └─ Code/data route
+└─ Prefab, scene, item, weapon, material, mesh, audio, or AssetBundle
+   └─ Unity/MeatKit route — human in the loop
+```
+
+### Code/data route
+
+Use this route for BepInEx/Harmony plugins, data generators, configuration, and
+other changes that do not author Unity content. Codex owns the source, tests,
+package, deploy, and log review. The human supplies product intent and gives
+explicit authorization before any public release; Unity GUI work is not part of
+this route.
+
+### Unity/MeatKit route — human in the loop
+
+Use this route for authored Unity content. The goal is to minimize manual work,
+not to pretend a headless editor can make visual or ergonomic decisions.
+
+```text
+Human: outcome + visual intent
+  -> Codex: reference/API research, branch, code, metadata, tests
+  -> Windows Unity: compile, runtime tests, MeatKit build/package
+  -> Human only if needed: visual placement or subjective VR check
+  -> Codex: inspect logs/package, commit, push
+  -> Human: explicit publish approval
+```
+
+Human manual work is limited to visual authoring, subjective VR feel, and release approval.
+
+| Codex owns | Human owns only when needed |
+| --- | --- |
+| Reference-prefab/API research; scripts; IDs; spawner/build metadata; Git; automated prefab tests; headless Unity; MeatKit build/package; package/log validation | Mesh/art choices; material appearance; visual placement of mounts/colliders/grab points; subjective handling/reload/firing feel; release approval |
+
+Use Unity GUI for visual assets, hierarchy inspection, drag-and-drop references,
+and final feel. Use batch Unity for repeatable work: compile, custom editor test
+methods, AssetDatabase checks, and MeatKit builds. Batch Unity is not a visual
+authoring substitute.
+
+For a MeatKit package build, call the built-in editor entry point
+`MeatKit.MeatKit.DoBuild` only after validating the intended project and build
+profile. Do not rely on whichever profile was last selected in an interactive
+window. If a manual action repeats, add a focused editor command and a
+headless-runtime test so Codex can own it on later mods.
+
+The MeatKit-Lite workspace is single-writer. Close Unity before pull,
+branch-switch, or merge work; reopen it and wait for a complete import before
+using the GUI again. Save assets in their owning project root and commit matching
+`.meta` files; never hand-copy Unity assets between projects.
 
 ## Start Every Change
 
@@ -89,6 +157,25 @@ python .\GunGameProgressions\jsonGen.py --output <staging-output> --seed 0
 
 The generator must continue to produce the expected eight pools with internally consistent IDs. A new data-only mod must also be registered in `build/mods.json` with its generator, payload, package metadata, deployment folder, and its selected package layout.
 
+### Unity content only
+
+Follow the Unity/MeatKit human-in-the-loop route above. Use the wiki map to
+select the item, map, or asset-replacement route, then use the Unity 5.6.7f1
+MeatKit-Lite workspace and matching project root from
+`references/unity-content-source-roots.md`. Keep source assets and matching
+`.meta` files; make moves in Unity; exclude caches and generated output.
+
+Validate the authored object graph (components, transforms, physics, materials,
+audio, IDs, mounts, and scene registration), the MeatKit build profile/build
+item/dependencies/package, and the relevant in-game interaction. Use bespoke
+`MonoBehaviour` scripts in the MeatKit project; use a BepInEx library only for
+shared behavior. The current wrapper supports only `dotnet` and `python`; add a
+tested `unity` kind before using its package/deploy path for Unity content.
+
+For a custom magazine, also read `references/custom-magazines.md`. It covers
+the magazine-specific reference prefab, visible rounds, feed/capacity settings,
+Object ID/Item Spawner ID, bundle inclusion, and VR reload validation.
+
 ## Validate, Build, and Package
 
 Use the helper as the single build and release interface:
@@ -105,6 +192,11 @@ Run `Test` for every change. It executes `tests\H3vrPipeline.Tests\H3vrPipeline.
 Packages are written below `build\artifacts`, staging is below `build\staging`, and generated receipts are below `build\receipts`; these are ignored by Git. Preserve the configured layout on each mod. The current `ThePing` and `GunGameProgressions` packages use verified `legacy-flat` layouts. Do not rewrite legacy releases to a `BepInEx/plugins` layout without explicitly validating the target mod's ecosystem requirements; choose the layout per descriptor.
 
 Each package must contain valid `manifest.json`, `README.md`, `icon.png`, and every declared payload file. Check the generated package receipt for the package SHA-256, version, commit, and artifact path.
+
+For Unity content only, also run the project-local Unity/MeatKit validation and
+asset build selected by the map. When an explicit tested `unity` wrapper kind
+exists, run its registered H3VR-Mods package flow. Neither layer substitutes for
+an in-game interaction test.
 
 ## Deploy and VR-Test
 
@@ -149,6 +241,17 @@ Before requesting review or merging a development branch:
 - [ ] `git status` contains only the intended changes.
 - [ ] `SourceStatus` is current; source was refreshed after the last managed-DLL change when applicable.
 - [ ] Every new or changed Harmony target passes `Verify`.
+- [ ] For Unity content, the wiki map route was selected; source assets and
+      matching `.meta` files are committed, and Unity caches/generated bundles
+      are excluded.
+- [ ] For Unity content, its MeatKit build profile/build items/dependencies and
+      generated package are validated. A wrapper release payload is registered
+      only through an explicit tested `unity` build kind.
+- [ ] For Unity content, automated Unity checks cover all repeatable behavior;
+      any remaining visual or subjective VR check is stated explicitly rather
+      than implied by a successful batch build.
+- [ ] Unity VR testing covers the authored object or scene's real interaction,
+      lifecycle, and (for weapons) loading, controls, firing, and impact flow.
 - [ ] `Test`, `Build`, and `Package` passed for each affected mod.
 - [ ] Package receipt has the expected SHA-256, version, and payload layout.
 - [ ] Deployment used `Deploy`; retain the VR receipt when a VR test is performed.
