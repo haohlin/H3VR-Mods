@@ -26,7 +26,7 @@ public sealed class Plugin : BaseUnityPlugin
     private readonly object sceneLoadGateLock = new object();
     private readonly OnDemandGenerationGate sceneLoadGate = new OnDemandGenerationGate();
     private Harmony harmony;
-    private MethodInfo atlasMainMenuScreenOnLoadScene;
+    private MethodInfo mainMenuScreenLoadScene;
 
     private void Awake()
     {
@@ -49,20 +49,20 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void InstallGunGameSceneLoadGate()
     {
-        var atlasPluginType = AccessTools.TypeByName("Atlas.AtlasPlugin");
-        atlasMainMenuScreenOnLoadScene = atlasPluginType == null
+        var mainMenuScreenType = AccessTools.TypeByName("MainMenuScreen");
+        mainMenuScreenLoadScene = mainMenuScreenType == null
             ? null
-            : AccessTools.Method(atlasPluginType, "MainMenuScreenOnLoadScene");
-        var prefix = AccessTools.Method(typeof(Plugin), "AtlasMainMenuScreenOnLoadScenePrefix");
-        if (atlasMainMenuScreenOnLoadScene == null || prefix == null)
+            : AccessTools.Method(mainMenuScreenType, "LoadScene");
+        var prefix = AccessTools.Method(typeof(Plugin), "MainMenuScreenLoadScenePrefix");
+        if (mainMenuScreenLoadScene == null || prefix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(atlasMainMenuScreenOnLoadScene, prefix: new HarmonyMethod(prefix));
-        var patchInfo = Harmony.GetPatchInfo(atlasMainMenuScreenOnLoadScene);
+        harmony.Patch(mainMenuScreenLoadScene, prefix: new HarmonyMethod(prefix));
+        var patchInfo = Harmony.GetPatchInfo(mainMenuScreenLoadScene);
         if (patchInfo == null || !patchInfo.Prefixes.Any(patch => patch.owner == HarmonyId))
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
@@ -72,15 +72,14 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
-    private static bool AtlasMainMenuScreenOnLoadScenePrefix(object __instance, object __0, object __1)
+    private static bool MainMenuScreenLoadScenePrefix(object __instance)
     {
-        return instance == null || instance.HandleAtlasMainMenuScreenOnLoadScene(__instance, __0, __1);
+        return instance == null || instance.HandleMainMenuScreenLoadScene(__instance);
     }
 
-    private bool HandleAtlasMainMenuScreenOnLoadScene(object atlasPlugin, object originalLoad, object menuScreen)
+    private bool HandleMainMenuScreenLoadScene(object menuScreen)
     {
-        var sceneInfo = AtlasMenuSceneResolver.GetSceneInfo(menuScreen);
-        if (!GunGameSceneIdentity.IsMatch(ReadSceneIdentifier(sceneInfo)))
+        if (!AtlasMenuSceneResolver.IsGunGameSelection(menuScreen))
         {
             return true;
         }
@@ -98,29 +97,11 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        StartCoroutine(PreparePoolsThenLoadGunGameScene(atlasPlugin, originalLoad, menuScreen));
+        StartCoroutine(PreparePoolsThenLoadGunGameScene(menuScreen));
         return false;
     }
 
-    private static string ReadSceneIdentifier(object sceneInfo)
-    {
-        if (sceneInfo == null)
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var property = AccessTools.Property(sceneInfo.GetType(), "Identifier");
-            return property == null ? string.Empty : property.GetValue(sceneInfo, null) as string ?? string.Empty;
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
-
-    private IEnumerator PreparePoolsThenLoadGunGameScene(object atlasPlugin, object originalLoad, object menuScreen)
+    private IEnumerator PreparePoolsThenLoadGunGameScene(object menuScreen)
     {
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
@@ -128,7 +109,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
+            ResumeGunGameSceneLoad(menuScreen);
             yield break;
         }
 
@@ -141,7 +122,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (metadataCapture == null)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
+            ResumeGunGameSceneLoad(menuScreen);
             yield break;
         }
 
@@ -157,7 +138,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
-            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
+            ResumeGunGameSceneLoad(menuScreen);
             yield break;
         }
 
@@ -168,10 +149,10 @@ public sealed class Plugin : BaseUnityPlugin
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
-        ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
+        ResumeGunGameSceneLoad(menuScreen);
     }
 
-    private void ResumeGunGameSceneLoad(object atlasPlugin, object originalLoad, object menuScreen)
+    private void ResumeGunGameSceneLoad(object menuScreen)
     {
         lock (sceneLoadGateLock)
         {
@@ -180,7 +161,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            atlasMainMenuScreenOnLoadScene.Invoke(atlasPlugin, new[] { originalLoad, menuScreen });
+            mainMenuScreenLoadScene.Invoke(menuScreen, null);
         }
         catch (TargetInvocationException exception)
         {

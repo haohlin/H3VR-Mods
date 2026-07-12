@@ -9,6 +9,11 @@ public static class AtlasMenuSceneResolver
         return ReadMember(ReadMember(menuScreen, "m_def"), "CustomSceneInfo");
     }
 
+    public static bool IsGunGameSelection(object menuScreen)
+    {
+        return GunGameSceneIdentity.IsMatch(ReadMember(GetSceneInfo(menuScreen), "Identifier") as string);
+    }
+
     private static object ReadMember(object instance, string memberName)
     {
         if (instance == null)
