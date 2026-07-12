@@ -366,6 +366,22 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Atlas_menu_scene_resolver_reads_the_Atlas_menu_definition_shape()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var resolverType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.AtlasMenuSceneResolver"));
+        var getSceneInfo = Assert.IsAssignableFrom<MethodInfo>(resolverType.GetMethod("GetSceneInfo", BindingFlags.Public | BindingFlags.Static));
+        var sceneInfo = new object();
+        var menuScreen = new AtlasMenuScreenFixture
+        {
+            m_def = new AtlasSceneDefinitionFixture { CustomSceneInfo = sceneInfo },
+        };
+
+        Assert.Same(sceneInfo, getSceneInfo.Invoke(null, new object[] { menuScreen }));
+        Assert.Null(getSceneInfo.Invoke(null, new object[] { new AtlasMenuScreenFixture() }));
+    }
+
+    [Fact]
     public void Runtime_status_messages_are_concise_and_cover_pool_generation()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -964,6 +980,16 @@ public sealed class GunGameGeneratorTests
         return ((IEnumerable)value.GetType().GetProperty(propertyName)!.GetValue(value)!)
             .Cast<string>()
             .ToArray();
+    }
+
+    private sealed class AtlasMenuScreenFixture
+    {
+        public object? m_def;
+    }
+
+    private sealed class AtlasSceneDefinitionFixture
+    {
+        public object? CustomSceneInfo;
     }
 
     private sealed class SequenceRandom : Random

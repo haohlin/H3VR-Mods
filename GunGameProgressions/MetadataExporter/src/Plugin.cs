@@ -26,7 +26,7 @@ public sealed class Plugin : BaseUnityPlugin
     private readonly object sceneLoadGateLock = new object();
     private readonly OnDemandGenerationGate sceneLoadGate = new OnDemandGenerationGate();
     private Harmony harmony;
-    private MethodInfo atlasLoadCustomScene;
+    private MethodInfo atlasMainMenuScreenOnLoadScene;
 
     private void Awake()
     {
@@ -50,20 +50,19 @@ public sealed class Plugin : BaseUnityPlugin
     private void InstallGunGameSceneLoadGate()
     {
         var atlasPluginType = AccessTools.TypeByName("Atlas.AtlasPlugin");
-        var customSceneInfoType = AccessTools.TypeByName("Atlas.CustomSceneInfo");
-        atlasLoadCustomScene = atlasPluginType == null || customSceneInfoType == null
+        atlasMainMenuScreenOnLoadScene = atlasPluginType == null
             ? null
-            : AccessTools.Method(atlasPluginType, "LoadCustomScene", new[] { customSceneInfoType });
-        var prefix = AccessTools.Method(typeof(Plugin), "AtlasLoadCustomScenePrefix");
-        if (atlasLoadCustomScene == null || prefix == null)
+            : AccessTools.Method(atlasPluginType, "MainMenuScreenOnLoadScene");
+        var prefix = AccessTools.Method(typeof(Plugin), "AtlasMainMenuScreenOnLoadScenePrefix");
+        if (atlasMainMenuScreenOnLoadScene == null || prefix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(atlasLoadCustomScene, prefix: new HarmonyMethod(prefix));
-        var patchInfo = Harmony.GetPatchInfo(atlasLoadCustomScene);
+        harmony.Patch(atlasMainMenuScreenOnLoadScene, prefix: new HarmonyMethod(prefix));
+        var patchInfo = Harmony.GetPatchInfo(atlasMainMenuScreenOnLoadScene);
         if (patchInfo == null || !patchInfo.Prefixes.Any(patch => patch.owner == HarmonyId))
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
@@ -73,13 +72,14 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
-    private static bool AtlasLoadCustomScenePrefix(object sceneInfo)
+    private static bool AtlasMainMenuScreenOnLoadScenePrefix(object __instance, object __0, object __1)
     {
-        return instance == null || instance.HandleAtlasLoadCustomScene(sceneInfo);
+        return instance == null || instance.HandleAtlasMainMenuScreenOnLoadScene(__instance, __0, __1);
     }
 
-    private bool HandleAtlasLoadCustomScene(object sceneInfo)
+    private bool HandleAtlasMainMenuScreenOnLoadScene(object atlasPlugin, object originalLoad, object menuScreen)
     {
+        var sceneInfo = AtlasMenuSceneResolver.GetSceneInfo(menuScreen);
         if (!GunGameSceneIdentity.IsMatch(ReadSceneIdentifier(sceneInfo)))
         {
             return true;
@@ -98,7 +98,7 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        StartCoroutine(PreparePoolsThenLoadGunGameScene(sceneInfo));
+        StartCoroutine(PreparePoolsThenLoadGunGameScene(atlasPlugin, originalLoad, menuScreen));
         return false;
     }
 
@@ -120,7 +120,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator PreparePoolsThenLoadGunGameScene(object sceneInfo)
+    private IEnumerator PreparePoolsThenLoadGunGameScene(object atlasPlugin, object originalLoad, object menuScreen)
     {
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
@@ -128,7 +128,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGameSceneLoad(sceneInfo);
+            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
             yield break;
         }
 
@@ -141,7 +141,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (metadataCapture == null)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGameSceneLoad(sceneInfo);
+            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
             yield break;
         }
 
@@ -157,7 +157,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
-            ResumeGunGameSceneLoad(sceneInfo);
+            ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
             yield break;
         }
 
@@ -168,10 +168,10 @@ public sealed class Plugin : BaseUnityPlugin
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
-        ResumeGunGameSceneLoad(sceneInfo);
+        ResumeGunGameSceneLoad(atlasPlugin, originalLoad, menuScreen);
     }
 
-    private void ResumeGunGameSceneLoad(object sceneInfo)
+    private void ResumeGunGameSceneLoad(object atlasPlugin, object originalLoad, object menuScreen)
     {
         lock (sceneLoadGateLock)
         {
@@ -180,7 +180,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            atlasLoadCustomScene.Invoke(null, new[] { sceneInfo });
+            atlasMainMenuScreenOnLoadScene.Invoke(atlasPlugin, new[] { originalLoad, menuScreen });
         }
         catch (TargetInvocationException exception)
         {
