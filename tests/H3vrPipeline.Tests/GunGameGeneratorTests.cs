@@ -117,6 +117,7 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
+            Assert.All(pools, pool => Assert.Equal(615, pool.RootElement.GetProperty("Guns").GetArrayLength()));
         }
         finally
         {
