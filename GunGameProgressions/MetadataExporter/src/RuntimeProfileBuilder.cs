@@ -435,11 +435,15 @@ public static class RuntimeProfileBuilder
             }
         }
 
-        var opticCandidates = PreferDedicatedCompactOptics(directCandidates, firearm);
+        var opticCandidates = PreferRussianSideRailOptics(
+            PreferDedicatedCompactOptics(directCandidates, firearm),
+            firearm);
         if (opticCandidates.Count == 0)
         {
-            opticCandidates = PreferDedicatedCompactOptics(
-                index.GetOptics(desiredKind).Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
+            opticCandidates = PreferRussianSideRailOptics(
+                PreferDedicatedCompactOptics(
+                    index.GetOptics(desiredKind).Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
+                    firearm),
                 firearm);
         }
 
@@ -454,6 +458,23 @@ public static class RuntimeProfileBuilder
         }
 
         return distinct[random.Next(distinct.Count)].ObjectID;
+    }
+
+    private static List<RuntimeMetadataEntry> PreferRussianSideRailOptics(
+        List<RuntimeMetadataEntry> candidates,
+        RuntimeMetadataEntry firearm)
+    {
+        if (!ResolvedMountTypes(firearm.PhysicalMountTypes)
+                .Any(mount => string.Equals(mount, "Russian", StringComparison.OrdinalIgnoreCase)))
+        {
+            return candidates;
+        }
+
+        var russianCandidates = candidates
+            .Where(attachment => ResolvedMountTypes(attachment.PhysicalMountTypes)
+                .Any(mount => string.Equals(mount, "Russian", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        return russianCandidates.Count > 0 ? russianCandidates : candidates;
     }
 
     private static bool IsCompatibleOptic(
