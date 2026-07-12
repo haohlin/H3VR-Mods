@@ -382,6 +382,18 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Atlas_menu_scene_resolver_identifies_only_the_GunGame_selection()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var resolverType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.AtlasMenuSceneResolver"));
+        var isGunGameSelection = Assert.IsAssignableFrom<MethodInfo>(resolverType.GetMethod("IsGunGameSelection", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)isGunGameSelection.Invoke(null, new object[] { AtlasMenuScreen("GunGame") })!);
+        Assert.False((bool)isGunGameSelection.Invoke(null, new object[] { AtlasMenuScreen("Sandbox") })!);
+        Assert.False((bool)isGunGameSelection.Invoke(null, new object[] { new AtlasMenuScreenFixture() })!);
+    }
+
+    [Fact]
     public void Runtime_status_messages_are_concise_and_cover_pool_generation()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1004,6 +1016,22 @@ public sealed class GunGameGeneratorTests
     private sealed class AtlasSceneDefinitionFixture
     {
         public object? CustomSceneInfo;
+    }
+
+    private static AtlasMenuScreenFixture AtlasMenuScreen(string identifier)
+    {
+        return new AtlasMenuScreenFixture
+        {
+            m_def = new AtlasSceneDefinitionFixture
+            {
+                CustomSceneInfo = new AtlasSceneInfoFixture { Identifier = identifier },
+            },
+        };
+    }
+
+    private sealed class AtlasSceneInfoFixture
+    {
+        public string Identifier = string.Empty;
     }
 
     private sealed class SequenceRandom : Random
