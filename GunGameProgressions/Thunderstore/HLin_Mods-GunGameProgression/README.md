@@ -23,9 +23,9 @@ Rot pools are the most predictable option. Mixed Enemy pools are for a more vari
 
 ## First Start
 
-The vanilla profiles are ready immediately. Modded profiles are prepared in the background while H3VR starts, so all four choices normally appear the first time you open GunGame.
+The vanilla profiles are ready immediately. When any Kodeman GunGame map starts its pool selector, GunGame Progressions prepares the active modded profiles before Kodeman reads that selector.
 
-If you open GunGame unusually early during a large mod load, stay on the same pool selector for a moment. The two Modded choices are added there as soon as preparation completes; you do **not** need to leave or reload the map.
+During a large mod load, that selector may take a brief moment to appear while the active modded catalog is prepared. H3VR itself remains responsive, and the selector opens with the Modded choices already present; you do **not** need to leave or reload the map.
 
 ## Enemy Pacing
 
@@ -41,7 +41,7 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 ## Compatible Loadouts
 
 - Guns receive usable ammunition: magazines first, then clips or speedloaders, then cartridges when needed.
-- A shell-fed shotgun receives its compatible shells. A magazine-fed shotgun receives its compatible magazine; the generator does not treat every shotgun as shell-fed.
+- An internally fed shotgun receives its compatible shells. A true box-mag shotgun receives its compatible magazine; the generator does not treat every shotgun as shell-fed.
 - Optics appear only when they fit the firearm's own mounting point.
 - Reflex sights and scopes can appear; magnifiers and unrelated attachments are left out.
 - Every run can offer a different compatible choice, keeping familiar weapons from feeling identical.

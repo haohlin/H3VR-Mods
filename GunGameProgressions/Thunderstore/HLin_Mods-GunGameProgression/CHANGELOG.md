@@ -4,9 +4,9 @@ All notable changes to GunGame Progressions are documented here.
 
 ## Unreleased
 
-- Start preparing modded pools during H3VR startup so the first GunGame selector normally has all four profiles.
-- If preparation is still in progress, add the Modded choices to the open selector without requiring a map reload.
-- Document shell-fed versus magazine-fed shotgun loadouts.
+- Gate Kodeman's shared weapon-pool loader until active modded profiles are prepared, covering every GunGame map without a scene-specific hook.
+- Prefer Russian side-rail optics when a firearm exposes a Russian mount alongside generic mounts.
+- Give internally fed shotguns shells while retaining magazines for true box-mag shotguns.
 
 ## 1.3.6
 
