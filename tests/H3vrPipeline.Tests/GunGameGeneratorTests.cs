@@ -336,50 +336,16 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void On_demand_generation_gate_releases_exactly_one_original_pool_load()
+    public void Modded_pool_replacement_policy_preserves_an_existing_larger_pool()
     {
         var assembly = LoadBuiltMetadataExporter();
-        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.OnDemandGenerationGate"));
-        var gate = Activator.CreateInstance(gateType)!;
-        var tryBegin = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("TryBeginPreparation", BindingFlags.Public | BindingFlags.Instance));
-        var release = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("ReleaseOriginalLoad", BindingFlags.Public | BindingFlags.Instance));
-        var consume = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("ConsumeOriginalLoadPermission", BindingFlags.Public | BindingFlags.Instance));
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModdedPoolReplacementPolicy"));
+        var shouldReplace = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldReplace", BindingFlags.Public | BindingFlags.Static));
 
-        Assert.True((bool)tryBegin.Invoke(gate, null)!);
-        Assert.False((bool)tryBegin.Invoke(gate, null)!);
-        Assert.False((bool)consume.Invoke(gate, null)!);
-
-        release.Invoke(gate, null);
-        Assert.True((bool)consume.Invoke(gate, null)!);
-        Assert.False((bool)consume.Invoke(gate, null)!);
-        Assert.True((bool)tryBegin.Invoke(gate, null)!);
-    }
-
-    [Fact]
-    public void Mod_content_readiness_waits_for_the_known_loader_or_the_thirty_second_cap()
-    {
-        var assembly = LoadBuiltMetadataExporter();
-        var readinessType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModContentReadinessGate"));
-        var stateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ExternalContentLoadState"));
-        var isReady = Assert.IsAssignableFrom<MethodInfo>(readinessType.GetMethod("IsReady", BindingFlags.Public | BindingFlags.Instance));
-        var loading = Enum.Parse(stateType, "Loading");
-        var complete = Enum.Parse(stateType, "Complete");
-        var unavailable = Enum.Parse(stateType, "Unavailable");
-
-        var knownLoaderGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
-        Assert.False((bool)isReady.Invoke(knownLoaderGate, new object[] { 0f, 12, loading })!);
-        Assert.False((bool)isReady.Invoke(knownLoaderGate, new object[] { 29.9f, 12, loading })!);
-        Assert.True((bool)isReady.Invoke(knownLoaderGate, new object[] { 29.9f, 12, complete })!);
-
-        var timeoutGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
-        Assert.False((bool)isReady.Invoke(timeoutGate, new object[] { 29.9f, 12, loading })!);
-        Assert.True((bool)isReady.Invoke(timeoutGate, new object[] { 30f, 12, loading })!);
-
-        var fallbackGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
-        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 0f, 12, unavailable })!);
-        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 1.9f, 12, unavailable })!);
-        Assert.True((bool)isReady.Invoke(fallbackGate, new object[] { 2f, 12, unavailable })!);
-        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 2.1f, 13, unavailable })!);
+        Assert.True((bool)shouldReplace.Invoke(null, new object[] { -1, 1 })!);
+        Assert.True((bool)shouldReplace.Invoke(null, new object[] { 12, 13 })!);
+        Assert.False((bool)shouldReplace.Invoke(null, new object[] { 12, 12 })!);
+        Assert.False((bool)shouldReplace.Invoke(null, new object[] { 12, 11 })!);
     }
 
     [Fact]
@@ -468,7 +434,6 @@ public sealed class GunGameGeneratorTests
                 "Preparing",
                 "PoolsReady",
                 "NoModdedPools",
-                "ModLoadTimedOut",
                 "ProfileUiUpdateFailed",
                 "FallbackPools",
             }
@@ -480,9 +445,8 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[2]);
         Assert.Equal("GunGame Progressions: pools ready.", lifecycle[3]);
         Assert.Equal("GunGame Progressions: no modded pools available.", lifecycle[4]);
-        Assert.Equal("GunGame Progressions: mod loading timed out.", lifecycle[5]);
-        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[6]);
-        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[7]);
+        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[5]);
+        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[6]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
     }
 
@@ -498,17 +462,19 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_gates_Kodeman_weapon_pool_loading_until_modded_profiles_are_ready()
+    public void Runtime_refreshes_modded_pools_after_Kodeman_load_and_scene_exit_without_blocking()
     {
         var source = File.ReadAllText(PluginSourcePath);
 
-        Assert.Contains("InstallGunGameWeaponPoolLoaderGate", source, StringComparison.Ordinal);
+        Assert.Contains("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
-        Assert.Contains("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
-        Assert.Contains("PrepareModdedPoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
-        Assert.Contains("ModdedMetadataTimeoutSeconds = 30f", source, StringComparison.Ordinal);
+        Assert.Contains("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
+        Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoader.LoaderStatus", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("MinimumModdedMetadataEntries", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrepareModdedPoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
     }
 
     [Fact]

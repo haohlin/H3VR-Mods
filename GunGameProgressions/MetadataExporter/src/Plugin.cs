@@ -20,23 +20,24 @@ namespace HLin.GunGameProgressions;
 public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
-    private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanPoolLoader";
-    private const float ModdedMetadataTimeoutSeconds = 30f;
-    private const float ModdedMetadataRetryDelaySeconds = 0.25f;
+    private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
+    private const float ModdedRefreshTimeoutSeconds = 120f;
+    private const float ModdedRefreshPollSeconds = 1f;
     private const float RegistryQuietSeconds = 2f;
 
     private static Plugin instance;
-    private readonly object poolLoadGateLock = new object();
-    private readonly OnDemandGenerationGate poolLoadGate = new OnDemandGenerationGate();
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
+    private bool moddedRefreshRunning;
+    private bool moddedRefreshRequested;
     private Harmony harmony;
     private MethodInfo weaponPoolLoaderAwake;
+    private MethodInfo gameManagerOnDestroy;
 
     private void Awake()
     {
         instance = this;
-        InstallGunGameWeaponPoolLoaderGate();
+        InstallGunGameRefreshHooks();
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
@@ -58,48 +59,56 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void InstallGunGameWeaponPoolLoaderGate()
+    private void InstallGunGameRefreshHooks()
     {
         var loaderType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
         weaponPoolLoaderAwake = loaderType == null ? null : AccessTools.Method(loaderType, "Awake");
-        var prefix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePrefix");
-        if (weaponPoolLoaderAwake == null || prefix == null)
+        var gameManagerType = AccessTools.TypeByName("GunGame.Scripts.GameManager");
+        gameManagerOnDestroy = gameManagerType == null ? null : AccessTools.Method(gameManagerType, "OnDestroy");
+        var loaderPostfix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePostfix");
+        var exitPostfix = AccessTools.Method(typeof(Plugin), "GameManagerOnDestroyPostfix");
+        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPostfix == null || exitPostfix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(weaponPoolLoaderAwake, prefix: new HarmonyMethod(prefix));
-        var patchInfo = Harmony.GetPatchInfo(weaponPoolLoaderAwake);
-        if (patchInfo == null || !patchInfo.Prefixes.Any(patch => patch.owner == HarmonyId))
+        harmony.Patch(weaponPoolLoaderAwake, postfix: new HarmonyMethod(loaderPostfix));
+        harmony.Patch(gameManagerOnDestroy, postfix: new HarmonyMethod(exitPostfix));
+        var loaderPatchInfo = Harmony.GetPatchInfo(weaponPoolLoaderAwake);
+        var exitPatchInfo = Harmony.GetPatchInfo(gameManagerOnDestroy);
+        if (loaderPatchInfo == null || exitPatchInfo == null ||
+            !loaderPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId) ||
+            !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
         }
     }
 
-    private static bool WeaponPoolLoaderAwakePrefix(object __instance)
+    private static void WeaponPoolLoaderAwakePostfix()
     {
-        return instance == null || instance.HandleWeaponPoolLoaderAwake(__instance);
+        if (instance != null)
+        {
+            instance.RequestModdedRefresh();
+        }
     }
 
-    private bool HandleWeaponPoolLoaderAwake(object loader)
+    private static void GameManagerOnDestroyPostfix()
     {
-        lock (poolLoadGateLock)
+        if (instance != null)
         {
-            if (poolLoadGate.ConsumeOriginalLoadPermission())
-            {
-                return true;
-            }
-
-            if (!poolLoadGate.TryBeginPreparation())
-            {
-                return false;
-            }
+            instance.RequestModdedRefresh();
         }
+    }
 
-        StartCoroutine(PrepareModdedPoolsThenLoadWeaponPools(loader));
-        return false;
+    private void RequestModdedRefresh()
+    {
+        moddedRefreshRequested = true;
+        if (!moddedRefreshRunning)
+        {
+            StartCoroutine(RefreshModdedPoolsInBackground());
+        }
     }
 
     private IEnumerator GenerateVanillaPoolsAtStartup()
@@ -153,32 +162,19 @@ public sealed class Plugin : BaseUnityPlugin
             job.Report.ElapsedMilliseconds + "ms.");
     }
 
-    private IEnumerator PrepareModdedPoolsThenLoadWeaponPools(object loader)
+    private IEnumerator RefreshModdedPoolsInBackground()
     {
-        yield return StartCoroutine(GenerateModdedPoolsForKodemanLoader());
-
-        lock (poolLoadGateLock)
+        moddedRefreshRunning = true;
+        while (moddedRefreshRequested)
         {
-            poolLoadGate.ReleaseOriginalLoad();
+            moddedRefreshRequested = false;
+            yield return StartCoroutine(GenerateModdedPoolsForRefresh());
         }
 
-        try
-        {
-            weaponPoolLoaderAwake.Invoke(loader, null);
-        }
-        catch (TargetInvocationException exception)
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame weapon pool loading could not resume: " + (exception.InnerException ?? exception));
-        }
-        catch (Exception exception)
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame weapon pool loading could not resume: " + exception);
-        }
+        moddedRefreshRunning = false;
     }
 
-    private IEnumerator GenerateModdedPoolsForKodemanLoader()
+    private IEnumerator GenerateModdedPoolsForRefresh()
     {
         while (!vanillaGenerationFinished)
         {
@@ -187,53 +183,52 @@ public sealed class Plugin : BaseUnityPlugin
 
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
-        RuntimeMetadataCapture metadataCapture = null;
-        var readinessGate = new ModContentReadinessGate(ModdedMetadataTimeoutSeconds, RegistryQuietSeconds);
+        var readinessGate = new ModContentReadinessGate(ModdedRefreshTimeoutSeconds, RegistryQuietSeconds);
         var waitStartTime = Time.realtimeSinceStartup;
+        var lastMetadataFingerprint = string.Empty;
         do
         {
             Dictionary<string, FVRObject> objects;
             if (TryGetObjectData(out objects) && objects.Count > 0)
             {
-                metadataCapture = null;
+                RuntimeMetadataCapture metadataCapture = null;
                 yield return StartCoroutine(CaptureRuntimeMetadata(
                     objects,
                     item => item.IsModContent,
                     capture => metadataCapture = capture));
                 var elapsedSeconds = Time.realtimeSinceStartup - waitStartTime;
                 var externalLoadState = GetExternalContentLoadState();
-                if (metadataCapture != null && readinessGate.IsReady(
-                    elapsedSeconds,
-                    metadataCapture.Entries.Count,
-                    externalLoadState))
+                if (metadataCapture != null)
                 {
-                    if (readinessGate.HasTimedOut(elapsedSeconds))
+                    var metadataFingerprint = GetMetadataFingerprint(metadataCapture.Entries);
+                    if (!string.Equals(metadataFingerprint, lastMetadataFingerprint, StringComparison.Ordinal))
                     {
-                        Logger.LogWarning(RuntimeStatusMessages.ModLoadTimedOut);
+                        lastMetadataFingerprint = metadataFingerprint;
+                        yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, totalTimer));
                     }
 
-                    break;
+                    if (readinessGate.IsReady(elapsedSeconds, metadataCapture.Entries.Count, externalLoadState))
+                    {
+                        yield break;
+                    }
                 }
             }
 
             if (readinessGate.HasTimedOut(Time.realtimeSinceStartup - waitStartTime))
             {
-                Logger.LogWarning(RuntimeStatusMessages.ModLoadTimedOut);
-                break;
+                Logger.LogDebug("GunGame modded refresh reached its background wait limit.");
+                yield break;
             }
 
-            yield return new WaitForSeconds(ModdedMetadataRetryDelaySeconds);
+            yield return new WaitForSeconds(ModdedRefreshPollSeconds);
         }
         while (true);
+    }
 
+    private IEnumerator GenerateModdedPoolCandidate(RuntimeMetadataCapture metadataCapture, Stopwatch totalTimer)
+    {
         RuntimeEnemyCapture enemyCapture = null;
         yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
-
-        if (metadataCapture == null)
-        {
-            Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            yield break;
-        }
 
         var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         var combinedMetadata = (vanillaMetadata ?? new List<RuntimeMetadataEntry>())
@@ -261,12 +256,28 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
-        Logger.LogInfo(report.PoolCount == 0 ? RuntimeStatusMessages.NoModdedPools : RuntimeStatusMessages.PoolsReady);
+        if (report.PoolCount == 0)
+        {
+            Logger.LogInfo(RuntimeStatusMessages.NoModdedPools);
+        }
+        else if (report.WasWritten)
+        {
+            Logger.LogInfo(RuntimeStatusMessages.PoolsReady);
+        }
+        else
+        {
+            Logger.LogDebug("GunGame modded pools kept their larger existing gun count.");
+        }
         Logger.LogDebug(
             "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
+    }
+
+    private static string GetMetadataFingerprint(IEnumerable<RuntimeMetadataEntry> entries)
+    {
+        return string.Join("\n", entries.Select(entry => entry.ObjectID).OrderBy(objectId => objectId, StringComparer.Ordinal).ToArray());
     }
 
     private bool TryGetObjectData(out Dictionary<string, FVRObject> objects)
@@ -869,9 +880,6 @@ public sealed class Plugin : BaseUnityPlugin
         List<RuntimeEnemyEntry> enemyEntries,
         RuntimeGenerationPhase phase)
     {
-        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
-        WriteTextAtomically(metadataPath, SerializeMetadata(entries));
-
         var rules = ProfileRules.Load(packagePath);
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
             ? entries
@@ -889,14 +897,41 @@ public sealed class Plugin : BaseUnityPlugin
             SkippedFirearms = result.SkippedFirearms,
             FirearmsWithoutOptics = result.FirearmsWithoutOptics,
         };
-        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
-        Directory.CreateDirectory(runtimePoolsPath);
         var expectedPoolFiles = new HashSet<string>(StringComparer.Ordinal);
         foreach (var runtimePool in phasePools)
         {
             var poolFileName = RuntimePoolFileName(runtimePool);
             expectedPoolFiles.Add(poolFileName);
-            WriteTextAtomically(Path.Combine(packagePath, poolFileName), SerializePool(runtimePool));
+        }
+
+        var candidateGunCount = phasePools.Count == 0 ? 0 : phasePools.Min(pool => pool.Guns.Count);
+        var existingGunCount = phase == RuntimeGenerationPhase.Modded
+            ? GetExistingGunCount(packagePath, expectedPoolFiles)
+            : -1;
+        var shouldWrite = phase != RuntimeGenerationPhase.Modded ||
+            (phasePools.Count > 0 && ModdedPoolReplacementPolicy.ShouldReplace(existingGunCount, candidateGunCount));
+        if (!shouldWrite)
+        {
+            return new RuntimeGenerationReport(
+                entries.Count,
+                entries.Count(entry => entry.IsModContent),
+                enemyEntries.Count,
+                phasePools.Count,
+                phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
+                result.SkippedFirearms.Count,
+                expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
+                false,
+                existingGunCount,
+                candidateGunCount);
+        }
+
+        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
+        WriteTextAtomically(metadataPath, SerializeMetadata(entries));
+        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
+        Directory.CreateDirectory(runtimePoolsPath);
+        foreach (var runtimePool in phasePools)
+        {
+            WriteTextAtomically(Path.Combine(packagePath, RuntimePoolFileName(runtimePool)), SerializePool(runtimePool));
         }
 
         RemoveStaleRuntimePools(
@@ -917,7 +952,40 @@ public sealed class Plugin : BaseUnityPlugin
             phasePools.Count,
             phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
             result.SkippedFirearms.Count,
-            expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList());
+            expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
+            true,
+            existingGunCount,
+            candidateGunCount);
+    }
+
+    private static int GetExistingGunCount(string packagePath, IEnumerable<string> expectedPoolFiles)
+    {
+        var counts = new List<int>();
+        foreach (var fileName in expectedPoolFiles)
+        {
+            var poolPath = Path.Combine(packagePath, fileName);
+            if (!File.Exists(poolPath))
+            {
+                continue;
+            }
+
+            counts.Add(CountOccurrences(File.ReadAllText(poolPath), "\"GunName\":"));
+        }
+
+        return counts.Count == 0 ? -1 : counts.Max();
+    }
+
+    private static int CountOccurrences(string value, string needle)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = value.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += needle.Length;
+        }
+
+        return count;
     }
 
     private enum RuntimeGenerationPhase
@@ -1049,7 +1117,10 @@ public sealed class Plugin : BaseUnityPlugin
             int poolCount,
             int eligibleWeaponsPerPool,
             int skippedFirearmCount,
-            List<string> poolFileNames)
+            List<string> poolFileNames,
+            bool wasWritten,
+            int existingGunCount,
+            int candidateGunCount)
         {
             EntryCount = entryCount;
             ModdedEntryCount = moddedEntryCount;
@@ -1058,6 +1129,9 @@ public sealed class Plugin : BaseUnityPlugin
             EligibleWeaponsPerPool = eligibleWeaponsPerPool;
             SkippedFirearmCount = skippedFirearmCount;
             PoolFileNames = poolFileNames;
+            WasWritten = wasWritten;
+            ExistingGunCount = existingGunCount;
+            CandidateGunCount = candidateGunCount;
         }
 
         public int EntryCount { get; private set; }
@@ -1067,6 +1141,9 @@ public sealed class Plugin : BaseUnityPlugin
         public int EligibleWeaponsPerPool { get; private set; }
         public int SkippedFirearmCount { get; private set; }
         public List<string> PoolFileNames { get; private set; }
+        public bool WasWritten { get; private set; }
+        public int ExistingGunCount { get; private set; }
+        public int CandidateGunCount { get; private set; }
         public long ElapsedMilliseconds { get; set; }
     }
 }
