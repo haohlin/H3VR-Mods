@@ -354,49 +354,9 @@ function Invoke-GunGameBuild {
             throw "Missing offline GunGame fallback profile: $offlinePoolPath"
         }
     }
-    $runtimeMetadataPath = Join-Path (Join-Path $EnvironmentConfig.r2modman.pluginsRoot $ModConfig.deploymentFolder) 'ObjectData.json'
-    if (-not (Test-Path -LiteralPath $runtimeMetadataPath) -or (Get-Item -LiteralPath $runtimeMetadataPath).Length -le 2) {
-        Write-Host "No runtime GunGame metadata export was found; using tracked GunGame profile assets."
-        Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
-        $offlinePoolPaths | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stagingPath }
-        Test-GunGamePools $stagingPath
-        return $stagingPath
-    }
-
-    $metadataPath = $runtimeMetadataPath
-    if ((Test-Path -LiteralPath $runtimeMetadataPath) -and (Get-Item -LiteralPath $runtimeMetadataPath).Length -gt 2) {
-        Write-Host "Using metadata exported by the installed GunGame package: $metadataPath"
-    }
-
-    Copy-Item -LiteralPath $metadataPath -Destination (Join-Path $stagingPath 'ObjectData.json')
-    Copy-Item -LiteralPath (Join-Path $sourcePath 'jsonGen.py') -Destination $stagingPath
+    Write-Host "Using tracked GunGame fallback profile assets."
     Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
-    Push-Location $stagingPath
-    try {
-        Invoke-CheckedNative {
-            & python .\jsonGen.py 0 --seed 0 --rules .\profile-rules.json `
-                --output-name 'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json' `
-                --profile-name 'Runtime 01 - Vanilla Rot' `
-                --description 'A Rot-only random progression using active vanilla firearms.' `
-                --enemy-types 'RW_Rot' `
-                --enemy-progression-type 0 `
-                --order-type 1
-        }
-        Invoke-CheckedNative {
-            & python .\jsonGen.py 0 --seed 0 --rules .\profile-rules.json `
-                --output-name 'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json' `
-                --profile-name 'Runtime 03 - Vanilla Mixed Enemy' `
-                --description 'A weighted mixed-enemy progression using active vanilla firearms.' `
-                --enemy-types 'RW_Rot,M_Swat_Scout,M_MercWiener_Riflewiener,M_Swat_SpecOps,M_Swat_Heavy' `
-                --enemy-values '8,5,3,2,1' `
-                --enemy-progression-type 0 `
-                --order-type 1
-        }
-    }
-    finally {
-        Pop-Location
-    }
-
+    $offlinePoolPaths | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stagingPath }
     Test-GunGamePools $stagingPath
     return $stagingPath
 }
