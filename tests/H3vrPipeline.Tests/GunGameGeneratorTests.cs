@@ -353,6 +353,19 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void GunGame_scene_identity_matches_only_the_GunGame_Atlas_identifier()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var identityType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.GunGameSceneIdentity"));
+        var isMatch = Assert.IsAssignableFrom<MethodInfo>(identityType.GetMethod("IsMatch", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)isMatch.Invoke(null, new object[] { "GunGame" })!);
+        Assert.True((bool)isMatch.Invoke(null, new object[] { "gungame" })!);
+        Assert.False((bool)isMatch.Invoke(null, new object[] { "GunGamePlus" })!);
+        Assert.False((bool)isMatch.Invoke(null, new object[] { string.Empty })!);
+    }
+
+    [Fact]
     public void Runtime_status_messages_are_concise_and_cover_pool_generation()
     {
         var assembly = LoadBuiltMetadataExporter();

@@ -20,17 +20,18 @@ namespace HLin.GunGameProgressions;
 public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
+    private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.OnDemandPoolGeneration";
     private static Plugin instance;
 
-    private readonly object poolLoadGateLock = new object();
-    private readonly OnDemandGenerationGate poolLoadGate = new OnDemandGenerationGate();
+    private readonly object sceneLoadGateLock = new object();
+    private readonly OnDemandGenerationGate sceneLoadGate = new OnDemandGenerationGate();
     private Harmony harmony;
-    private MethodInfo gunGamePoolLoaderAwake;
+    private MethodInfo atlasLoadCustomScene;
 
     private void Awake()
     {
         instance = this;
-        InstallGunGamePoolLoaderGate();
+        InstallGunGameSceneLoadGate();
     }
 
     private void OnDestroy()
@@ -46,47 +47,80 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void InstallGunGamePoolLoaderGate()
+    private void InstallGunGameSceneLoadGate()
     {
-        var targetType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
-        gunGamePoolLoaderAwake = targetType == null ? null : AccessTools.Method(targetType, "Awake");
-        var prefix = AccessTools.Method(typeof(Plugin), "GunGamePoolLoaderAwakePrefix");
-        if (gunGamePoolLoaderAwake == null || prefix == null)
+        var atlasPluginType = AccessTools.TypeByName("Atlas.AtlasPlugin");
+        var customSceneInfoType = AccessTools.TypeByName("Atlas.CustomSceneInfo");
+        atlasLoadCustomScene = atlasPluginType == null || customSceneInfoType == null
+            ? null
+            : AccessTools.Method(atlasPluginType, "LoadCustomScene", new[] { customSceneInfoType });
+        var prefix = AccessTools.Method(typeof(Plugin), "AtlasLoadCustomScenePrefix");
+        if (atlasLoadCustomScene == null || prefix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
-        harmony = new Harmony("HLin.GunGameProgressionsMetadataExporter.OnDemandPoolGeneration");
-        harmony.Patch(gunGamePoolLoaderAwake, prefix: new HarmonyMethod(prefix));
+        harmony = new Harmony(HarmonyId);
+        harmony.Patch(atlasLoadCustomScene, prefix: new HarmonyMethod(prefix));
+        var patchInfo = Harmony.GetPatchInfo(atlasLoadCustomScene);
+        if (patchInfo == null || !patchInfo.Prefixes.Any(patch => patch.owner == HarmonyId))
+        {
+            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
+            return;
+        }
+
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
-    private static bool GunGamePoolLoaderAwakePrefix(object __instance)
+    private static bool AtlasLoadCustomScenePrefix(object sceneInfo)
     {
-        return instance == null || instance.HandleGunGamePoolLoaderAwake(__instance);
+        return instance == null || instance.HandleAtlasLoadCustomScene(sceneInfo);
     }
 
-    private bool HandleGunGamePoolLoaderAwake(object loader)
+    private bool HandleAtlasLoadCustomScene(object sceneInfo)
     {
-        lock (poolLoadGateLock)
+        if (!GunGameSceneIdentity.IsMatch(ReadSceneIdentifier(sceneInfo)))
         {
-            if (poolLoadGate.ConsumeOriginalLoadPermission())
+            return true;
+        }
+
+        lock (sceneLoadGateLock)
+        {
+            if (sceneLoadGate.ConsumeOriginalLoadPermission())
             {
                 return true;
             }
 
-            if (!poolLoadGate.TryBeginPreparation())
+            if (!sceneLoadGate.TryBeginPreparation())
             {
                 return false;
             }
         }
 
-        StartCoroutine(PreparePoolsThenRunGunGameLoader(loader));
+        StartCoroutine(PreparePoolsThenLoadGunGameScene(sceneInfo));
         return false;
     }
 
-    private IEnumerator PreparePoolsThenRunGunGameLoader(object loader)
+    private static string ReadSceneIdentifier(object sceneInfo)
+    {
+        if (sceneInfo == null)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var property = AccessTools.Property(sceneInfo.GetType(), "Identifier");
+            return property == null ? string.Empty : property.GetValue(sceneInfo, null) as string ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private IEnumerator PreparePoolsThenLoadGunGameScene(object sceneInfo)
     {
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
@@ -94,7 +128,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGamePoolLoader(loader);
+            ResumeGunGameSceneLoad(sceneInfo);
             yield break;
         }
 
@@ -107,7 +141,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (metadataCapture == null)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            ResumeGunGamePoolLoader(loader);
+            ResumeGunGameSceneLoad(sceneInfo);
             yield break;
         }
 
@@ -123,7 +157,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
-            ResumeGunGamePoolLoader(loader);
+            ResumeGunGameSceneLoad(sceneInfo);
             yield break;
         }
 
@@ -134,29 +168,29 @@ public sealed class Plugin : BaseUnityPlugin
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
-        ResumeGunGamePoolLoader(loader);
+        ResumeGunGameSceneLoad(sceneInfo);
     }
 
-    private void ResumeGunGamePoolLoader(object loader)
+    private void ResumeGunGameSceneLoad(object sceneInfo)
     {
-        lock (poolLoadGateLock)
+        lock (sceneLoadGateLock)
         {
-            poolLoadGate.ReleaseOriginalLoad();
+            sceneLoadGate.ReleaseOriginalLoad();
         }
 
         try
         {
-            gunGamePoolLoaderAwake.Invoke(loader, null);
+            atlasLoadCustomScene.Invoke(null, new[] { sceneInfo });
         }
         catch (TargetInvocationException exception)
         {
             Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame pool loader could not resume: " + (exception.InnerException ?? exception));
+            Logger.LogDebug("GunGame scene load could not resume: " + (exception.InnerException ?? exception));
         }
         catch (Exception exception)
         {
             Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame pool loader could not resume: " + exception);
+            Logger.LogDebug("GunGame scene load could not resume: " + exception);
         }
     }
 
