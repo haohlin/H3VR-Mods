@@ -349,6 +349,24 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Background_mod_refresh_waits_for_loader_completion_or_its_safety_cap()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModContentReadinessGate"));
+        var stateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ExternalContentLoadState"));
+        var isReady = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("IsReady", BindingFlags.Public | BindingFlags.Instance));
+        var unavailable = Enum.Parse(stateType, "Unavailable");
+        var loading = Enum.Parse(stateType, "Loading");
+        var complete = Enum.Parse(stateType, "Complete");
+        var gate = Activator.CreateInstance(gateType, new object[] { 120f })!;
+
+        Assert.False((bool)isReady.Invoke(gate, new object[] { 2f, unavailable })!);
+        Assert.False((bool)isReady.Invoke(gate, new object[] { 119.9f, loading })!);
+        Assert.True((bool)isReady.Invoke(gate, new object[] { 119.9f, complete })!);
+        Assert.True((bool)isReady.Invoke(gate, new object[] { 120f, loading })!);
+    }
+
+    [Fact]
     public void GunGame_scene_identity_matches_only_the_GunGame_Atlas_identifier()
     {
         var assembly = LoadBuiltMetadataExporter();

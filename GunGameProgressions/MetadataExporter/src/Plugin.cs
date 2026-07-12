@@ -23,7 +23,6 @@ public sealed class Plugin : BaseUnityPlugin
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
-    private const float RegistryQuietSeconds = 2f;
 
     private static Plugin instance;
     private List<RuntimeMetadataEntry> vanillaMetadata;
@@ -183,7 +182,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
-        var readinessGate = new ModContentReadinessGate(ModdedRefreshTimeoutSeconds, RegistryQuietSeconds);
+        var readinessGate = new ModContentReadinessGate(ModdedRefreshTimeoutSeconds);
         var waitStartTime = Time.realtimeSinceStartup;
         var lastMetadataFingerprint = string.Empty;
         do
@@ -207,7 +206,7 @@ public sealed class Plugin : BaseUnityPlugin
                         yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, totalTimer));
                     }
 
-                    if (readinessGate.IsReady(elapsedSeconds, metadataCapture.Entries.Count, externalLoadState))
+                    if (readinessGate.IsReady(elapsedSeconds, externalLoadState))
                     {
                         yield break;
                     }
