@@ -431,14 +431,26 @@ public sealed class GunGameGeneratorTests
     {
         var assembly = LoadBuiltMetadataExporter();
         var messages = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeStatusMessages"));
-        var lifecycle = new[] { "Ready", "Preparing", "PoolsReady", "FallbackPools" }
+        var lifecycle = new[]
+            {
+                "Ready",
+                "VanillaPoolsReady",
+                "Preparing",
+                "PoolsReady",
+                "NoModdedPools",
+                "ProfileUiUpdateFailed",
+                "FallbackPools",
+            }
             .Select(name => (string)messages.GetField(name, BindingFlags.Public | BindingFlags.Static)!.GetRawConstantValue()!)
             .ToArray();
 
         Assert.Equal("GunGame Progressions: ready.", lifecycle[0]);
-        Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[1]);
-        Assert.Equal("GunGame Progressions: pools ready.", lifecycle[2]);
-        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[3]);
+        Assert.Equal("GunGame Progressions: vanilla pools ready.", lifecycle[1]);
+        Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[2]);
+        Assert.Equal("GunGame Progressions: pools ready.", lifecycle[3]);
+        Assert.Equal("GunGame Progressions: no modded pools available.", lifecycle[4]);
+        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[5]);
+        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[6]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
     }
 
