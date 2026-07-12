@@ -23,6 +23,9 @@ public sealed class Plugin : BaseUnityPlugin
 
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
+    private bool moddedGenerationFinished;
+    private Exception moddedGenerationError;
+    private RuntimeGenerationReport moddedGenerationReport;
     private object handledGunGameLoader;
     private Type weaponPoolLoaderType;
 
@@ -34,6 +37,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Start()
     {
         StartCoroutine(GenerateVanillaPoolsAtStartup());
+        StartCoroutine(GenerateModdedPoolsAtStartup());
         StartCoroutine(WatchForGunGamePoolLoader());
     }
 
@@ -100,7 +104,7 @@ public sealed class Plugin : BaseUnityPlugin
             else if (!ReferenceEquals(loader, handledGunGameLoader))
             {
                 handledGunGameLoader = loader;
-                yield return StartCoroutine(GenerateModdedPoolsForLoader(loader));
+                yield return StartCoroutine(AddModdedPoolsToLoader(loader));
             }
 
             yield return new WaitForSeconds(GunGameLoaderPollSeconds);
@@ -120,7 +124,7 @@ public sealed class Plugin : BaseUnityPlugin
         return weaponPoolLoaderType == null ? null : UnityEngine.Object.FindObjectOfType(weaponPoolLoaderType);
     }
 
-    private IEnumerator GenerateModdedPoolsForLoader(object loader)
+    private IEnumerator GenerateModdedPoolsAtStartup()
     {
         while (!vanillaGenerationFinished)
         {
@@ -133,6 +137,8 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
+            moddedGenerationError = new InvalidOperationException("H3VR object data was unavailable for modded pools.");
+            moddedGenerationFinished = true;
             yield break;
         }
 
@@ -148,6 +154,8 @@ public sealed class Plugin : BaseUnityPlugin
         if (metadataCapture == null)
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
+            moddedGenerationError = new InvalidOperationException("Modded H3VR metadata capture did not complete.");
+            moddedGenerationFinished = true;
             yield break;
         }
 
@@ -173,23 +181,74 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
+            moddedGenerationError = job.Error;
+            moddedGenerationFinished = true;
             yield break;
         }
 
         var report = job.Report;
-        var choicesAdded = AddGeneratedPoolChoices(loader, report.PoolFileNames);
-        Logger.LogInfo(
-            report.PoolCount == 0
-                ? RuntimeStatusMessages.NoModdedPools
-                : choicesAdded == report.PoolCount
-                    ? RuntimeStatusMessages.PoolsReady
-                    : RuntimeStatusMessages.ProfileUiUpdateFailed);
+        moddedGenerationReport = report;
+        moddedGenerationFinished = true;
+        Logger.LogInfo(report.PoolCount == 0 ? RuntimeStatusMessages.NoModdedPools : RuntimeStatusMessages.PoolsReady);
         Logger.LogDebug(
             "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
-            "ms + background build/write " + report.ElapsedMilliseconds + "ms, choices added " + choicesAdded +
-            ", total " + totalTimer.ElapsedMilliseconds + "ms.");
+            "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
+    }
+
+    private IEnumerator AddModdedPoolsToLoader(object loader)
+    {
+        while (!moddedGenerationFinished)
+        {
+            yield return null;
+        }
+
+        if (moddedGenerationError != null || moddedGenerationReport == null)
+        {
+            yield break;
+        }
+
+        if (moddedGenerationReport.PoolCount == 0)
+        {
+            yield break;
+        }
+
+        var choicesAdded = AddGeneratedPoolChoices(loader, moddedGenerationReport.PoolFileNames);
+        if (choicesAdded < moddedGenerationReport.PoolCount &&
+            !LoaderAlreadyHasGeneratedPools(loader, moddedGenerationReport.PoolFileNames))
+        {
+            Logger.LogWarning(RuntimeStatusMessages.ProfileUiUpdateFailed);
+        }
+    }
+
+    private static bool LoaderAlreadyHasGeneratedPools(object loader, IEnumerable<string> poolFileNames)
+    {
+        var poolsField = loader.GetType().GetField("_weaponPools", BindingFlags.Instance | BindingFlags.NonPublic);
+        var pools = poolsField == null ? null : poolsField.GetValue(loader) as IList;
+        if (pools == null)
+        {
+            return false;
+        }
+
+        var names = new HashSet<string>(
+            pools.Cast<object>().Select(GunGamePoolName),
+            StringComparer.Ordinal);
+        return (poolFileNames ?? Enumerable.Empty<string>())
+            .Select(RuntimePoolDisplayName)
+            .All(name => !string.IsNullOrEmpty(name) && names.Contains(name));
+    }
+
+    private static string RuntimePoolDisplayName(string poolFileName)
+    {
+        if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
+        {
+            return "Runtime 02 - Modded Rot";
+        }
+
+        return poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0
+            ? "Runtime 04 - Modded Mixed Enemy"
+            : string.Empty;
     }
 
     private int AddGeneratedPoolChoices(object loader, IEnumerable<string> poolFileNames)
