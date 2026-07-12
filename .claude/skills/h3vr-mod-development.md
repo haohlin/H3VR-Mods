@@ -12,3 +12,8 @@ The private Windows checkout configured through `H3VR_WINDOWS_REPOSITORY` is
 authoritative for H3VR builds, deployment, VR testing, and Thunderstore
 releases. The macOS checkout is a Git mirror for review and synchronized source
 edits.
+
+Before synchronizing, verify that the Windows checkout and `origin/main` share
+history with `git merge-base HEAD origin/main`. If they do not, preserve the
+Windows head on a recovery branch and stop for a user decision; never assume
+matching branch names are equivalent or force histories together.

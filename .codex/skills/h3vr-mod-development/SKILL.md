@@ -100,14 +100,26 @@ using the GUI again. Save assets in their owning project root and commit matchin
 1. Connect through `ssh "$H3VR_WINDOWS_HOST"` and preserve any user changes.
    Inspect `git status --short --branch` before editing; do not reset, clean,
    or overwrite unrelated files.
-2. Work on a feature branch, not `main`. Keep each intentional change focused and commit only the relevant files.
-3. Run the pipeline preflight from the repository root:
+2. Confirm Windows `main`, local `main`, and `origin/main` share history before
+   syncing or switching branches:
+
+```powershell
+git fetch origin --prune
+git merge-base HEAD origin/main
+git rev-list --left-right --count HEAD...origin/main
+```
+
+   No merge base means unrelated histories, not an ordinary branch conflict.
+   Preserve the Windows head on a recovery branch and stop for a user decision;
+   never reset, force-push, or auto-merge across that boundary.
+3. Work on a feature branch, not `main`. Keep each intentional change focused and commit only the relevant files.
+4. Run the pipeline preflight from the repository root:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File "$env:H3VR_WINDOWS_REPOSITORY\tools\h3vr.ps1" -Action Preflight
 ```
 
-4. Check whether the decompiled cache still matches the live DLLs:
+5. Check whether the decompiled cache still matches the live DLLs:
 
 ```powershell
 .\tools\h3vr.ps1 -Action SourceStatus

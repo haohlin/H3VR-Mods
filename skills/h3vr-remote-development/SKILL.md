@@ -53,12 +53,27 @@ Do not treat a macOS build as an H3VR compatibility check.
    ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Preflight"
    ```
 
-2. Synchronize through Git deliberately. Before review or edits, update the
+2. Prove the Git topology before synchronizing. The Windows `main`, local
+   `main`, and `origin/main` must share an ancestor before treating a branch
+   name as equivalent across machines:
+
+   ```bash
+   git fetch origin --prune
+   git merge-base HEAD origin/main
+   git rev-list --left-right --count HEAD...origin/main
+   ```
+
+   If `merge-base` has no result, stop. Preserve the Windows head on a named
+   recovery branch and report the unrelated histories; never force-push,
+   reset, or merge them automatically. The user must choose the canonical
+   history or explicitly approve a deliberate integration.
+
+3. Synchronize through Git deliberately. Before review or edits, update the
    local checkout with `git pull --ff-only`. Before a Windows build, ensure the
    intended commit is present in the configured Windows checkout. Keep commits
    scoped; do not erase another developer's work with broad copies.
 
-3. Read the affected mod, package source, `build/mods.json`, relevant tests, and
+4. Read the affected mod, package source, `build/mods.json`, relevant tests, and
    `tools/h3vr.ps1` before implementation. Reuse existing local patterns.
 
 ## Game Source and Harmony Targets
