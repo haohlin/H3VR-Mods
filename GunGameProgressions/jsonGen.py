@@ -200,6 +200,20 @@ def preferred_feed_category(firearm, feeds):
     return "Cartridge"
 
 
+def compatible_vanilla_scope(firearm, scopes, seed):
+    mounts = {
+        mount
+        for mount in firearm.get("FirearmMounts", [])
+        if mount and mount != "Bespoke"
+    }
+    candidates = [scope for scope in scopes if scope.get("AttachmentMount") in mounts]
+    if not candidates:
+        return ""
+
+    offset = sum(ord(character) for character in firearm["ObjectID"]) + seed
+    return candidates[offset % len(candidates)]["ObjectID"]
+
+
 def build_pool(
     items,
     enemy_type,
@@ -212,6 +226,7 @@ def build_pool(
     enemy_values=None,
     enemy_progression_type=None,
     order_type=None,
+    seed=0,
 ):
     available_vanilla_ids = {
         item["ObjectID"] for item in items if not item.get("IsModContent", False) and item.get("ObjectID")
@@ -226,6 +241,16 @@ def build_pool(
         for item in magazines + clips + speedloaders + cartridges
         if item.get("ObjectID")
     }
+    vanilla_scopes = sorted(
+        [
+            item
+            for item in vanilla_items(items, "Attachment", set())
+            if item.get("AttachmentFeature") == "Magnification"
+            and "magnifier" not in item.get("ObjectID", "").lower()
+            and item.get("AttachmentMount") not in (None, "", "None", "Bespoke")
+        ],
+        key=lambda item: item["ObjectID"],
+    )
     existing_pool = source_pool if source_pool is not None else load_pool(output_path)
     preserved_assignments = load_preserved_assignments(existing_pool, available_vanilla_ids)
     selected_ids = selected_gun_ids(source_pool)
@@ -276,7 +301,7 @@ def build_pool(
                 "MagName": primary["ObjectID"],
                 "MagNames": [item["ObjectID"] for item in feeds],
                 "CategoryID": primary_category if primary_category is not None else category_id(primary),
-                "Extra": "",
+                "Extra": compatible_vanilla_scope(firearm, vanilla_scopes, seed),
             }
         )
 
@@ -331,6 +356,7 @@ def main():
         enemy_values,
         args.enemy_progression_type,
         args.order_type,
+        args.seed,
     )
 
     if any(not gun["MagNames"] for gun in pool["Guns"]):
