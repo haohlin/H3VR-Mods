@@ -458,6 +458,20 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_starts_modded_pool_generation_before_a_GunGame_loader_exists()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+        var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var earlyModdedGeneration = source.IndexOf("StartCoroutine(GenerateModdedPoolsAtStartup());", StringComparison.Ordinal);
+        var loaderWatcher = source.IndexOf("StartCoroutine(WatchForGunGamePoolLoader());", StringComparison.Ordinal);
+
+        Assert.True(startMethod >= 0);
+        Assert.True(earlyModdedGeneration > startMethod);
+        Assert.True(loaderWatcher > earlyModdedGeneration);
+        Assert.Contains("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Runtime_item_role_reclassifies_mislabeled_firearm_metadata_from_prefab_components()
     {
         var assembly = LoadBuiltMetadataExporter();
