@@ -396,6 +396,10 @@ public sealed class Plugin : BaseUnityPlugin
                 BespokeAttachments = ObjectIds(item.BespokeAttachments),
                 FirearmSize = item.TagFirearmSize.ToString(),
                 FirearmRoundPower = item.TagFirearmRoundPower.ToString(),
+                FirearmAction = item.TagFirearmAction.ToString(),
+                FirearmFeedOptions = item.TagFirearmFeedOption == null
+                    ? new List<string>()
+                    : item.TagFirearmFeedOption.Select(option => option.ToString()).ToList(),
                 FirearmMounts = item.TagFirearmMounts == null
                     ? new List<string>()
                     : item.TagFirearmMounts.Select(mount => mount.ToString()).ToList(),
@@ -693,6 +697,8 @@ public sealed class Plugin : BaseUnityPlugin
             AppendJsonNamedStringArray(json, "BespokeAttachments", item.BespokeAttachments);
             AppendJsonNamedString(json, "FirearmSize", item.FirearmSize);
             AppendJsonNamedString(json, "FirearmRoundPower", item.FirearmRoundPower);
+            AppendJsonNamedString(json, "FirearmAction", item.FirearmAction);
+            AppendJsonNamedStringArray(json, "FirearmFeedOptions", item.FirearmFeedOptions);
             AppendJsonNamedStringArray(json, "FirearmMounts", item.FirearmMounts);
             AppendJsonNamedString(json, "AttachmentMount", item.AttachmentMount);
             AppendJsonNamedString(json, "AttachmentFeature", item.AttachmentFeature);

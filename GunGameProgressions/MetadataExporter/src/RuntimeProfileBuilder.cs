@@ -19,6 +19,8 @@ public sealed class RuntimeMetadataEntry
     public List<string> BespokeAttachments { get; set; }
     public string FirearmSize { get; set; }
     public string FirearmRoundPower { get; set; }
+    public string FirearmAction { get; set; }
+    public List<string> FirearmFeedOptions { get; set; }
     public List<string> FirearmMounts { get; set; }
     public string AttachmentMount { get; set; }
     public string AttachmentFeature { get; set; }
@@ -317,6 +319,21 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
+        if (UsesInternalShotgunMagazine(firearm))
+        {
+            var shells = GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge");
+            if (shells.Count > 0)
+            {
+                return shells;
+            }
+
+            var matchingShells = index.GetFeeds("Cartridge", firearm.RoundType);
+            if (matchingShells.Count > 0)
+            {
+                return matchingShells;
+            }
+        }
+
         if (HasIds(firearm.CompatibleMagazines))
         {
             return GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine");
@@ -360,6 +377,17 @@ public static class RuntimeProfileBuilder
         }
 
         return new List<FeedCandidate>();
+    }
+
+    private static bool UsesInternalShotgunMagazine(RuntimeMetadataEntry firearm)
+    {
+        if (firearm.FirearmRoundPower != "Shotgun")
+        {
+            return false;
+        }
+
+        var options = firearm.FirearmFeedOptions ?? new List<string>();
+        return options.Contains("InternalMag") && !options.Contains("BoxMag");
     }
 
     private static List<FeedCandidate> GetDirectFeeds(
