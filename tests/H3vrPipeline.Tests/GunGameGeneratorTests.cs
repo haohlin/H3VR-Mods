@@ -562,7 +562,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Generator_builds_a_vanilla_pool_with_resolved_feed_items()
+    public void Generator_builds_a_vanilla_pool_with_resolved_feeds_and_a_compatible_vanilla_scope()
     {
         using var workspace = TestWorkspace.Create();
         var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
@@ -595,6 +595,11 @@ public sealed class GunGameGeneratorTests
                 .EnumerateArray()
                 .Select(value => value.GetString())
                 .ToArray());
+        Assert.Equal(
+            "VanillaScope",
+            guns.Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun")
+                .GetProperty("Extra")
+                .GetString());
     }
 
     [Fact]
@@ -716,7 +721,8 @@ public sealed class GunGameGeneratorTests
             false,
             magazineType: 77,
             compatibleMagazines: new[] { "MagazineMp515rnd", "TestMagazine", "ExistingCompatibleMagazine" },
-            compatibleSingleRounds: new[] { "TestCartridge" }),
+            compatibleSingleRounds: new[] { "TestCartridge" },
+            firearmMounts: new[] { "Picatinny" }),
         Item("LeverSentinelGun", "Firearm", false, magazineType: 999, roundType: 2),
         Item("PKM", "Firearm", false, magazineType: 1968691, roundType: 17),
         Item("ZeroFeedGun", "Firearm", false),
@@ -727,6 +733,8 @@ public sealed class GunGameGeneratorTests
         Item("MagazinePKM", "Magazine", false, magazineType: 155, roundType: 17),
         Item("TestCartridge", "Cartridge", false, roundType: 2),
         Item("22LRCartridgeTracer", "Cartridge", false),
+        Item("VanillaScope", "Attachment", false, attachmentFeature: "Magnification", attachmentMount: "Picatinny"),
+        Item("ModdedScope", "Attachment", true, attachmentFeature: "Magnification", attachmentMount: "Picatinny"),
     };
 
     private static readonly object[] FixtureItemsWithExistingMagazine =
@@ -740,7 +748,10 @@ public sealed class GunGameGeneratorTests
         int clipType = 0,
         int roundType = 0,
         string[]? compatibleMagazines = null,
-        string[]? compatibleSingleRounds = null)
+        string[]? compatibleSingleRounds = null,
+        string[]? firearmMounts = null,
+        string attachmentFeature = "None",
+        string attachmentMount = "None")
     {
         return new
         {
@@ -752,6 +763,9 @@ public sealed class GunGameGeneratorTests
             RoundType = roundType,
             CompatibleMagazines = compatibleMagazines ?? Array.Empty<string>(),
             CompatibleSingleRounds = compatibleSingleRounds ?? Array.Empty<string>(),
+            FirearmMounts = firearmMounts ?? Array.Empty<string>(),
+            AttachmentFeature = attachmentFeature,
+            AttachmentMount = attachmentMount,
         };
     }
 
