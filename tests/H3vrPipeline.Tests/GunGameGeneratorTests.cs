@@ -665,6 +665,45 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_builder_uses_shells_for_an_internal_magazine_pump_shotgun()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var actionProperty = entryType.GetProperty("FirearmAction");
+        var feedOptionsProperty = entryType.GetProperty("FirearmFeedOptions");
+
+        Assert.NotNull(actionProperty);
+        Assert.NotNull(feedOptionsProperty);
+
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+        var shotgun = RuntimeEntry(entryType, "InternalPumpShotgun", "Firearm", true, magazineType: 77, roundType: 12);
+        SetRuntimeProperty(entryType, shotgun, "FirearmRoundPower", "Shotgun");
+        SetRuntimeProperty(entryType, shotgun, "FirearmAction", "PumpAction");
+        SetRuntimeProperty(entryType, shotgun, "FirearmFeedOptions", new List<string> { "InternalMag" });
+        SetRuntimeProperty(entryType, shotgun, "CompatibleMagazines", new List<string> { "RotaryShotgunMagazine" });
+        SetRuntimeProperty(entryType, shotgun, "CompatibleSingleRounds", new List<string> { "Shell12Gauge" });
+        entries.SetValue(shotgun, 0);
+        entries.SetValue(RuntimeEntry(entryType, "RotaryShotgunMagazine", "Magazine", true, magazineType: 77), 1);
+        entries.SetValue(RuntimeEntry(entryType, "Shell12Gauge", "Cartridge", true, roundType: 12), 2);
+        entries.SetValue(RuntimeEntry(entryType, "BoxMagazineShotgun", "Firearm", true, magazineType: 77, roundType: 12), 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns");
+        var pump = guns.Single(gun => ReadString(gun, "GunName") == "InternalPumpShotgun");
+
+        Assert.Equal("Shell12Gauge", ReadString(pump, "MagName"));
+        Assert.Equal(2, ReadInt(pump, "CategoryID"));
+    }
+
+    [Fact]
     public void Generator_builds_a_vanilla_pool_with_resolved_feeds_and_a_compatible_vanilla_scope()
     {
         using var workspace = TestWorkspace.Create();
