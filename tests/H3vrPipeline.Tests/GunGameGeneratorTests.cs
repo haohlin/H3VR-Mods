@@ -356,6 +356,33 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Mod_content_readiness_waits_for_the_known_loader_or_the_thirty_second_cap()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var readinessType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModContentReadinessGate"));
+        var stateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ExternalContentLoadState"));
+        var isReady = Assert.IsAssignableFrom<MethodInfo>(readinessType.GetMethod("IsReady", BindingFlags.Public | BindingFlags.Instance));
+        var loading = Enum.Parse(stateType, "Loading");
+        var complete = Enum.Parse(stateType, "Complete");
+        var unavailable = Enum.Parse(stateType, "Unavailable");
+
+        var knownLoaderGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
+        Assert.False((bool)isReady.Invoke(knownLoaderGate, new object[] { 0f, 12, loading })!);
+        Assert.False((bool)isReady.Invoke(knownLoaderGate, new object[] { 29.9f, 12, loading })!);
+        Assert.True((bool)isReady.Invoke(knownLoaderGate, new object[] { 29.9f, 12, complete })!);
+
+        var timeoutGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
+        Assert.False((bool)isReady.Invoke(timeoutGate, new object[] { 29.9f, 12, loading })!);
+        Assert.True((bool)isReady.Invoke(timeoutGate, new object[] { 30f, 12, loading })!);
+
+        var fallbackGate = Activator.CreateInstance(readinessType, new object[] { 30f, 2f })!;
+        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 0f, 12, unavailable })!);
+        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 1.9f, 12, unavailable })!);
+        Assert.True((bool)isReady.Invoke(fallbackGate, new object[] { 2f, 12, unavailable })!);
+        Assert.False((bool)isReady.Invoke(fallbackGate, new object[] { 2.1f, 13, unavailable })!);
+    }
+
+    [Fact]
     public void GunGame_scene_identity_matches_only_the_GunGame_Atlas_identifier()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -441,6 +468,7 @@ public sealed class GunGameGeneratorTests
                 "Preparing",
                 "PoolsReady",
                 "NoModdedPools",
+                "ModLoadTimedOut",
                 "ProfileUiUpdateFailed",
                 "FallbackPools",
             }
@@ -452,8 +480,9 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[2]);
         Assert.Equal("GunGame Progressions: pools ready.", lifecycle[3]);
         Assert.Equal("GunGame Progressions: no modded pools available.", lifecycle[4]);
-        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[5]);
-        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[6]);
+        Assert.Equal("GunGame Progressions: mod loading timed out.", lifecycle[5]);
+        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[6]);
+        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[7]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
     }
 
@@ -477,6 +506,9 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
         Assert.Contains("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
         Assert.Contains("PrepareModdedPoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
+        Assert.Contains("ModdedMetadataTimeoutSeconds = 30f", source, StringComparison.Ordinal);
+        Assert.Contains("OtherLoader.LoaderStatus", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("MinimumModdedMetadataEntries", source, StringComparison.Ordinal);
     }
 
     [Fact]

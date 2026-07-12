@@ -21,9 +21,9 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanPoolLoader";
-    private const float ModdedMetadataRetrySeconds = 4f;
+    private const float ModdedMetadataTimeoutSeconds = 30f;
     private const float ModdedMetadataRetryDelaySeconds = 0.25f;
-    private const int MinimumModdedMetadataEntries = 8;
+    private const float RegistryQuietSeconds = 2f;
 
     private static Plugin instance;
     private readonly object poolLoadGateLock = new object();
@@ -188,7 +188,8 @@ public sealed class Plugin : BaseUnityPlugin
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
         RuntimeMetadataCapture metadataCapture = null;
-        var retryDeadline = Time.realtimeSinceStartup + ModdedMetadataRetrySeconds;
+        var readinessGate = new ModContentReadinessGate(ModdedMetadataTimeoutSeconds, RegistryQuietSeconds);
+        var waitStartTime = Time.realtimeSinceStartup;
         do
         {
             Dictionary<string, FVRObject> objects;
@@ -199,14 +200,25 @@ public sealed class Plugin : BaseUnityPlugin
                     objects,
                     item => item.IsModContent,
                     capture => metadataCapture = capture));
-                if (metadataCapture != null && metadataCapture.Entries.Count >= MinimumModdedMetadataEntries)
+                var elapsedSeconds = Time.realtimeSinceStartup - waitStartTime;
+                var externalLoadState = GetExternalContentLoadState();
+                if (metadataCapture != null && readinessGate.IsReady(
+                    elapsedSeconds,
+                    metadataCapture.Entries.Count,
+                    externalLoadState))
                 {
+                    if (readinessGate.HasTimedOut(elapsedSeconds))
+                    {
+                        Logger.LogWarning(RuntimeStatusMessages.ModLoadTimedOut);
+                    }
+
                     break;
                 }
             }
 
-            if (Time.realtimeSinceStartup >= retryDeadline)
+            if (readinessGate.HasTimedOut(Time.realtimeSinceStartup - waitStartTime))
             {
+                Logger.LogWarning(RuntimeStatusMessages.ModLoadTimedOut);
                 break;
             }
 
@@ -269,6 +281,34 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogDebug("H3VR object data is not ready: " + exception);
             return false;
+        }
+    }
+
+    private static ExternalContentLoadState GetExternalContentLoadState()
+    {
+        var loaderStatusType = AccessTools.TypeByName("OtherLoader.LoaderStatus");
+        var progressMethod = loaderStatusType == null ? null : AccessTools.Method(loaderStatusType, "GetLoaderProgress");
+        var startTimeField = loaderStatusType == null ? null : AccessTools.Field(loaderStatusType, "LoadStartTime");
+        if (progressMethod == null || startTimeField == null)
+        {
+            return ExternalContentLoadState.Unavailable;
+        }
+
+        try
+        {
+            var progress = Convert.ToSingle(progressMethod.Invoke(null, null));
+            var loadStartTime = Convert.ToSingle(startTimeField.GetValue(null));
+            if (progress >= 1f)
+            {
+                return ExternalContentLoadState.Complete;
+            }
+
+            return loadStartTime > 0f ? ExternalContentLoadState.Loading : ExternalContentLoadState.Unavailable;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogDebug("Could not read OtherLoader load status: " + exception);
+            return ExternalContentLoadState.Unavailable;
         }
     }
 
