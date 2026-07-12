@@ -614,6 +614,48 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 5);
+
+        var rifle = RuntimeEntry(entryType, "RussianRailRifle", "Firearm", true, magazineType: 7);
+        SetRuntimeProperty(entryType, rifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, rifle, "PhysicalMountTypes", new List<string> { "Russian", "Picatinny", "Bespoke" });
+        SetRuntimeProperty(entryType, rifle, "CompatibleMagazines", new List<string> { "RussianRifleMagazine" });
+        entries.SetValue(rifle, 0);
+        entries.SetValue(RuntimeEntry(entryType, "RussianRifleMagazine", "Magazine", true, magazineType: 7), 1);
+
+        var genericScope = RuntimeEntry(entryType, "A_BespokePistolScope", "Attachment", true);
+        SetRuntimeProperty(entryType, genericScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, genericScope, "PhysicalMountTypes", new List<string> { "Bespoke" });
+        entries.SetValue(genericScope, 2);
+        var russianScope = RuntimeEntry(entryType, "Z_RussianSideRailScope", "Attachment", true);
+        SetRuntimeProperty(entryType, russianScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, russianScope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(russianScope, 3);
+        var picatinnyScope = RuntimeEntry(entryType, "B_PicatinnyScope", "Attachment", true);
+        SetRuntimeProperty(entryType, picatinnyScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(picatinnyScope, 4);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("Z_RussianSideRailScope", ReadString(gun, "Extra"));
+    }
+
+    [Fact]
     public void Runtime_profile_builder_skips_a_magazine_fed_firearm_when_no_matching_magazine_exists()
     {
         var assembly = LoadBuiltMetadataExporter();
