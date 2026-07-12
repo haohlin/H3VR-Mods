@@ -458,17 +458,25 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_starts_modded_pool_generation_before_a_GunGame_loader_exists()
+    public void Runtime_defers_modded_generation_until_the_Kodeman_loader_is_ready()
     {
         var source = File.ReadAllText(PluginSourcePath);
         var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
-        var earlyModdedGeneration = source.IndexOf("StartCoroutine(GenerateModdedPoolsAtStartup());", StringComparison.Ordinal);
-        var loaderWatcher = source.IndexOf("StartCoroutine(WatchForGunGamePoolLoader());", StringComparison.Ordinal);
 
         Assert.True(startMethod >= 0);
-        Assert.True(earlyModdedGeneration > startMethod);
-        Assert.True(loaderWatcher > earlyModdedGeneration);
-        Assert.Contains("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("StartCoroutine(GenerateModdedPoolsAtStartup());", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_gates_Kodeman_weapon_pool_loading_until_modded_profiles_are_ready()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+
+        Assert.Contains("InstallGunGameWeaponPoolLoaderGate", source, StringComparison.Ordinal);
+        Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
+        Assert.Contains("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
+        Assert.Contains("PrepareModdedPoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
     }
 
     [Fact]
