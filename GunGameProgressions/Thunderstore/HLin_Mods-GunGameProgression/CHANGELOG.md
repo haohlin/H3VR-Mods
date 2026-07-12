@@ -4,7 +4,8 @@ All notable changes to GunGame Progressions are documented here.
 
 ## Unreleased
 
-- Gate Kodeman's shared weapon-pool loader until active modded profiles are prepared, covering every GunGame map without a scene-specific hook.
+- Refresh Modded pools in the background after every Kodeman GunGame load and scene exit; never hold the GunGame selector.
+- Preserve a generated Modded pool unless a refresh finds a strictly larger compatible gun count.
 - Prefer Russian side-rail optics when a firearm exposes a Russian mount alongside generic mounts.
 - Give internally fed shotguns shells while retaining magazines for true box-mag shotguns.
 

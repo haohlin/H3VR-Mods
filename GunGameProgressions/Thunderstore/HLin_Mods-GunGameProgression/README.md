@@ -23,9 +23,16 @@ Rot pools are the most predictable option. Mixed Enemy pools are for a more vari
 
 ## First Start
 
-The vanilla profiles are ready immediately. When any Kodeman GunGame map starts its pool selector, GunGame Progressions prepares the active modded profiles before Kodeman reads that selector.
+The vanilla profiles are ready immediately. A GunGame selector always opens normally using the profiles already on disk.
 
-During a large mod load, that selector may take a brief moment to appear while the active modded catalog is prepared. H3VR itself remains responsive, and the selector opens with the Modded choices already present; you do **not** need to leave or reload the map.
+| When | What happens |
+| --- | --- |
+| GunGame map opens | The existing Modded profiles are available immediately; a background refresh starts. |
+| GunGame map closes | Another background refresh runs, so content that finished loading during the session can be included. |
+| A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
+| A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
+
+This process never holds the GunGame selector or pauses H3VR. On a first install with no previous Modded profiles, leave and reopen a GunGame map after the background refresh has completed.
 
 ## Enemy Pacing
 
