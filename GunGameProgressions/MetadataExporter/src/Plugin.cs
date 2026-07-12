@@ -57,7 +57,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             vanillaGenerationFinished = true;
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
-            return;
+            yield break;
         }
 
         vanillaMetadata = metadataCapture.Entries;
