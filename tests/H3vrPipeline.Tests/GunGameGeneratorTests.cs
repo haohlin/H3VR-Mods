@@ -131,6 +131,8 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("$offlinePoolNames = @(", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("Using metadata exported by the installed GunGame package", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("$runtimeMetadataPath", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
