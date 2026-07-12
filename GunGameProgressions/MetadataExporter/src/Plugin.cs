@@ -295,7 +295,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private static ExternalContentLoadState GetExternalContentLoadState()
+    private ExternalContentLoadState GetExternalContentLoadState()
     {
         var loaderStatusType = AccessTools.TypeByName("OtherLoader.LoaderStatus");
         var progressMethod = loaderStatusType == null ? null : AccessTools.Method(loaderStatusType, "GetLoaderProgress");
