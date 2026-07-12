@@ -382,6 +382,23 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_families_recognize_only_their_own_runtime_pool_files()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var familyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileFamily"));
+        var isVanillaFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsVanillaPoolFile", BindingFlags.Public | BindingFlags.Static));
+        var isModdedFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsModdedPoolFile", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
+        Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json" })!);
+        Assert.False((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json" })!);
+        Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json" })!);
+        Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_04_Modded_Mixed_Enemy_RW_Rot.json" })!);
+        Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
+        Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Unknown_RW_Rot.json" })!);
+    }
+
+    [Fact]
     public void Atlas_menu_scene_resolver_reads_the_Atlas_menu_definition_shape()
     {
         var assembly = LoadBuiltMetadataExporter();
