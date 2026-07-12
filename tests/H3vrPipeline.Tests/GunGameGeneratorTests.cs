@@ -366,6 +366,22 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_families_partition_vanilla_and_modded_outputs()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var familyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileFamily"));
+        var isVanilla = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsVanilla", BindingFlags.Public | BindingFlags.Static));
+        var isModded = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsModded", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)isVanilla.Invoke(null, new object[] { "01_Vanilla_Rot" })!);
+        Assert.True((bool)isVanilla.Invoke(null, new object[] { "03_Vanilla_Mixed_Enemy" })!);
+        Assert.False((bool)isVanilla.Invoke(null, new object[] { "02_Modded_Rot" })!);
+        Assert.True((bool)isModded.Invoke(null, new object[] { "02_Modded_Rot" })!);
+        Assert.True((bool)isModded.Invoke(null, new object[] { "04_Modded_Mixed_Enemy" })!);
+        Assert.False((bool)isModded.Invoke(null, new object[] { "01_Vanilla_Rot" })!);
+    }
+
+    [Fact]
     public void Atlas_menu_scene_resolver_reads_the_Atlas_menu_definition_shape()
     {
         var assembly = LoadBuiltMetadataExporter();
