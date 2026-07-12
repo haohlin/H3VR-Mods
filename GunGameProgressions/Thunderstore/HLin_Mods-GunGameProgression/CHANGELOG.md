@@ -2,6 +2,12 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## Unreleased
+
+- Start preparing modded pools during H3VR startup so the first GunGame selector normally has all four profiles.
+- If preparation is still in progress, add the Modded choices to the open selector without requiring a map reload.
+- Document shell-fed versus magazine-fed shotgun loadouts.
+
 ## 1.3.6
 
 - Runtime pools now refresh once after enabled content finishes loading; the included vanilla profiles remain ready during startup.

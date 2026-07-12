@@ -636,6 +636,35 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_builder_uses_shells_for_a_shell_only_shotgun()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 3);
+
+        var shotgun = RuntimeEntry(entryType, "ShellOnlyShotgun", "Firearm", true, magazineType: 77, roundType: 12);
+        SetRuntimeProperty(entryType, shotgun, "CompatibleSingleRounds", new List<string> { "Shell12Gauge" });
+        entries.SetValue(shotgun, 0);
+        entries.SetValue(RuntimeEntry(entryType, "MisleadingMagazine", "Magazine", true, magazineType: 77), 1);
+        entries.SetValue(RuntimeEntry(entryType, "Shell12Gauge", "Cartridge", true, roundType: 12), 2);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("Shell12Gauge", ReadString(gun, "MagName"));
+        Assert.Equal(2, ReadInt(gun, "CategoryID"));
+    }
+
+    [Fact]
     public void Generator_builds_a_vanilla_pool_with_resolved_feeds_and_a_compatible_vanilla_scope()
     {
         using var workspace = TestWorkspace.Create();
