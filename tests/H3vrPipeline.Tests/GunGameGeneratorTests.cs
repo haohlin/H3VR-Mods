@@ -941,7 +941,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_profile_builder_skips_a_magazine_fed_firearm_when_no_matching_magazine_exists()
+    public void Runtime_profile_builder_uses_a_loose_round_only_after_no_higher_priority_feed_exists()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -957,9 +957,13 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
-        var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .Single();
 
-        Assert.DoesNotContain(pools, pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+        Assert.Equal("LooseRound", ReadString(gun, "MagName"));
+        Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
     [Fact]
@@ -974,6 +978,8 @@ public sealed class GunGameGeneratorTests
         var entries = Array.CreateInstance(entryType, 3);
 
         var shotgun = RuntimeEntry(entryType, "ShellOnlyShotgun", "Firearm", true, magazineType: 77, roundType: 12);
+        SetRuntimeProperty(entryType, shotgun, "FirearmRoundPower", "Shotgun");
+        SetRuntimeProperty(entryType, shotgun, "FirearmFeedOptions", new List<string> { "InternalMag" });
         SetRuntimeProperty(entryType, shotgun, "CompatibleSingleRounds", new List<string> { "Shell12Gauge" });
         entries.SetValue(shotgun, 0);
         entries.SetValue(RuntimeEntry(entryType, "MisleadingMagazine", "Magazine", true, magazineType: 77), 1);
@@ -989,6 +995,50 @@ public sealed class GunGameGeneratorTests
 
         Assert.Equal("Shell12Gauge", ReadString(gun, "MagName"));
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_resolves_feeds_in_magazine_clip_speedloader_cartridge_order()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        var magazineFirst = RuntimeEntry(entryType, "MagazineFirst", "Firearm", true, magazineType: 81, clipType: 82, roundType: 83);
+        SetRuntimeProperty(entryType, magazineFirst, "CompatibleSingleRounds", new List<string> { "Cartridge83" });
+        entries.SetValue(magazineFirst, 0);
+        var clipSecond = RuntimeEntry(entryType, "ClipSecond", "Firearm", true, magazineType: 99, clipType: 82, roundType: 83);
+        SetRuntimeProperty(entryType, clipSecond, "CompatibleSingleRounds", new List<string> { "Cartridge83" });
+        entries.SetValue(clipSecond, 1);
+        var speedloaderThird = RuntimeEntry(entryType, "SpeedloaderThird", "Firearm", true, magazineType: 99, clipType: 98, roundType: 83);
+        SetRuntimeProperty(entryType, speedloaderThird, "CompatibleSingleRounds", new List<string> { "Cartridge83" });
+        entries.SetValue(speedloaderThird, 2);
+        var cartridgeLast = RuntimeEntry(entryType, "CartridgeLast", "Firearm", true, roundType: 84);
+        SetRuntimeProperty(entryType, cartridgeLast, "CompatibleSingleRounds", new List<string> { "Cartridge84" });
+        entries.SetValue(cartridgeLast, 3);
+
+        entries.SetValue(RuntimeEntry(entryType, "Magazine81", "Magazine", true, magazineType: 81), 4);
+        entries.SetValue(RuntimeEntry(entryType, "Clip82", "Clip", true, clipType: 82), 5);
+        entries.SetValue(RuntimeEntry(entryType, "Speedloader83", "SpeedLoader", true, roundType: 83), 6);
+        entries.SetValue(RuntimeEntry(entryType, "Cartridge83", "Cartridge", true, roundType: 83), 7);
+        entries.SetValue(RuntimeEntry(entryType, "Cartridge84", "Cartridge", true, roundType: 84), 8);
+        entries.SetValue(RuntimeEntry(entryType, "UnusedAttachment", "Attachment", true), 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
+
+        Assert.Equal("Magazine81", ReadString(guns["MagazineFirst"], "MagName"));
+        Assert.Equal("Clip82", ReadString(guns["ClipSecond"], "MagName"));
+        Assert.Equal("Speedloader83", ReadString(guns["SpeedloaderThird"], "MagName"));
+        Assert.Equal("Cartridge84", ReadString(guns["CartridgeLast"], "MagName"));
     }
 
     [Fact]

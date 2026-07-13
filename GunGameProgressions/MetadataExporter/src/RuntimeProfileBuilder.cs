@@ -331,62 +331,31 @@ public static class RuntimeProfileBuilder
     {
         if (UsesInternalShotgunMagazine(firearm))
         {
-            var shells = GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge");
+            var shells = FirstAvailableFeeds(
+                GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
+                index.GetFeeds("Cartridge", firearm.RoundType));
             if (shells.Count > 0)
             {
                 return shells;
             }
-
-            var matchingShells = index.GetFeeds("Cartridge", firearm.RoundType);
-            if (matchingShells.Count > 0)
-            {
-                return matchingShells;
-            }
         }
 
-        if (HasIds(firearm.CompatibleMagazines))
-        {
-            return GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine");
-        }
+        return FirstAvailableFeeds(
+            GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine"),
+            index.GetFeeds("Magazine", firearm.MagazineType),
+            GetDirectFeeds(firearm.CompatibleClips, index.EntriesById, "Clip"),
+            index.GetFeeds("Clip", firearm.ClipType),
+            GetDirectFeeds(firearm.CompatibleSpeedLoaders, index.EntriesById, "SpeedLoader"),
+            index.GetFeeds("SpeedLoader", firearm.RoundType),
+            GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
+            index.GetFeeds("Cartridge", firearm.RoundType));
+    }
 
-        if (HasIds(firearm.CompatibleClips))
-        {
-            return GetDirectFeeds(firearm.CompatibleClips, index.EntriesById, "Clip");
-        }
-
-        if (HasIds(firearm.CompatibleSpeedLoaders))
-        {
-            return GetDirectFeeds(firearm.CompatibleSpeedLoaders, index.EntriesById, "SpeedLoader");
-        }
-
-        if (HasIds(firearm.CompatibleSingleRounds))
-        {
-            return GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge");
-        }
-
-        if (firearm.MagazineType != 0)
-        {
-            return index.GetFeeds("Magazine", firearm.MagazineType);
-        }
-
-        if (firearm.ClipType != 0)
-        {
-            var clips = index.GetFeeds("Clip", firearm.ClipType);
-            if (clips.Count > 0)
-            {
-                return clips;
-            }
-        }
-
-        if (firearm.RoundType != 0)
-        {
-            var speedloaders = index.GetFeeds("SpeedLoader", firearm.RoundType);
-            return speedloaders.Count > 0
-                ? speedloaders
-                : index.GetFeeds("Cartridge", firearm.RoundType);
-        }
-
-        return new List<FeedCandidate>();
+    private static List<FeedCandidate> FirstAvailableFeeds(params List<FeedCandidate>[] groups)
+    {
+        return (groups ?? new List<FeedCandidate>[0])
+            .FirstOrDefault(group => group != null && group.Count > 0)
+            ?? new List<FeedCandidate>();
     }
 
     private static bool UsesInternalShotgunMagazine(RuntimeMetadataEntry firearm)
@@ -606,11 +575,6 @@ public static class RuntimeProfileBuilder
             .Where(id => !string.IsNullOrEmpty(id))
             .Distinct(StringComparer.Ordinal)
             .ToList();
-    }
-
-    private static bool HasIds(List<string> values)
-    {
-        return values != null && values.Any(value => !string.IsNullOrEmpty(value));
     }
 
     private static int FeedCategoryId(string category)
