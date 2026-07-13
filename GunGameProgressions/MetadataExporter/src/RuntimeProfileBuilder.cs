@@ -83,6 +83,13 @@ public sealed class RuntimeGenerationResult
 
 public static class RuntimeProfileBuilder
 {
+    // The one deliberate object-ID exclusion. Slingshot can freeze a GunGame
+    // progression when fired, so it must never be emitted into any pool.
+    private static readonly HashSet<string> ExplicitFirearmBlacklist = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Slingshot",
+    };
+
     public static List<RuntimeWeaponPool> Build(IEnumerable<RuntimeMetadataEntry> sourceEntries, Random random)
     {
         return BuildWithDiagnostics(sourceEntries, DefaultEnemies(), random).Pools;
@@ -219,7 +226,7 @@ public static class RuntimeProfileBuilder
             }
 
             var feeds = GetCompatibleFeeds(index, firearm);
-            if (feeds.Count == 0)
+            if (feeds.Count == 0 && !AllowsFeedlessLoadout(firearm))
             {
                 skipped.Add(firearm.ObjectID);
                 continue;
@@ -234,10 +241,10 @@ public static class RuntimeProfileBuilder
             weapons.Add(new RuntimeGun
             {
                 GunName = firearm.ObjectID,
-                MagName = feeds[0].ObjectID,
+                MagName = feeds.Count == 0 ? string.Empty : feeds[0].ObjectID,
                 MagNames = feeds.Select(feed => feed.ObjectID).ToList(),
                 Extra = extra ?? string.Empty,
-                CategoryID = feeds[0].CategoryID,
+                CategoryID = feeds.Count == 0 ? 0 : feeds[0].CategoryID,
             });
         }
 
@@ -392,8 +399,17 @@ public static class RuntimeProfileBuilder
     private static bool IsSupportedGunGameFirearm(RuntimeMetadataEntry firearm)
     {
         return firearm.IsGunGameRoundDisplaySupported &&
-            !string.Equals(firearm.FirearmAction, "None", StringComparison.Ordinal) &&
-            !string.Equals(firearm.FirearmRoundPower, "None", StringComparison.Ordinal);
+            !ExplicitFirearmBlacklist.Contains(firearm.ObjectID ?? string.Empty);
+    }
+
+    private static bool AllowsFeedlessLoadout(RuntimeMetadataEntry firearm)
+    {
+        // Some damage-capable H3VR objects are intentionally classified with
+        // no conventional firearm action or round power. GunGame accepts an
+        // empty feed ID, and the runtime safety patch validates that case.
+        // Do not extend this exception to normal firearms: those still need a
+        // verified compatible feed to avoid bad magazine/round assignments.
+        return string.Equals(firearm.FirearmAction, "None", StringComparison.Ordinal);
     }
 
     private static List<FeedCandidate> FirstAvailableFeeds(params List<FeedCandidate>[] groups)

@@ -19,7 +19,7 @@ public sealed class GunGameReleaseMetadataTests
 
         Assert.Equal("1.3.6", root.GetProperty("version_number").GetString());
         Assert.Equal(
-            "GunGame, supercharged: 654 versioned vanilla firearms with validated compatible feeds, plus all supported active modded guns and custom Sosigs.",
+            "GunGame, supercharged: 661 versioned vanilla firearms with validated compatible feeds, plus all supported active modded guns and custom Sosigs.",
             root.GetProperty("description").GetString());
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));

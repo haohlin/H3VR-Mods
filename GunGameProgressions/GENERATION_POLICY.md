@@ -126,7 +126,8 @@ with coverage for the same condition.
 
 | Never reintroduce | Required outcome | Regression test |
 | --- | --- | --- |
-| Pseudo-firearm (for example, slingshot) with no action or round power | Skip it; never enter a progression. | `Runtime_profile_builder_skips_unclassified_firearm_entries` |
+| `Slingshot` | Explicitly blacklist it; it can freeze GunGame when fired. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot` |
+| Damage-capable item with no conventional firearm action or round power | Keep it when it has valid GunGame display data. Use its verified feed, or an empty feed only for an action-`None` self-contained item. | `Runtime_profile_builder_keeps_damage_capable_unclassified_firearms_except_slingshot` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
 | G28-style magazine-fed firearm receives a loose round | Prefer its direct/exact magazine in both pool families. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |

@@ -10,7 +10,7 @@ GunGame Progressions expands GunGame with compatible gear, distinct difficulty s
 
 ## Choose a Pool
 
-The built-in vanilla selection covers **654 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
+The built-in vanilla selection covers **661 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
 
 | Profile | Weapons | Enemies | Play style |
 | --- | --- | --- | --- |

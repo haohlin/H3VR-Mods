@@ -134,7 +134,7 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
-            Assert.All(pools, pool => Assert.Equal(654, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(pools, pool => Assert.Equal(661, pool.RootElement.GetProperty("Guns").GetArrayLength()));
 
             var metadataPath = Path.Combine(profileDirectory, "ObjectData.json");
             Assert.True(File.Exists(metadataPath));
@@ -1215,7 +1215,8 @@ public sealed class GunGameGeneratorTests
         var policy = File.ReadAllText(Path.GetFullPath(policyPath));
         var requiredGuards = new[]
         {
-            "Runtime_profile_builder_skips_unclassified_firearm_entries",
+            "Runtime_profile_builder_skips_explicitly_blacklisted_slingshot",
+            "Runtime_profile_builder_keeps_damage_capable_unclassified_firearms_except_slingshot",
             "Runtime_profile_builder_skips_firearms_without_gungame_round_display_data",
             "Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type",
@@ -1501,7 +1502,47 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_profile_builder_skips_unclassified_firearm_entries()
+    public void Runtime_profile_builder_keeps_damage_capable_unclassified_firearms_except_slingshot()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 6);
+
+        var safeFirearm = RuntimeEntry(entryType, "SafeFirearm", "Firearm", true, magazineType: 1);
+        entries.SetValue(safeFirearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "SafeMagazine", "Magazine", true, magazineType: 1), 1);
+
+        var unclassifiedWithFeed = RuntimeEntry(entryType, "UnclassifiedWithFeed", "Firearm", true, roundType: 158);
+        SetRuntimeProperty(entryType, unclassifiedWithFeed, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, unclassifiedWithFeed, "FirearmRoundPower", "None");
+        entries.SetValue(unclassifiedWithFeed, 2);
+        entries.SetValue(RuntimeEntry(entryType, "GenericCartridge", "Cartridge", true, roundType: 158), 3);
+        var unclassifiedWithoutFeed = RuntimeEntry(entryType, "UnclassifiedWithoutFeed", "Firearm", true);
+        SetRuntimeProperty(entryType, unclassifiedWithoutFeed, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, unclassifiedWithoutFeed, "FirearmRoundPower", "None");
+        entries.SetValue(unclassifiedWithoutFeed, 4);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns");
+
+        Assert.Equal(
+            new[] { "SafeFirearm", "UnclassifiedWithFeed", "UnclassifiedWithoutFeed" },
+            guns.Select(gun => ReadString(gun, "GunName")).ToArray());
+        var feedless = guns.Single(gun => ReadString(gun, "GunName") == "UnclassifiedWithoutFeed");
+        Assert.Equal(string.Empty, ReadString(feedless, "MagName"));
+        Assert.Empty(ReadObjects(feedless, "MagNames"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_skips_explicitly_blacklisted_slingshot()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1514,11 +1555,10 @@ public sealed class GunGameGeneratorTests
         var safeFirearm = RuntimeEntry(entryType, "SafeFirearm", "Firearm", true, magazineType: 1);
         entries.SetValue(safeFirearm, 0);
         entries.SetValue(RuntimeEntry(entryType, "SafeMagazine", "Magazine", true, magazineType: 1), 1);
-
-        var unclassified = RuntimeEntry(entryType, "UnclassifiedFirearm", "Firearm", true, roundType: 158);
-        SetRuntimeProperty(entryType, unclassified, "FirearmAction", "None");
-        SetRuntimeProperty(entryType, unclassified, "FirearmRoundPower", "None");
-        entries.SetValue(unclassified, 2);
+        var slingshot = RuntimeEntry(entryType, "Slingshot", "Firearm", true, roundType: 158);
+        SetRuntimeProperty(entryType, slingshot, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, slingshot, "FirearmRoundPower", "None");
+        entries.SetValue(slingshot, 2);
         entries.SetValue(RuntimeEntry(entryType, "GenericCartridge", "Cartridge", true, roundType: 158), 3);
 
         var enemies = Array.CreateInstance(enemyType, 1);
