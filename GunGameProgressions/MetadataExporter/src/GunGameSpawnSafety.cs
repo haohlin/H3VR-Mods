@@ -290,8 +290,23 @@ public sealed class GunGameSpawnSafety
 
     private static bool IsGeneratedRuntimePool(object currentPool)
     {
-        var name = ReadProperty(currentPool, "Name");
+        var name = ReadStringProperty(currentPool, "Name");
         return name.StartsWith("Runtime ", StringComparison.Ordinal);
+    }
+
+    private static string ReadStringProperty(object value, string propertyName)
+    {
+        try
+        {
+            var property = value == null
+                ? null
+                : value.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            return property == null ? string.Empty : property.GetValue(value, null) as string ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private static IList GetCurrentEquipment(object progression)
@@ -441,8 +456,9 @@ public sealed class GunGameSpawnSafety
 
     private static bool IsTopSightingMount(FVRPhysicalObject parent, FVRFireArmAttachmentMount mount)
     {
-        if (mount.Type != FVRFireArmAttachementMountType.Picatinny &&
-            mount.Type != FVRFireArmAttachementMountType.MLokRail)
+        var mountType = mount.Type.ToString();
+        if (!string.Equals(mountType, "Picatinny", StringComparison.Ordinal) &&
+            !string.Equals(mountType, "MLokRail", StringComparison.Ordinal))
         {
             return true;
         }
@@ -452,29 +468,29 @@ public sealed class GunGameSpawnSafety
 
     private static bool IsOpticMountType(FVRFireArmAttachementMountType mountType)
     {
-        switch (mountType)
+        switch (mountType.ToString())
         {
-            case FVRFireArmAttachementMountType.Picatinny:
-            case FVRFireArmAttachementMountType.Handgun:
-            case FVRFireArmAttachementMountType.MAS4956Scope:
-            case FVRFireArmAttachementMountType.Russian:
-            case FVRFireArmAttachementMountType.SVTScope:
-            case FVRFireArmAttachementMountType.M16HandleMount:
-            case FVRFireArmAttachementMountType.M1GarandScope:
-            case FVRFireArmAttachementMountType.M1CarbineScope:
-            case FVRFireArmAttachementMountType.MP5RailMount:
-            case FVRFireArmAttachementMountType.PythonScopeMount:
-            case FVRFireArmAttachementMountType.FamasTopRail:
-            case FVRFireArmAttachementMountType.Mini14TopRail:
-            case FVRFireArmAttachementMountType.R1022TopRail:
-            case FVRFireArmAttachementMountType.MLokRail:
-            case FVRFireArmAttachementMountType.RMR:
-            case FVRFireArmAttachementMountType.Scope_KAR:
-            case FVRFireArmAttachementMountType.Scope_LeeEnfield:
-            case FVRFireArmAttachementMountType.Scope_M1903:
-            case FVRFireArmAttachementMountType.Scope_Mosin:
-            case FVRFireArmAttachementMountType.Scope_Model8Scope:
-            case FVRFireArmAttachementMountType.Scope_AR18:
+            case "Picatinny":
+            case "Handgun":
+            case "MAS4956Scope":
+            case "Russian":
+            case "SVTScope":
+            case "M16HandleMount":
+            case "M1GarandScope":
+            case "M1CarbineScope":
+            case "MP5RailMount":
+            case "PythonScopeMount":
+            case "FamasTopRail":
+            case "Mini14TopRail":
+            case "R1022TopRail":
+            case "MLokRail":
+            case "RMR":
+            case "Scope_KAR":
+            case "Scope_LeeEnfield":
+            case "Scope_M1903":
+            case "Scope_Mosin":
+            case "Scope_Model8Scope":
+            case "Scope_AR18":
                 return true;
             default:
                 return false;
