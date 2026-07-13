@@ -173,6 +173,9 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("offlineProfileGeneratorCsproj", pipeline, StringComparison.Ordinal);
         Assert.Contains("Missing versioned GunGame vanilla metadata snapshot", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGame offline metadata must contain only vanilla entries.", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$hasApprovedEmptyFeed", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$sourceFirearm.FirearmAction -eq 'None'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$gun.GunName -ne 'Slingshot'", pipeline, StringComparison.Ordinal);
         Assert.Contains("--verify", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Using metadata exported by the installed GunGame package", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$runtimeMetadataPath", pipeline, StringComparison.Ordinal);

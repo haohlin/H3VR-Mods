@@ -335,6 +335,12 @@ function Test-GunGamePools {
     if ($offlineMetadata.Count -eq 0 -or @($offlineMetadata | Where-Object { $_.IsModContent -eq $true }).Count -ne 0) {
         throw "GunGame offline metadata must contain only vanilla entries."
     }
+    $offlineMetadataById = @{}
+    foreach ($entry in $offlineMetadata) {
+        if (-not [string]::IsNullOrWhiteSpace($entry.ObjectID)) {
+            $offlineMetadataById[$entry.ObjectID] = $entry
+        }
+    }
 
     $offlinePoolNames = @(
         'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
@@ -363,11 +369,23 @@ function Test-GunGamePools {
         }
 
         foreach ($gun in @($data.Guns)) {
+            $hasValidFeed =
+                -not [string]::IsNullOrWhiteSpace($gun.MagName) -and
+                @($gun.MagNames).Count -gt 0 -and
+                $gun.CategoryID -in @(0, 1, 2) -and
+                $gun.MagName -in @($gun.MagNames)
+            $sourceFirearm = $offlineMetadataById[$gun.GunName]
+            $hasApprovedEmptyFeed =
+                [string]::IsNullOrWhiteSpace($gun.MagName) -and
+                @($gun.MagNames).Count -eq 0 -and
+                $gun.CategoryID -eq 0 -and
+                $sourceFirearm -ne $null -and
+                $sourceFirearm.Category -eq 'Firearm' -and
+                $sourceFirearm.IsGunGameRoundDisplaySupported -and
+                $sourceFirearm.FirearmAction -eq 'None' -and
+                $gun.GunName -ne 'Slingshot'
             if ([string]::IsNullOrWhiteSpace($gun.GunName) -or
-                [string]::IsNullOrWhiteSpace($gun.MagName) -or
-                @($gun.MagNames).Count -eq 0 -or
-                $gun.CategoryID -notin @(0, 1, 2) -or
-                $gun.MagName -notin @($gun.MagNames)) {
+                (-not $hasValidFeed -and -not $hasApprovedEmptyFeed)) {
                 throw "Invalid GunGame advanced weapon: $($pool.Name) / $($gun.GunName)"
             }
         }
