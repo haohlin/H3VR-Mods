@@ -340,16 +340,42 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Modded_pool_replacement_policy_preserves_an_existing_larger_pool()
+    public void Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing()
     {
         var assembly = LoadBuiltMetadataExporter();
-        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModdedPoolReplacementPolicy"));
-        var shouldReplace = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldReplace", BindingFlags.Public | BindingFlags.Static));
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
+        var shouldWrite = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldWrite", BindingFlags.Public | BindingFlags.Static));
 
-        Assert.True((bool)shouldReplace.Invoke(null, new object[] { -1, 1 })!);
-        Assert.True((bool)shouldReplace.Invoke(null, new object[] { 12, 13 })!);
-        Assert.False((bool)shouldReplace.Invoke(null, new object[] { 12, 12 })!);
-        Assert.False((bool)shouldReplace.Invoke(null, new object[] { 12, 11 })!);
+        Assert.True((bool)shouldWrite.Invoke(null, new object?[] { null, "current", true })!);
+        Assert.False((bool)shouldWrite.Invoke(null, new object[] { "current", "current", true })!);
+        Assert.True((bool)shouldWrite.Invoke(null, new object[] { "previous", "current", true })!);
+        Assert.True((bool)shouldWrite.Invoke(null, new object[] { "current", "current", false })!);
+    }
+
+    [Fact]
+    public void Runtime_pool_persistence_fingerprint_is_stable_and_changes_with_runtime_metadata()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var persistenceType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
+        var createFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateFingerprint", BindingFlags.Public | BindingFlags.Static));
+        var createStableSeed = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateStableSeed", BindingFlags.Public | BindingFlags.Static));
+        var entries = Array.CreateInstance(entryType, 1);
+        entries.SetValue(RuntimeEntry(entryType, "BattleRifle", "Firearm", true, magazineType: 556, roundType: 556), 0);
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var first = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
+        var second = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
+        SetRuntimeProperty(entryType, entries.GetValue(0)!, "CompatibleMagazines", new List<string> { "ARMagazine" });
+        var changed = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
+
+        Assert.Equal(first, second);
+        Assert.NotEqual(first, changed);
+        Assert.Equal(
+            (int)createStableSeed.Invoke(null, new object[] { changed })!,
+            (int)createStableSeed.Invoke(null, new object[] { changed })!);
     }
 
     [Fact]
@@ -420,6 +446,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json" })!);
         Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json" })!);
         Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_04_Modded_Mixed_Enemy_RW_Rot.json" })!);
+        Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_04_Modded_Mixed_Enemy_CustomSosig.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Unknown_RW_Rot.json" })!);
     }

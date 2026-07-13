@@ -423,7 +423,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         else
         {
-            Logger.LogDebug("GunGame modded pools kept their larger existing gun count.");
+            Logger.LogDebug("GunGame modded pools already match active content.");
         }
         Logger.LogDebug(
             "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
@@ -1324,7 +1324,8 @@ public sealed class Plugin : BaseUnityPlugin
         List<RuntimeEnemyEntry> enemies,
         RuntimeGenerationResult result,
         int randomSeed,
-        string phase)
+        string phase,
+        string contentFingerprint)
     {
         var json = new StringBuilder();
         json.Append("{\n  \"generatedAtUtc\": \"");
@@ -1333,6 +1334,9 @@ public sealed class Plugin : BaseUnityPlugin
         json.Append(randomSeed);
         json.Append(",\n  \"phase\": \"");
         AppendJsonString(json, phase);
+        json.Append('"');
+        json.Append(",\n  \"contentFingerprint\": \"");
+        AppendJsonString(json, contentFingerprint);
         json.Append('"');
         json.Append(",\n  \"activeItems\": ");
         json.Append(entries.Count);
@@ -1463,7 +1467,9 @@ public sealed class Plugin : BaseUnityPlugin
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
             ? entries
             : entries.Where(entry => !entry.IsModContent || !rules.IsBlacklisted(entry)).ToList();
-        var randomSeed = Guid.NewGuid().GetHashCode();
+        var phaseName = phase.ToString().ToLowerInvariant();
+        var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
+        var randomSeed = RuntimePoolPersistence.CreateStableSeed(contentFingerprint);
         var result = RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
         var phasePools = result.Pools
             .Where(pool => phase == RuntimeGenerationPhase.Vanilla
@@ -1483,30 +1489,29 @@ public sealed class Plugin : BaseUnityPlugin
             expectedPoolFiles.Add(poolFileName);
         }
 
-        var candidateGunCount = phasePools.Count == 0 ? 0 : phasePools.Min(pool => pool.Guns.Count);
-        var existingGunCount = phase == RuntimeGenerationPhase.Modded
-            ? GetExistingGunCount(packagePath, expectedPoolFiles)
-            : -1;
-        var shouldWrite = phase != RuntimeGenerationPhase.Modded ||
-            (phasePools.Count > 0 && ModdedPoolReplacementPolicy.ShouldReplace(existingGunCount, candidateGunCount));
+        Func<string, bool> isOwnedByPhase = phase == RuntimeGenerationPhase.Vanilla
+            ? RuntimeProfileFamily.IsVanillaPoolFile
+            : RuntimeProfileFamily.IsModdedPoolFile;
+        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
+        var receiptPath = Path.Combine(runtimePoolsPath, "runtime-generation-" + phaseName + "-receipt.json");
+        var storedFingerprint = RuntimePoolPersistence.ReadFingerprint(receiptPath);
+        var poolFilesMatch = RuntimePoolPersistence.HasExpectedPoolFiles(packagePath, expectedPoolFiles, isOwnedByPhase);
+        var shouldWrite = RuntimePoolPersistence.ShouldWrite(storedFingerprint, contentFingerprint, poolFilesMatch);
         if (!shouldWrite)
         {
             return new RuntimeGenerationReport(
-                entries.Count,
-                entries.Count(entry => entry.IsModContent),
+                profileEntries.Count,
+                profileEntries.Count(entry => entry.IsModContent),
                 enemyEntries.Count,
                 phasePools.Count,
                 phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
                 result.SkippedFirearms.Count,
                 expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
-                false,
-                existingGunCount,
-                candidateGunCount);
+                false);
         }
 
         var metadataPath = Path.Combine(packagePath, "ObjectData.json");
-        WriteTextAtomically(metadataPath, SerializeMetadata(entries));
-        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
+        WriteTextAtomically(metadataPath, SerializeMetadata(profileEntries));
         Directory.CreateDirectory(runtimePoolsPath);
         foreach (var runtimePool in phasePools)
         {
@@ -1516,55 +1521,21 @@ public sealed class Plugin : BaseUnityPlugin
         RemoveStaleRuntimePools(
             packagePath,
             expectedPoolFiles,
-            phase == RuntimeGenerationPhase.Vanilla
-                ? RuntimeProfileFamily.IsVanillaPoolFile
-                : RuntimeProfileFamily.IsModdedPoolFile);
+            isOwnedByPhase);
         WriteTextAtomically(
-            Path.Combine(runtimePoolsPath, "runtime-generation-" + phase.ToString().ToLowerInvariant() + "-receipt.json"),
-            SerializeReceipt(entries, enemyEntries, phaseResult, randomSeed, phase.ToString().ToLowerInvariant()));
+            receiptPath,
+            SerializeReceipt(profileEntries, enemyEntries, phaseResult, randomSeed, phaseName, contentFingerprint));
         WriteTextAtomically(Path.Combine(runtimePoolsPath, "enemy-catalog.json"), SerializeEnemyCatalog(enemyEntries));
 
         return new RuntimeGenerationReport(
-            entries.Count,
-            entries.Count(entry => entry.IsModContent),
+            profileEntries.Count,
+            profileEntries.Count(entry => entry.IsModContent),
             enemyEntries.Count,
             phasePools.Count,
             phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
             result.SkippedFirearms.Count,
             expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
-            true,
-            existingGunCount,
-            candidateGunCount);
-    }
-
-    private static int GetExistingGunCount(string packagePath, IEnumerable<string> expectedPoolFiles)
-    {
-        var counts = new List<int>();
-        foreach (var fileName in expectedPoolFiles)
-        {
-            var poolPath = Path.Combine(packagePath, fileName);
-            if (!File.Exists(poolPath))
-            {
-                continue;
-            }
-
-            counts.Add(CountOccurrences(File.ReadAllText(poolPath), "\"GunName\":"));
-        }
-
-        return counts.Count == 0 ? -1 : counts.Max();
-    }
-
-    private static int CountOccurrences(string value, string needle)
-    {
-        var count = 0;
-        var index = 0;
-        while ((index = value.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
-        {
-            count++;
-            index += needle.Length;
-        }
-
-        return count;
+            true);
     }
 
     private sealed class ModdedProfileLoadingDisplay
@@ -1747,9 +1718,7 @@ public sealed class Plugin : BaseUnityPlugin
             int eligibleWeaponsPerPool,
             int skippedFirearmCount,
             List<string> poolFileNames,
-            bool wasWritten,
-            int existingGunCount,
-            int candidateGunCount)
+            bool wasWritten)
         {
             EntryCount = entryCount;
             ModdedEntryCount = moddedEntryCount;
@@ -1759,8 +1728,6 @@ public sealed class Plugin : BaseUnityPlugin
             SkippedFirearmCount = skippedFirearmCount;
             PoolFileNames = poolFileNames;
             WasWritten = wasWritten;
-            ExistingGunCount = existingGunCount;
-            CandidateGunCount = candidateGunCount;
         }
 
         public int EntryCount { get; private set; }
@@ -1771,8 +1738,6 @@ public sealed class Plugin : BaseUnityPlugin
         public int SkippedFirearmCount { get; private set; }
         public List<string> PoolFileNames { get; private set; }
         public bool WasWritten { get; private set; }
-        public int ExistingGunCount { get; private set; }
-        public int CandidateGunCount { get; private set; }
         public long ElapsedMilliseconds { get; set; }
     }
 }
