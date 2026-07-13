@@ -1070,7 +1070,7 @@ public sealed class GunGameGeneratorTests
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 3);
+        var entries = Array.CreateInstance(entryType, 5);
 
         var rifle = RuntimeEntry(entryType, "RussianRailRifle", "Firearm", true, magazineType: 7);
         SetRuntimeProperty(entryType, rifle, "FirearmSize", "FullSize");
