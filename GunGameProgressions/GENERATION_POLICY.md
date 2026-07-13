@@ -127,7 +127,7 @@ with coverage for the same condition.
 | Never reintroduce | Required outcome | Regression test |
 | --- | --- | --- |
 | `Slingshot` | Explicitly blacklist it; it can freeze GunGame when fired. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot` |
-| Firearm with no verified compatible feed | Skip it; never guess a magazine, round, or arrow from its name or model. The sole exception is the self-contained `GravitonBeamer`, which intentionally uses an empty feed. | `Runtime_profile_builder_allows_only_graviton_to_be_feedless` |
+| Firearm with no verified compatible feed | Skip it; never guess a magazine, round, or arrow from its name or model. This covers malformed mod entries such as `CompoundBow`, MCX rail objects mislabeled as firearms, and incomplete G28 variants. The sole exception is the self-contained `GravitonBeamer`, which intentionally uses an empty feed. | `Runtime_profile_builder_allows_only_graviton_to_be_feedless` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
 | G28-style magazine-fed firearm receives a loose round | Prefer its direct/exact magazine in both pool families. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |

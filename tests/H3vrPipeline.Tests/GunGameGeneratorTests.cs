@@ -174,8 +174,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("Missing versioned GunGame vanilla metadata snapshot", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGame offline metadata must contain only vanilla entries.", pipeline, StringComparison.Ordinal);
         Assert.Contains("$hasApprovedEmptyFeed", pipeline, StringComparison.Ordinal);
-        Assert.Contains("$sourceFirearm.FirearmAction -eq 'None'", pipeline, StringComparison.Ordinal);
-        Assert.Contains("$gun.GunName -ne 'Slingshot'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$gun.GunName -eq 'GravitonBeamer'", pipeline, StringComparison.Ordinal);
         Assert.Contains("--verify", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Using metadata exported by the installed GunGame package", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$runtimeMetadataPath", pipeline, StringComparison.Ordinal);
@@ -1513,7 +1512,7 @@ public sealed class GunGameGeneratorTests
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 7);
+        var entries = Array.CreateInstance(entryType, 8);
 
         var safeFirearm = RuntimeEntry(entryType, "SafeFirearm", "Firearm", true, magazineType: 1);
         entries.SetValue(safeFirearm, 0);
@@ -1532,6 +1531,14 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, malformedFeedlessMod, "FirearmAction", "None");
         SetRuntimeProperty(entryType, malformedFeedlessMod, "FirearmRoundPower", "None");
         entries.SetValue(malformedFeedlessMod, 5);
+        var incompleteG28 = RuntimeEntry(entryType, "NWHKG28Auto", "Firearm", true);
+        SetRuntimeProperty(entryType, incompleteG28, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, incompleteG28, "FirearmRoundPower", "None");
+        entries.SetValue(incompleteG28, 6);
+        var mislabeledRail = RuntimeEntry(entryType, "Mount_MCX_LegacyRail_2", "Firearm", true);
+        SetRuntimeProperty(entryType, mislabeledRail, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, mislabeledRail, "FirearmRoundPower", "None");
+        entries.SetValue(mislabeledRail, 7);
 
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
@@ -1541,7 +1548,7 @@ public sealed class GunGameGeneratorTests
             "Guns");
 
         Assert.Equal(
-            new[] { "SafeFirearm", "UnclassifiedWithFeed", "GravitonBeamer" },
+            new[] { "GravitonBeamer", "SafeFirearm", "UnclassifiedWithFeed" },
             guns.Select(gun => ReadString(gun, "GunName")).ToArray());
         var feedless = guns.Single(gun => ReadString(gun, "GunName") == "GravitonBeamer");
         Assert.Equal(string.Empty, ReadString(feedless, "MagName"));

@@ -382,8 +382,7 @@ function Test-GunGamePools {
                 $sourceFirearm -ne $null -and
                 $sourceFirearm.Category -eq 'Firearm' -and
                 $sourceFirearm.IsGunGameRoundDisplaySupported -and
-                $sourceFirearm.FirearmAction -eq 'None' -and
-                $gun.GunName -ne 'Slingshot'
+                $gun.GunName -eq 'GravitonBeamer'
             if ([string]::IsNullOrWhiteSpace($gun.GunName) -or
                 (-not $hasValidFeed -and -not $hasApprovedEmptyFeed)) {
                 throw "Invalid GunGame advanced weapon: $($pool.Name) / $($gun.GunName)"

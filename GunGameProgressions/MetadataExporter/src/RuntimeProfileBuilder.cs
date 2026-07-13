@@ -404,12 +404,10 @@ public static class RuntimeProfileBuilder
 
     private static bool AllowsFeedlessLoadout(RuntimeMetadataEntry firearm)
     {
-        // Some damage-capable H3VR objects are intentionally classified with
-        // no conventional firearm action or round power. GunGame accepts an
-        // empty feed ID, and the runtime safety patch validates that case.
-        // Do not extend this exception to normal firearms: those still need a
-        // verified compatible feed to avoid bad magazine/round assignments.
-        return string.Equals(firearm.FirearmAction, "None", StringComparison.Ordinal);
+        // GravitonBeamer is self-contained. Every other progression firearm
+        // needs a verified magazine, clip, speedloader, or cartridge so a
+        // bad mod metadata entry cannot produce an unusable loadout.
+        return string.Equals(firearm.ObjectID, "GravitonBeamer", StringComparison.OrdinalIgnoreCase);
     }
 
     private static List<FeedCandidate> FirstAvailableFeeds(params List<FeedCandidate>[] groups)
