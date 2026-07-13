@@ -129,7 +129,25 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
-            Assert.All(pools, pool => Assert.Equal(615, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(pools, pool => Assert.Equal(654, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+
+            using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(profileDirectory, "ObjectData.json")));
+            var variablePicatinnyScopes = metadata.RootElement
+                .EnumerateArray()
+                .Where(entry =>
+                    entry.GetProperty("Category").GetString() == "Attachment" &&
+                    entry.GetProperty("OpticKind").GetString() == "Scope" &&
+                    entry.GetProperty("IsVariableMagnification").GetBoolean() &&
+                    entry.GetProperty("PhysicalMountTypes").EnumerateArray().Any(mount => mount.GetString() == "Picatinny"))
+                .Select(entry => entry.GetProperty("ObjectID").GetString())
+                .ToArray();
+            var m4CarbineExtra = pools[0].RootElement
+                .GetProperty("Guns")
+                .EnumerateArray()
+                .Single(gun => gun.GetProperty("GunName").GetString() == "M4A1Block2CQBR")
+                .GetProperty("Extra")
+                .GetString();
+            Assert.Contains(m4CarbineExtra, variablePicatinnyScopes);
         }
         finally
         {
