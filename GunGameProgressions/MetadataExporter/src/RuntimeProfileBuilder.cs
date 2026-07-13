@@ -212,7 +212,7 @@ public static class RuntimeProfileBuilder
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
         {
-            if (!firearm.IsGunGameRoundDisplaySupported)
+            if (!IsSupportedGunGameFirearm(firearm))
             {
                 skipped.Add(firearm.ObjectID);
                 continue;
@@ -330,7 +330,7 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
-        if (UsesInternalShotgunMagazine(firearm))
+        if (UsesLooseShotgunShells(firearm))
         {
             var shells = FirstAvailableFeeds(
                 GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
@@ -352,6 +352,13 @@ public static class RuntimeProfileBuilder
             index.GetFeeds("Cartridge", firearm.RoundType));
     }
 
+    private static bool IsSupportedGunGameFirearm(RuntimeMetadataEntry firearm)
+    {
+        return firearm.IsGunGameRoundDisplaySupported &&
+            !string.Equals(firearm.FirearmAction, "None", StringComparison.Ordinal) &&
+            !string.Equals(firearm.FirearmRoundPower, "None", StringComparison.Ordinal);
+    }
+
     private static List<FeedCandidate> FirstAvailableFeeds(params List<FeedCandidate>[] groups)
     {
         return (groups ?? new List<FeedCandidate>[0])
@@ -359,7 +366,7 @@ public static class RuntimeProfileBuilder
             ?? new List<FeedCandidate>();
     }
 
-    private static bool UsesInternalShotgunMagazine(RuntimeMetadataEntry firearm)
+    private static bool UsesLooseShotgunShells(RuntimeMetadataEntry firearm)
     {
         if (firearm.FirearmRoundPower != "Shotgun")
         {
@@ -367,7 +374,8 @@ public static class RuntimeProfileBuilder
         }
 
         var options = firearm.FirearmFeedOptions ?? new List<string>();
-        return options.Contains("InternalMag") && !options.Contains("BoxMag");
+        return options.Contains("BreachLoad") ||
+            (options.Contains("InternalMag") && !options.Contains("BoxMag"));
     }
 
     private static List<FeedCandidate> GetDirectFeeds(
