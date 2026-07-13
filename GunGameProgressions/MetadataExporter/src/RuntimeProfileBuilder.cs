@@ -561,6 +561,11 @@ public static class RuntimeProfileBuilder
     // proprietary-mount priority are enforced before it is called.
     private static int OpticFitRank(RuntimeMetadataEntry firearm, RuntimeMetadataEntry optic)
     {
+        if (IsPicatinnyOnlyRifleCarbine(firearm))
+        {
+            return VariableScopeFirstRank(optic);
+        }
+
         if (IsCloseRangeFirearm(firearm))
         {
             if (optic.OpticKind == "Reflex")
@@ -588,12 +593,22 @@ public static class RuntimeProfileBuilder
 
         if (optic.OpticKind == "Scope")
         {
-            return optic.IsVariableMagnification && optic.OpticMinMagnification <= 3f && optic.OpticMaxMagnification >= 4f
-                ? 0
-                : 10;
+            return VariableScopeFirstRank(optic);
         }
 
         return 30;
+    }
+
+    private static int VariableScopeFirstRank(RuntimeMetadataEntry optic)
+    {
+        if (optic.OpticKind != "Scope")
+        {
+            return 30;
+        }
+
+        return optic.IsVariableMagnification && optic.OpticMinMagnification <= 3f && optic.OpticMaxMagnification >= 4f
+            ? 0
+            : 10;
     }
 
     private static bool IsCloseRangeFirearm(RuntimeMetadataEntry firearm)
@@ -604,7 +619,22 @@ public static class RuntimeProfileBuilder
             firearm.FirearmSize == "Pocket" ||
             firearm.FirearmSize == "Pistol" ||
             (firearm.FirearmAction == "Automatic" &&
-                (firearm.FirearmSize == "Compact" || firearm.FirearmSize == "Carbine"));
+                firearm.FirearmSize == "Compact");
+    }
+
+    private static bool IsPicatinnyOnlyRifleCarbine(RuntimeMetadataEntry firearm)
+    {
+        if (firearm.FirearmSize != "Carbine" ||
+            firearm.FirearmRoundPower == "Tiny" ||
+            firearm.FirearmRoundPower == "Pistol" ||
+            firearm.FirearmRoundPower == "Shotgun")
+        {
+            return false;
+        }
+
+        var opticMounts = OpticMountPolicy.Rank(firearm.PhysicalMountTypes).ToList();
+        return opticMounts.Count == 1 &&
+            string.Equals(opticMounts[0].MountType, "Picatinny", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsHighPowerFirearm(RuntimeMetadataEntry firearm)

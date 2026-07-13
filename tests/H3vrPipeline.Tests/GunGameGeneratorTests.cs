@@ -914,6 +914,50 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 7);
+
+        var rifleCarbine = RuntimeEntry(entryType, "M4StyleCarbine", "Firearm", true, magazineType: 1);
+        SetRuntimeProperty(entryType, rifleCarbine, "CompatibleMagazines", new List<string> { "RifleCarbineMagazine" });
+        SetRuntimeProperty(entryType, rifleCarbine, "FirearmSize", "Carbine");
+        SetRuntimeProperty(entryType, rifleCarbine, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, rifleCarbine, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, rifleCarbine, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(rifleCarbine, 0);
+
+        var pistolCarbine = RuntimeEntry(entryType, "PistolCarbine", "Firearm", true, magazineType: 2);
+        SetRuntimeProperty(entryType, pistolCarbine, "CompatibleMagazines", new List<string> { "PistolCarbineMagazine" });
+        SetRuntimeProperty(entryType, pistolCarbine, "FirearmSize", "Carbine");
+        SetRuntimeProperty(entryType, pistolCarbine, "FirearmRoundPower", "Pistol");
+        SetRuntimeProperty(entryType, pistolCarbine, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, pistolCarbine, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(pistolCarbine, 1);
+
+        entries.SetValue(RuntimeEntry(entryType, "RifleCarbineMagazine", "Magazine", true, magazineType: 1), 2);
+        entries.SetValue(RuntimeEntry(entryType, "PistolCarbineMagazine", "Magazine", true, magazineType: 2), 3);
+        entries.SetValue(Optic(entryType, "PicatinnyReflex", "Reflex", 1f, 1f, false), 4);
+        entries.SetValue(Optic(entryType, "PicatinnyFixedScope", "Scope", 1f, 4f, false), 5);
+        entries.SetValue(Optic(entryType, "PicatinnyVariableScope", "Scope", 1f, 6f, true), 6);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
+
+        Assert.Equal("PicatinnyVariableScope", ReadString(guns["M4StyleCarbine"], "Extra"));
+        Assert.Equal("PicatinnyReflex", ReadString(guns["PistolCarbine"], "Extra"));
+    }
+
+    [Fact]
     public void Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1124,6 +1168,7 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny",
             "Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts",
             "Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role",
+            "Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines",
             "Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts",
             "Runtime_profile_builder_ignores_unrecognized_non_optic_mounts",
             "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",

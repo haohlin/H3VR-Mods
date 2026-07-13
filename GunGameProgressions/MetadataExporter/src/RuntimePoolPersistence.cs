@@ -12,7 +12,7 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "6";
+    private const string GenerationPolicyVersion = "7";
 
     public static string CreateFingerprint(
         IEnumerable<RuntimeMetadataEntry> entries,

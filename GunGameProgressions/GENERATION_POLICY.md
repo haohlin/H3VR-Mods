@@ -67,12 +67,16 @@ compatible optics
 |
 +-- CQC / pistol / SMG / shotgun -> reflex -> low-power scope
 +-- bolt-action full-power / anti-materiel -> high-power scope
++-- rifle-caliber carbine with Picatinny as its only valid optic route
+|   -> variable scope -> other scope -> reflex
 `-- rifle / battle rifle -> variable scope -> other scope -> reflex
 ```
 
 Candidate gate: the object must be an `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded.
 
 Mount matching uses captured prefab metadata (`PhysicalMountTypes`, direct compatibility, and an adapter's `ProvidedMountTypes`), not firearm or scope name lists. The small hard-coded list in `OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it contains no individual weapon or attachment IDs. Runtime mounting reuses that same taxonomy, checks the exact mount type, and permits rail mounts only when oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail positions are rejected.
+
+An M4-style carbine is selected by metadata, never by Object ID: it must be `Carbine` size, use a rifle-caliber round class, and have Picatinny as its only recognized optic route. A direct/bespoke or proprietary route wins before role ranking. Pistol-caliber carbines remain CQC and prefer a reflex sight.
 
 ## Runtime availability and recovery
 
@@ -107,6 +111,7 @@ with coverage for the same condition.
 | Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
 | Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
 | CQC, rifle, and sniper receive indiscriminate optic power | Rank verified compatible optics by firearm role. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| M4-style Picatinny-only rifle carbine receives a reflex sight | Prefer a compatible variable scope; retain reflex priority for pistol-caliber carbines. | `Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines` |
 | Scope is assigned to muzzle, stock, grip, or a generic side mount | Emit no optic for a non-sighting mount. | `Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts` |
 | Firearm has no verified sight-capable mount but receives an optic | Emit no optic; do not guess a mount. | `Runtime_profile_builder_ignores_unrecognized_non_optic_mounts` |
 | Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
