@@ -21,16 +21,12 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
-    private const float StartupModWarmupSeconds = 15f;
-    private const float FirstGunGameModWarmupSeconds = 15f;
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
 
     private static Plugin instance;
-    private readonly InitialGunGameLoadGate initialGunGameLoadGate = new InitialGunGameLoadGate();
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
-    private bool startupModWarmupFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
     private Harmony harmony;
@@ -46,7 +42,6 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Start()
     {
-        StartCoroutine(CompleteStartupModWarmup());
         StartCoroutine(GenerateVanillaPoolsAtStartup());
     }
 
@@ -69,22 +64,20 @@ public sealed class Plugin : BaseUnityPlugin
         weaponPoolLoaderAwake = loaderType == null ? null : AccessTools.Method(loaderType, "Awake");
         var gameManagerType = AccessTools.TypeByName("GunGame.Scripts.GameManager");
         gameManagerOnDestroy = gameManagerType == null ? null : AccessTools.Method(gameManagerType, "OnDestroy");
-        var loaderPrefix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePrefix");
         var loaderPostfix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePostfix");
         var exitPostfix = AccessTools.Method(typeof(Plugin), "GameManagerOnDestroyPostfix");
-        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPrefix == null || loaderPostfix == null || exitPostfix == null)
+        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPostfix == null || exitPostfix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(weaponPoolLoaderAwake, prefix: new HarmonyMethod(loaderPrefix), postfix: new HarmonyMethod(loaderPostfix));
+        harmony.Patch(weaponPoolLoaderAwake, postfix: new HarmonyMethod(loaderPostfix));
         harmony.Patch(gameManagerOnDestroy, postfix: new HarmonyMethod(exitPostfix));
         var loaderPatchInfo = Harmony.GetPatchInfo(weaponPoolLoaderAwake);
         var exitPatchInfo = Harmony.GetPatchInfo(gameManagerOnDestroy);
         if (loaderPatchInfo == null || exitPatchInfo == null ||
-            !loaderPatchInfo.Prefixes.Any(patch => patch.owner == HarmonyId) ||
             !loaderPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId) ||
             !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
         {
@@ -92,16 +85,11 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private static bool WeaponPoolLoaderAwakePrefix(object __instance)
-    {
-        return instance == null || instance.HandleWeaponPoolLoaderAwake(__instance);
-    }
-
-    private static void WeaponPoolLoaderAwakePostfix()
+    private static void WeaponPoolLoaderAwakePostfix(object __instance)
     {
         if (instance != null)
         {
-            instance.RequestModdedRefresh();
+            instance.StartCoroutine(instance.PrepareModdedProfilesForSelector(__instance));
         }
     }
 
@@ -113,78 +101,67 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private bool HandleWeaponPoolLoaderAwake(object weaponPoolLoader)
+    private IEnumerator PrepareModdedProfilesForSelector(object weaponPoolLoader)
     {
-        var action = initialGunGameLoadGate.NextAction();
-        if (action == InitialGunGameLoadAction.AllowOriginalLoad)
+        var loadingDisplay = CreateModdedProfileLoadingDisplay(weaponPoolLoader);
+        while (!vanillaGenerationFinished)
         {
-            return true;
-        }
-
-        if (action == InitialGunGameLoadAction.BeginPreparation)
-        {
-            StartCoroutine(PrepareFirstGunGamePoolsThenLoadWeaponPools(weaponPoolLoader));
-        }
-
-        return false;
-    }
-
-    private IEnumerator CompleteStartupModWarmup()
-    {
-        yield return new WaitForSecondsRealtime(StartupModWarmupSeconds);
-        startupModWarmupFinished = true;
-    }
-
-    private IEnumerator PrepareFirstGunGamePoolsThenLoadWeaponPools(object weaponPoolLoader)
-    {
-        while (!startupModWarmupFinished)
-        {
+            UpdateModdedProfileLoadingDisplay(loadingDisplay, "Preparing vanilla profiles");
             yield return null;
         }
 
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
-        yield return new WaitForSecondsRealtime(FirstGunGameModWarmupSeconds);
-        yield return StartCoroutine(GenerateInitialModdedPools());
-
-        initialGunGameLoadGate.CompletePreparation();
-        try
-        {
-            weaponPoolLoaderAwake.Invoke(weaponPoolLoader, null);
-        }
-        catch (TargetInvocationException exception)
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame first pool load failed: " + (exception.InnerException ?? exception));
-        }
-        catch (Exception exception)
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
-            Logger.LogDebug("GunGame first pool load failed: " + exception);
-        }
-    }
-
-    private IEnumerator GenerateInitialModdedPools()
-    {
-        while (!vanillaGenerationFinished)
-        {
-            yield return null;
-        }
-
-        Dictionary<string, FVRObject> objects;
-        if (!TryGetObjectData(out objects) || objects.Count == 0)
-        {
-            yield break;
-        }
-
+        var readinessGate = new ModdedProfileReadinessGate();
         RuntimeMetadataCapture metadataCapture = null;
-        yield return StartCoroutine(CaptureRuntimeMetadata(
-            objects,
-            item => item.IsModContent,
-            capture => metadataCapture = capture));
+        do
+        {
+            Dictionary<string, FVRObject> objects;
+            var externalLoadState = GetExternalContentLoadState();
+            var now = Time.realtimeSinceStartup;
+            if (TryGetObjectData(out objects) && objects.Count > 0)
+            {
+                readinessGate.Observe(now, objects.Count, externalLoadState);
+                UpdateModdedProfileLoadingDisplay(
+                    loadingDisplay,
+                    ModdedProfileLoadingMessage(readinessGate, now, externalLoadState));
+                if (readinessGate.IsReady(now, externalLoadState))
+                {
+                    yield return StartCoroutine(CaptureRuntimeMetadata(
+                        objects,
+                        item => item.IsModContent,
+                        capture => metadataCapture = capture));
+                    break;
+                }
+            }
+            else
+            {
+                UpdateModdedProfileLoadingDisplay(loadingDisplay, "Waiting for mod content: 5s");
+            }
+
+            yield return new WaitForSeconds(ModdedRefreshPollSeconds);
+        }
+        while (true);
+
         if (metadataCapture != null)
         {
-            yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, Stopwatch.StartNew()));
+            RuntimeGenerationReport report = null;
+            UpdateModdedProfileLoadingDisplay(loadingDisplay, "Generating Modded profiles");
+            yield return StartCoroutine(GenerateModdedPoolCandidate(
+                metadataCapture,
+                Stopwatch.StartNew(),
+                generatedReport => report = generatedReport));
+            if (report != null && report.PoolCount > 0)
+            {
+                var choicesAdded = AddGeneratedPoolChoices(weaponPoolLoader, report.PoolFileNames);
+                if (choicesAdded < report.PoolCount && !LoaderAlreadyHasGeneratedPools(weaponPoolLoader, report.PoolFileNames))
+                {
+                    Logger.LogWarning(RuntimeStatusMessages.ProfileUiUpdateFailed);
+                }
+            }
         }
+
+        DestroyModdedProfileLoadingDisplay(loadingDisplay);
+        RequestModdedRefresh();
     }
 
     private void RequestModdedRefresh()
@@ -268,38 +245,33 @@ public sealed class Plugin : BaseUnityPlugin
 
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
-        var readinessGate = new ModContentReadinessGate(ModdedRefreshTimeoutSeconds);
+        var readinessGate = new ModdedProfileReadinessGate();
         var waitStartTime = Time.realtimeSinceStartup;
-        var lastMetadataFingerprint = string.Empty;
         do
         {
+            var elapsedSeconds = Time.realtimeSinceStartup - waitStartTime;
+            var externalLoadState = GetExternalContentLoadState();
             Dictionary<string, FVRObject> objects;
             if (TryGetObjectData(out objects) && objects.Count > 0)
             {
-                RuntimeMetadataCapture metadataCapture = null;
-                yield return StartCoroutine(CaptureRuntimeMetadata(
-                    objects,
-                    item => item.IsModContent,
-                    capture => metadataCapture = capture));
-                var elapsedSeconds = Time.realtimeSinceStartup - waitStartTime;
-                var externalLoadState = GetExternalContentLoadState();
-                if (metadataCapture != null)
+                readinessGate.Observe(Time.realtimeSinceStartup, objects.Count, externalLoadState);
+                if (readinessGate.IsReady(Time.realtimeSinceStartup, externalLoadState))
                 {
-                    var metadataFingerprint = GetMetadataFingerprint(metadataCapture.Entries);
-                    if (!string.Equals(metadataFingerprint, lastMetadataFingerprint, StringComparison.Ordinal))
+                    RuntimeMetadataCapture metadataCapture = null;
+                    yield return StartCoroutine(CaptureRuntimeMetadata(
+                        objects,
+                        item => item.IsModContent,
+                        capture => metadataCapture = capture));
+                    if (metadataCapture != null)
                     {
-                        lastMetadataFingerprint = metadataFingerprint;
                         yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, totalTimer));
                     }
 
-                    if (readinessGate.IsReady(elapsedSeconds, externalLoadState))
-                    {
-                        yield break;
-                    }
+                    yield break;
                 }
             }
 
-            if (readinessGate.HasTimedOut(Time.realtimeSinceStartup - waitStartTime))
+            if (elapsedSeconds >= ModdedRefreshTimeoutSeconds)
             {
                 Logger.LogDebug("GunGame modded refresh reached its background wait limit.");
                 yield break;
@@ -310,7 +282,10 @@ public sealed class Plugin : BaseUnityPlugin
         while (true);
     }
 
-    private IEnumerator GenerateModdedPoolCandidate(RuntimeMetadataCapture metadataCapture, Stopwatch totalTimer)
+    private IEnumerator GenerateModdedPoolCandidate(
+        RuntimeMetadataCapture metadataCapture,
+        Stopwatch totalTimer,
+        Action<RuntimeGenerationReport> complete = null)
     {
         RuntimeEnemyCapture enemyCapture = null;
         yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
@@ -337,6 +312,10 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogWarning(RuntimeStatusMessages.FallbackPools);
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
+            if (complete != null)
+            {
+                complete(null);
+            }
             yield break;
         }
 
@@ -358,11 +337,219 @@ public sealed class Plugin : BaseUnityPlugin
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
+        if (complete != null)
+        {
+            complete(report);
+        }
     }
 
-    private static string GetMetadataFingerprint(IEnumerable<RuntimeMetadataEntry> entries)
+    private static string ModdedProfileLoadingMessage(
+        ModdedProfileReadinessGate readinessGate,
+        float now,
+        ExternalContentLoadState externalLoadState)
     {
-        return string.Join("\n", entries.Select(entry => entry.ObjectID).OrderBy(objectId => objectId, StringComparer.Ordinal).ToArray());
+        if (externalLoadState == ExternalContentLoadState.Loading)
+        {
+            return "Loading mod content - waiting for completion";
+        }
+
+        return "Waiting for mod content: " + readinessGate.SecondsUntilQuiet(now, externalLoadState) + "s";
+    }
+
+    private static ModdedProfileLoadingDisplay CreateModdedProfileLoadingDisplay(object weaponPoolLoader)
+    {
+        try
+        {
+            var loaderType = weaponPoolLoader.GetType();
+            var prefabField = loaderType.GetField("ChoicePrefab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var parentField = loaderType.GetField("ChoicesListParent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var prefab = prefabField == null ? null : prefabField.GetValue(weaponPoolLoader) as UnityEngine.Object;
+            var parent = parentField == null ? null : parentField.GetValue(weaponPoolLoader) as Transform;
+            if (prefab == null || parent == null)
+            {
+                return null;
+            }
+
+            var displayObject = UnityEngine.Object.Instantiate(prefab, parent);
+            var root = DisplayRoot(displayObject);
+            if (root == null)
+            {
+                UnityEngine.Object.Destroy(displayObject);
+                return null;
+            }
+
+            root.name = "GunGameProgressionsModdedLoading";
+            foreach (var collider in root.GetComponentsInChildren<Collider>(true))
+            {
+                collider.enabled = false;
+            }
+
+            var textTargets = new List<KeyValuePair<Component, PropertyInfo>>();
+            foreach (var component in root.GetComponentsInChildren<Component>(true))
+            {
+                var textProperty = component.GetType().GetProperty("text", BindingFlags.Instance | BindingFlags.Public);
+                if (textProperty != null && textProperty.CanWrite && textProperty.PropertyType == typeof(string))
+                {
+                    textTargets.Add(new KeyValuePair<Component, PropertyInfo>(component, textProperty));
+                }
+            }
+
+            var display = new ModdedProfileLoadingDisplay(root, textTargets);
+            display.Update("Waiting for mod content: 5s");
+            return display;
+        }
+        catch (Exception exception)
+        {
+            if (instance != null)
+            {
+                instance.Logger.LogDebug("GunGame modded profile loading display failed: " + exception);
+            }
+
+            return null;
+        }
+    }
+
+    private static void UpdateModdedProfileLoadingDisplay(ModdedProfileLoadingDisplay display, string message)
+    {
+        if (display != null)
+        {
+            display.Update(message);
+        }
+    }
+
+    private static void DestroyModdedProfileLoadingDisplay(ModdedProfileLoadingDisplay display)
+    {
+        if (display != null)
+        {
+            display.Destroy();
+        }
+    }
+
+    private static GameObject DisplayRoot(UnityEngine.Object displayObject)
+    {
+        var gameObject = displayObject as GameObject;
+        if (gameObject != null)
+        {
+            return gameObject;
+        }
+
+        var component = displayObject as Component;
+        return component == null ? null : component.gameObject;
+    }
+
+    private static bool LoaderAlreadyHasGeneratedPools(object loader, IEnumerable<string> poolFileNames)
+    {
+        var poolsField = loader.GetType().GetField("_weaponPools", BindingFlags.Instance | BindingFlags.NonPublic);
+        var pools = poolsField == null ? null : poolsField.GetValue(loader) as IList;
+        if (pools == null)
+        {
+            return false;
+        }
+
+        var names = new HashSet<string>(
+            pools.Cast<object>().Select(GunGamePoolName),
+            StringComparer.Ordinal);
+        return (poolFileNames ?? Enumerable.Empty<string>())
+            .Select(RuntimePoolDisplayName)
+            .All(name => !string.IsNullOrEmpty(name) && names.Contains(name));
+    }
+
+    private static string RuntimePoolDisplayName(string poolFileName)
+    {
+        if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
+        {
+            return "Runtime 02 - Modded Rot";
+        }
+
+        return poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0
+            ? "Runtime 04 - Modded Mixed Enemy"
+            : string.Empty;
+    }
+
+    private int AddGeneratedPoolChoices(object loader, IEnumerable<string> poolFileNames)
+    {
+        try
+        {
+            var loaderType = loader.GetType();
+            var loadPool = loaderType.GetMethod("LoadWeaponPool", new[] { typeof(string) });
+            var poolsField = loaderType.GetField("_weaponPools", BindingFlags.Instance | BindingFlags.NonPublic);
+            var choicesField = loaderType.GetField("_choices", BindingFlags.Instance | BindingFlags.NonPublic);
+            var prefabField = loaderType.GetField("ChoicePrefab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var parentField = loaderType.GetField("ChoicesListParent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var pools = poolsField == null ? null : poolsField.GetValue(loader) as IList;
+            var choices = choicesField == null ? null : choicesField.GetValue(loader) as IList;
+            var prefab = prefabField == null ? null : prefabField.GetValue(loader) as UnityEngine.Object;
+            var parent = parentField == null ? null : parentField.GetValue(loader) as Transform;
+            if (loadPool == null || pools == null || choices == null || prefab == null || parent == null)
+            {
+                return 0;
+            }
+
+            var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var added = 0;
+            foreach (var poolFileName in poolFileNames ?? Enumerable.Empty<string>())
+            {
+                var pool = loadPool.Invoke(loader, new object[] { Path.Combine(packagePath, poolFileName) });
+                if (pool == null)
+                {
+                    continue;
+                }
+
+                var choice = UnityEngine.Object.Instantiate(prefab, parent);
+                var initialize = choice.GetType().GetMethod("Initialize", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (initialize == null)
+                {
+                    UnityEngine.Object.Destroy(choice);
+                    continue;
+                }
+
+                initialize.Invoke(choice, new[] { pool });
+                var insertionIndex = RuntimePoolInsertionIndex(pools, GunGamePoolName(pool));
+                pools.Insert(insertionIndex, pool);
+                choices.Insert(insertionIndex, choice);
+                var component = choice as Component;
+                if (component != null)
+                {
+                    component.transform.SetSiblingIndex(insertionIndex);
+                }
+
+                added++;
+            }
+
+            return added;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogDebug("GunGame selector update failed: " + exception);
+            return 0;
+        }
+    }
+
+    private static int RuntimePoolInsertionIndex(IList pools, string generatedPoolName)
+    {
+        if (generatedPoolName.StartsWith("Runtime 02", StringComparison.Ordinal))
+        {
+            for (var index = 0; index < pools.Count; index++)
+            {
+                if (GunGamePoolName(pools[index]).StartsWith("Runtime 03", StringComparison.Ordinal))
+                {
+                    return index;
+                }
+            }
+        }
+
+        return pools.Count;
+    }
+
+    private static string GunGamePoolName(object pool)
+    {
+        if (pool == null)
+        {
+            return string.Empty;
+        }
+
+        var getName = pool.GetType().GetMethod("GetName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        return getName == null ? string.Empty : getName.Invoke(pool, null) as string ?? string.Empty;
     }
 
     private bool TryGetObjectData(out Dictionary<string, FVRObject> objects)
@@ -1071,6 +1258,36 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         return count;
+    }
+
+    private sealed class ModdedProfileLoadingDisplay
+    {
+        private readonly GameObject root;
+        private readonly List<KeyValuePair<Component, PropertyInfo>> textTargets;
+
+        public ModdedProfileLoadingDisplay(
+            GameObject root,
+            List<KeyValuePair<Component, PropertyInfo>> textTargets)
+        {
+            this.root = root;
+            this.textTargets = textTargets;
+        }
+
+        public void Update(string message)
+        {
+            foreach (var target in textTargets)
+            {
+                target.Value.SetValue(target.Key, message, null);
+            }
+        }
+
+        public void Destroy()
+        {
+            if (root != null)
+            {
+                UnityEngine.Object.Destroy(root);
+            }
+        }
     }
 
     private enum RuntimeGenerationPhase

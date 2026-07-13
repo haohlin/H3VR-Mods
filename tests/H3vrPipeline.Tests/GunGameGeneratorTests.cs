@@ -349,44 +349,29 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Background_mod_refresh_schedule_uses_loader_completion_or_throttled_fallback_snapshots()
+    public void Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet()
     {
         var assembly = LoadBuiltMetadataExporter();
-        var scheduleType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModContentRefreshSchedule"));
+        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModdedProfileReadinessGate"));
         var stateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ExternalContentLoadState"));
-        var shouldCapture = Assert.IsAssignableFrom<MethodInfo>(scheduleType.GetMethod("ShouldCapture", BindingFlags.Public | BindingFlags.Instance));
-        var markCaptured = Assert.IsAssignableFrom<MethodInfo>(scheduleType.GetMethod("MarkCaptured", BindingFlags.Public | BindingFlags.Instance));
+        var observe = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("Observe", BindingFlags.Public | BindingFlags.Instance));
+        var isReady = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("IsReady", BindingFlags.Public | BindingFlags.Instance));
+        var secondsUntilQuiet = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("SecondsUntilQuiet", BindingFlags.Public | BindingFlags.Instance));
         var unavailable = Enum.Parse(stateType, "Unavailable");
         var loading = Enum.Parse(stateType, "Loading");
         var complete = Enum.Parse(stateType, "Complete");
-        var schedule = Activator.CreateInstance(scheduleType)!;
-
-        Assert.True((bool)shouldCapture.Invoke(schedule, new object[] { 0f, unavailable })!);
-        markCaptured.Invoke(schedule, new object[] { 0f, unavailable });
-        Assert.False((bool)shouldCapture.Invoke(schedule, new object[] { 4.9f, unavailable })!);
-        Assert.True((bool)shouldCapture.Invoke(schedule, new object[] { 5f, unavailable })!);
-        Assert.False((bool)shouldCapture.Invoke(schedule, new object[] { 100f, loading })!);
-        Assert.True((bool)shouldCapture.Invoke(schedule, new object[] { 100f, complete })!);
-        markCaptured.Invoke(schedule, new object[] { 100f, complete });
-        Assert.False((bool)shouldCapture.Invoke(schedule, new object[] { 101f, complete })!);
-    }
-
-    [Fact]
-    public void First_GunGame_scene_gate_defers_once_and_replays_the_original_scene_load_once()
-    {
-        var assembly = LoadBuiltMetadataExporter();
-        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.InitialGunGameLoadGate"));
-        var nextAction = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("NextAction", BindingFlags.Public | BindingFlags.Instance));
-        var completePreparation = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("CompletePreparation", BindingFlags.Public | BindingFlags.Instance));
         var gate = Activator.CreateInstance(gateType)!;
 
-        Assert.Equal("BeginPreparation", nextAction.Invoke(gate, null)!.ToString());
-        Assert.Equal("KeepWaiting", nextAction.Invoke(gate, null)!.ToString());
+        observe.Invoke(gate, new object[] { 0f, 10, unavailable });
+        Assert.False((bool)isReady.Invoke(gate, new object[] { 4.9f, unavailable })!);
+        Assert.Equal(1, (int)secondsUntilQuiet.Invoke(gate, new object[] { 4.1f, unavailable })!);
+        Assert.True((bool)isReady.Invoke(gate, new object[] { 5f, unavailable })!);
 
-        completePreparation.Invoke(gate, null);
-
-        Assert.Equal("AllowOriginalLoad", nextAction.Invoke(gate, null)!.ToString());
-        Assert.Equal("AllowOriginalLoad", nextAction.Invoke(gate, null)!.ToString());
+        observe.Invoke(gate, new object[] { 5f, 11, unavailable });
+        Assert.False((bool)isReady.Invoke(gate, new object[] { 9.9f, unavailable })!);
+        Assert.True((bool)isReady.Invoke(gate, new object[] { 10f, unavailable })!);
+        Assert.False((bool)isReady.Invoke(gate, new object[] { 100f, loading })!);
+        Assert.True((bool)isReady.Invoke(gate, new object[] { 100f, complete })!);
     }
 
     [Fact]
@@ -503,26 +488,25 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_holds_the_first_GunGame_scene_until_profiles_are_ready_then_refreshes_efficiently()
+    public void Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector()
     {
         var source = File.ReadAllText(PluginSourcePath);
 
         Assert.Contains("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
-        Assert.Contains("MainMenuScreen", source, StringComparison.Ordinal);
-        Assert.Contains("MainMenuScreenLoadScenePrefix", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
-        Assert.Contains("FirstGunGameModWarmupSeconds = 15f", source, StringComparison.Ordinal);
         Assert.Contains("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
-        Assert.Contains("PrepareFirstGunGamePoolsThenLoadScene", source, StringComparison.Ordinal);
-        Assert.Contains("Preparing GunGame Profiles", source, StringComparison.Ordinal);
+        Assert.Contains("PrepareModdedProfilesForSelector", source, StringComparison.Ordinal);
+        Assert.Contains("CreateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
+        Assert.Contains("AddGeneratedPoolChoices", source, StringComparison.Ordinal);
+        Assert.Contains("Waiting for mod content", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
-        Assert.Contains("ModContentRefreshSchedule", source, StringComparison.Ordinal);
+        Assert.Contains("ModdedProfileReadinessGate", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoader.LoaderStatus", source, StringComparison.Ordinal);
-        Assert.Contains("WaitForSecondsRealtime(FirstGunGameModWarmupSeconds)", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("StartupModWarmupSeconds", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("MainMenuScreenLoadScenePrefix", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirstGunGameModWarmupSeconds", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
         Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
     }
