@@ -531,6 +531,25 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_selector_locator_reads_the_Kodeman_singleton_before_scanning_the_scene()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var locatorType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.GunGameSelectorLocator"));
+        var resolveSingleton = Assert.IsAssignableFrom<MethodInfo>(locatorType.GetMethod("ResolveSingleton", BindingFlags.Public | BindingFlags.Static));
+        var selector = new object();
+        GunGameSelectorSingletonFixture.Instance = selector;
+
+        try
+        {
+            Assert.Same(selector, resolveSingleton.Invoke(null, new object[] { typeof(GunGameSelectorSingletonFixture) }));
+        }
+        finally
+        {
+            GunGameSelectorSingletonFixture.Instance = null;
+        }
+    }
+
+    [Fact]
     public void Runtime_item_role_reclassifies_mislabeled_firearm_metadata_from_prefab_components()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1263,6 +1282,11 @@ public sealed class GunGameGeneratorTests
     private sealed class AtlasSceneInfoFixture
     {
         public string Identifier = string.Empty;
+    }
+
+    private sealed class GunGameSelectorSingletonFixture
+    {
+        public static object? Instance { get; set; }
     }
 
     private sealed class SequenceRandom : Random
