@@ -158,6 +158,15 @@ time, keeping the project, Thunderstore manifest, changelog, and tests in sync.
 Never store a publish token in source, Git configuration, logs, shell history,
 or cross-machine transfers.
 
+### Brand copy contract
+
+Treat a mod's maintained short description as product/brand copy, not as a
+release note. Before changing a Thunderstore manifest description, locate the
+mod's canonical description source and preserve it verbatim. An operational
+notice may be prefixed or suffixed, but it must never replace or reword the
+canonical slogan without explicit product approval. Add a focused release test
+that proves the manifest still contains the canonical text.
+
 ```bash
 ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Test"
 ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Package -Mod <ModName>"

@@ -248,6 +248,15 @@ The VR tester launches the r2modman Default profile, exercises the change in H3V
 
 Publishing is deliberate and always requires explicit user authorization. It is not a CI step.
 
+### Brand copy contract
+
+Treat a mod's maintained short description as product/brand copy, not as a
+release note. Before changing a Thunderstore manifest description, locate the
+mod's canonical description source and preserve it verbatim. An operational
+notice may be prefixed or suffixed, but it must never replace or reword the
+canonical slogan without explicit product approval. Add a focused release test
+that proves the manifest still contains the canonical text.
+
 ```powershell
 .\tools\h3vr.ps1 -Action Publish -Mod ThePing -VrApproved
 ```

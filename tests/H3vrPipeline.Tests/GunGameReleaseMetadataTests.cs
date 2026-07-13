@@ -5,6 +5,12 @@ namespace H3vrPipeline.Tests;
 
 public sealed class GunGameReleaseMetadataTests
 {
+    private const string ModdedProfileRefreshNotice =
+        "*** Modded profiles generate in background; depends on mod count. Reload GunGame to show them. ***";
+
+    private const string CanonicalShortDescription =
+        "GunGame, supercharged: 661 vanilla firearms with scopes, plus modded guns and custom Sosigs.";
+
     [Fact]
     public void Release_metadata_keeps_the_stable_listing_description_and_player_guide()
     {
@@ -19,8 +25,15 @@ public sealed class GunGameReleaseMetadataTests
 
         Assert.Equal("1.3.9", root.GetProperty("version_number").GetString());
         Assert.Equal(
-            "*** Modded profiles generate in background; depends on mod count. Reload GunGame to show them. *** GunGame, supercharged: 661 versioned vanilla firearms with validated compatible feeds, plus all supported active modded guns and custom Sosigs.",
+            ModdedProfileRefreshNotice + " " + CanonicalShortDescription,
             root.GetProperty("description").GetString());
+
+        var branding = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(),
+            "GunGameProgressions",
+            "BRANDING.md"));
+        Assert.Contains("## Canonical short description\n\n" + CanonicalShortDescription, branding);
+        Assert.Contains("Do not reword or replace this description without explicit product approval.", branding);
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));
         Assert.Contains("## Choose a Pool", readme);
