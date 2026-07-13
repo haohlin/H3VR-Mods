@@ -47,7 +47,19 @@
           "to": "GunGameProgressionsMetadataExporter.dll"
         }
       ],
-      "patchTargets": []
+      "patchTargets": [],
+      "externalPatchTargets": [
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Progression",
+          "method": "SpawnAndEquip"
+        },
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Weapons.WeaponBuffer",
+          "method": "SpawnAsync"
+        }
+      ]
     },
     "Teleport": {
       "patchTargets": [

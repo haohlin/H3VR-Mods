@@ -251,6 +251,38 @@ function Assert-PatchTargets {
     }
 }
 
+function Assert-ExternalPatchTargets {
+    param([object]$ModConfig)
+
+    $targetsProperty = $ModConfig.PSObject.Properties['externalPatchTargets']
+    if ($null -eq $targetsProperty) {
+        return
+    }
+
+    foreach ($target in @($targetsProperty.Value)) {
+        $assemblyPath = Join-Path $EnvironmentConfig.r2modman.pluginsRoot $target.relativeAssemblyPath
+        if (-not (Test-Path -LiteralPath $assemblyPath)) {
+            throw "External patch assembly was not found: $($target.relativeAssemblyPath)"
+        }
+
+        Push-Location $RepoRoot
+        try {
+            $decompiledType = (& dotnet tool run ilspycmd -- -t $target.type $assemblyPath | Out-String)
+            if ($LASTEXITCODE -ne 0) {
+                throw "Could not inspect external patch type: $($target.type)"
+            }
+        }
+        finally {
+            Pop-Location
+        }
+
+        $methodPattern = "\b$([regex]::Escape($target.method))\s*\("
+        if ($decompiledType -notmatch $methodPattern) {
+            throw "External patch method was not found: $($target.type).$($target.method)"
+        }
+    }
+}
+
 function Invoke-Preflight {
     if (-not (Test-Path -LiteralPath $RepoRoot)) {
         throw "Repository root does not exist: $RepoRoot"
@@ -649,7 +681,7 @@ switch ($Action) {
         Select-String -Path ($sourceMatches.Path | Sort-Object -Unique) -Pattern ("\b" + [regex]::Escape($methodName) + "\s*\(")
     }
     'GrepSource' { if ([string]::IsNullOrWhiteSpace($Query)) { throw 'GrepSource requires -Query.' }; Find-SourceText $Query }
-    'Verify' { Assert-CurrentSource; Assert-PatchTargets (Get-ModConfig $Mod); Write-Host "Verified $Mod." }
+    'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' { Invoke-Build (Get-ModConfig $Mod) }
     'Test' { Invoke-Test }
     'Package' { New-Package (Get-ModConfig $Mod) | Format-List }

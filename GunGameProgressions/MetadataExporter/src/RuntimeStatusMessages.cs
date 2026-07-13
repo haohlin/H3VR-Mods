@@ -10,5 +10,6 @@ public static class RuntimeStatusMessages
     public const string ProfileUiUpdateFailed = "GunGame Progressions: could not add modded pools.";
     public const string FallbackPools = "GunGame Progressions: using packaged fallback pools.";
     public const string PoolHookUnavailable = "GunGame Progressions: scene hook unavailable; packaged pools will be used.";
+    public const string SpawnSafetyUnavailable = "GunGame Progressions: spawn safety unavailable.";
     public const string PoolLoadFailed = "GunGame Progressions: could not start the GunGame scene.";
 }

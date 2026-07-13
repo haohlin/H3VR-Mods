@@ -27,6 +27,15 @@ public sealed class GunGameGeneratorTests
         Assert.Contains(
             gunGame.GetProperty("payload").EnumerateArray(),
             payload => payload.GetProperty("to").GetString() == "GunGameProgressionsMetadataExporter.dll");
+        var externalTargets = gunGame.GetProperty("externalPatchTargets").EnumerateArray().ToArray();
+        Assert.Contains(
+            externalTargets,
+            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Progression" &&
+                target.GetProperty("method").GetString() == "SpawnAndEquip");
+        Assert.Contains(
+            externalTargets,
+            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Weapons.WeaponBuffer" &&
+                target.GetProperty("method").GetString() == "SpawnAsync");
     }
 
     [Fact]
@@ -379,6 +388,37 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void GunGame_spawn_safety_policy_rejects_wrong_runtime_object_categories()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.GunGameSpawnSafetyPolicy"));
+        var hasExpectedCategory = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("HasExpectedCategory", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)hasExpectedCategory.Invoke(null, new object[] { "Gun", "Firearm" })!);
+        Assert.False((bool)hasExpectedCategory.Invoke(null, new object[] { "Gun", "Magazine" })!);
+        Assert.True((bool)hasExpectedCategory.Invoke(null, new object[] { "Feed", "Magazine" })!);
+        Assert.True((bool)hasExpectedCategory.Invoke(null, new object[] { "Feed", "Cartridge" })!);
+        Assert.False((bool)hasExpectedCategory.Invoke(null, new object[] { "Feed", "Attachment" })!);
+        Assert.True((bool)hasExpectedCategory.Invoke(null, new object[] { "Extra", "Attachment" })!);
+        Assert.False((bool)hasExpectedCategory.Invoke(null, new object[] { "Extra", "Magazine" })!);
+    }
+
+    [Fact]
+    public void GunGame_spawn_safety_wraps_the_single_upstream_spawn_boundary()
+    {
+        var safetyPath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "GunGameSpawnSafety.cs");
+        var source = File.ReadAllText(safetyPath);
+
+        Assert.Contains("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPrefix", source, StringComparison.Ordinal);
+        Assert.Contains("TryValidateCurrentLoadout", source, StringComparison.Ordinal);
+        Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
+        Assert.Contains("yield return null;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -493,6 +533,7 @@ public sealed class GunGameGeneratorTests
                 "NoModdedPools",
                 "ProfileUiUpdateFailed",
                 "FallbackPools",
+                "SpawnSafetyUnavailable",
             }
             .Select(name => (string)messages.GetField(name, BindingFlags.Public | BindingFlags.Static)!.GetRawConstantValue()!)
             .ToArray();
@@ -504,6 +545,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("GunGame Progressions: no modded pools available.", lifecycle[4]);
         Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[5]);
         Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[6]);
+        Assert.Equal("GunGame Progressions: spawn safety unavailable.", lifecycle[7]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
     }
 

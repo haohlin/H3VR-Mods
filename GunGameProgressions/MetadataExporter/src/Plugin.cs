@@ -32,6 +32,7 @@ public sealed class Plugin : BaseUnityPlugin
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
     private Harmony harmony;
+    private GunGameSpawnSafety spawnSafety;
     private Type weaponPoolLoaderType;
     private MethodInfo gameManagerOnDestroy;
     private EventInfo weaponPoolLoadedEvent;
@@ -42,6 +43,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         instance = this;
         InstallGunGameRefreshHooks();
+        InstallGunGameSpawnSafety();
         StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
         Trace("plugin awake.");
         Logger.LogInfo(RuntimeStatusMessages.Ready);
@@ -60,6 +62,8 @@ public sealed class Plugin : BaseUnityPlugin
         {
             harmony.UnpatchSelf();
         }
+
+        GunGameSpawnSafety.Clear();
 
         if (weaponPoolLoadedEvent != null && weaponPoolLoadedHandler != null)
         {
@@ -93,6 +97,23 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Trace("GunGame session-exit hook active.");
+    }
+
+    private void InstallGunGameSpawnSafety()
+    {
+        if (harmony == null)
+        {
+            harmony = new Harmony(HarmonyId);
+        }
+
+        spawnSafety = new GunGameSpawnSafety(this, Trace);
+        if (spawnSafety.Install(harmony))
+        {
+            Trace("GunGame invalid-loadout safety active.");
+            return;
+        }
+
+        Logger.LogError(RuntimeStatusMessages.SpawnSafetyUnavailable);
     }
 
     private static void GameManagerOnDestroyPostfix()
