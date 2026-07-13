@@ -103,10 +103,12 @@ with coverage for the same condition.
 | Real revolver shotgun loses its direct loader | Retain only its explicitly compatible speedloader. | `Runtime_profile_builder_keeps_a_revolver_shotguns_direct_speedloader` |
 | Box-fed shotgun has no verified box loader | Skip it; do not fall back to shells or generic loaders. | `Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader` |
 | Missing ID, wrong ID category, or spawn exception | Skip and promote; no crash or stuck progression. | `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
+| Verified RMR or Picatinny sight mount receives no optic | Use a verified compatible reflex or scope when one exists. | `Runtime_profile_builder_selects_only_exact_mount_verified_optics` |
 | Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
 | Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
 | CQC, rifle, and sniper receive indiscriminate optic power | Rank verified compatible optics by firearm role. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
 | Scope is assigned to muzzle, stock, grip, or a generic side mount | Emit no optic for a non-sighting mount. | `Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts` |
+| Firearm has no verified sight-capable mount but receives an optic | Emit no optic; do not guess a mount. | `Runtime_profile_builder_ignores_unrecognized_non_optic_mounts` |
 | Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state is unavailable | Vanilla remains usable; Modded refresh waits in the background. | `Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector` |
