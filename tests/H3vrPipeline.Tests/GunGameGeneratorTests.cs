@@ -367,6 +367,24 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void First_GunGame_loader_gate_defers_once_and_replays_the_original_Awake_once()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.InitialGunGameLoadGate"));
+        var nextAction = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("NextAction", BindingFlags.Public | BindingFlags.Instance));
+        var completePreparation = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("CompletePreparation", BindingFlags.Public | BindingFlags.Instance));
+        var gate = Activator.CreateInstance(gateType)!;
+
+        Assert.Equal("BeginPreparation", nextAction.Invoke(gate, null)!.ToString());
+        Assert.Equal("KeepWaiting", nextAction.Invoke(gate, null)!.ToString());
+
+        completePreparation.Invoke(gate, null);
+
+        Assert.Equal("AllowOriginalLoad", nextAction.Invoke(gate, null)!.ToString());
+        Assert.Equal("AllowOriginalLoad", nextAction.Invoke(gate, null)!.ToString());
+    }
+
+    [Fact]
     public void GunGame_scene_identity_matches_only_the_GunGame_Atlas_identifier()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -480,18 +498,24 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_refreshes_modded_pools_after_Kodeman_load_and_scene_exit_without_blocking()
+    public void Runtime_uses_one_time_yielding_warmups_before_the_first_Kodeman_pool_load_then_refreshes_in_background()
     {
         var source = File.ReadAllText(PluginSourcePath);
 
         Assert.Contains("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
+        Assert.Contains("StartupModWarmupSeconds = 15f", source, StringComparison.Ordinal);
+        Assert.Contains("FirstGunGameModWarmupSeconds = 15f", source, StringComparison.Ordinal);
+        Assert.Contains("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
         Assert.Contains("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
+        Assert.Contains("PrepareFirstGunGamePoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
+        Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoader.LoaderStatus", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("WeaponPoolLoaderAwakePrefix", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("PrepareModdedPoolsThenLoadWeaponPools", source, StringComparison.Ordinal);
+        Assert.Contains("WaitForSecondsRealtime(StartupModWarmupSeconds)", source, StringComparison.Ordinal);
+        Assert.Contains("WaitForSecondsRealtime(FirstGunGameModWarmupSeconds)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
         Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
     }
 
