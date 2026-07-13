@@ -23,6 +23,7 @@ public sealed class Plugin : BaseUnityPlugin
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
+    private const float PrefabInspectionTimeoutSeconds = 0.25f;
 
     private static Plugin instance;
     private readonly GunGameSelectorInstanceTracker selectorTracker = new GunGameSelectorInstanceTracker();
@@ -35,12 +36,13 @@ public sealed class Plugin : BaseUnityPlugin
     private MethodInfo gameManagerOnDestroy;
     private EventInfo weaponPoolLoadedEvent;
     private Delegate weaponPoolLoadedHandler;
+    private bool selectorSubscriptionWaitingLogged;
 
     private void Awake()
     {
         instance = this;
         InstallGunGameRefreshHooks();
-        SubscribeToWeaponPoolLoaderReadyEvent();
+        StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
         Trace("plugin awake.");
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
@@ -102,7 +104,26 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void SubscribeToWeaponPoolLoaderReadyEvent()
+    private IEnumerator WaitForWeaponPoolLoaderReadyEvent()
+    {
+        while (weaponPoolLoadedHandler == null)
+        {
+            if (TrySubscribeToWeaponPoolLoaderReadyEvent())
+            {
+                yield break;
+            }
+
+            if (!selectorSubscriptionWaitingLogged)
+            {
+                selectorSubscriptionWaitingLogged = true;
+                Trace("waiting for GunGame selector event.");
+            }
+
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    private bool TrySubscribeToWeaponPoolLoaderReadyEvent()
     {
         weaponPoolLoaderType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
         var callback = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderReady");
@@ -113,8 +134,7 @@ public sealed class Plugin : BaseUnityPlugin
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         if (weaponPoolLoadedEvent == null || callback == null || weaponPoolLoadedEvent.EventHandlerType == null)
         {
-            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
-            return;
+            return false;
         }
 
         try
@@ -122,11 +142,12 @@ public sealed class Plugin : BaseUnityPlugin
             weaponPoolLoadedHandler = Delegate.CreateDelegate(weaponPoolLoadedEvent.EventHandlerType, callback);
             weaponPoolLoadedEvent.AddEventHandler(null, weaponPoolLoadedHandler);
             Trace("GunGame selector ready event subscribed.");
+            return true;
         }
         catch (Exception exception)
         {
-            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             Logger.LogDebug("Could not subscribe to GunGame selector ready event: " + exception);
+            return false;
         }
     }
 
@@ -328,12 +349,14 @@ public sealed class Plugin : BaseUnityPlugin
                 if (readinessGate.IsReady(Time.realtimeSinceStartup, externalLoadState))
                 {
                     RuntimeMetadataCapture metadataCapture = null;
+                    Trace("modded capture started.");
                     yield return StartCoroutine(CaptureRuntimeMetadata(
                         objects,
                         item => item.IsModContent,
                         capture => metadataCapture = capture));
                     if (metadataCapture != null)
                     {
+                        Trace("modded capture complete: " + metadataCapture.Entries.Count + " entries.");
                         yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, totalTimer));
                     }
 
@@ -640,9 +663,19 @@ public sealed class Plugin : BaseUnityPlugin
     private ExternalContentLoadState GetExternalContentLoadState()
     {
         var loaderStatusType = AccessTools.TypeByName("OtherLoader.LoaderStatus");
-        var progressMethod = loaderStatusType == null ? null : AccessTools.Method(loaderStatusType, "GetLoaderProgress");
-        var startTimeField = loaderStatusType == null ? null : AccessTools.Field(loaderStatusType, "LoadStartTime");
-        if (progressMethod == null || startTimeField == null)
+        if (loaderStatusType == null)
+        {
+            return ExternalContentLoadState.Unavailable;
+        }
+
+        // Use ordinary reflection here. Harmony's field helper can log a
+        // misleading missing-field error for this loader-local type while the
+        // field is actually present in the installed OtherLoader assembly.
+        var flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        var progressMethod = loaderStatusType.GetMethod("GetLoaderProgress", flags);
+        var startTimeField = loaderStatusType.GetField("LoadStartTime", flags);
+        var activeLoadersProperty = loaderStatusType.GetProperty("NumActiveLoaders", flags);
+        if (progressMethod == null)
         {
             return ExternalContentLoadState.Unavailable;
         }
@@ -650,13 +683,16 @@ public sealed class Plugin : BaseUnityPlugin
         try
         {
             var progress = Convert.ToSingle(progressMethod.Invoke(null, null));
-            var loadStartTime = Convert.ToSingle(startTimeField.GetValue(null));
-            if (progress >= 1f)
+            var loadStartTime = startTimeField == null ? 0f : Convert.ToSingle(startTimeField.GetValue(null));
+            var activeLoaders = activeLoadersProperty == null ? 0 : Convert.ToInt32(activeLoadersProperty.GetValue(null, null));
+            if (progress >= 1f && activeLoaders <= 0 && (startTimeField != null || activeLoadersProperty != null))
             {
                 return ExternalContentLoadState.Complete;
             }
 
-            return loadStartTime > 0f ? ExternalContentLoadState.Loading : ExternalContentLoadState.Unavailable;
+            return loadStartTime > 0f || activeLoaders > 0
+                ? ExternalContentLoadState.Loading
+                : ExternalContentLoadState.Unavailable;
         }
         catch (Exception exception)
         {
@@ -694,28 +730,18 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var declaredCategory = item.Category.ToString();
-            var physicalMountTypes = new List<string>();
-            var opticKind = string.Empty;
+            var inspection = RuntimePrefabInspection.Empty();
             if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
             {
-                var prefabCallback = item.GetGameObjectAsync();
-                yield return prefabCallback;
-                try
-                {
-                    var prefab = prefabCallback.Result;
-                    physicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
-                    opticKind = GetOpticKind(item, prefab);
-                }
-                catch (Exception exception)
-                {
-                    // Do not fall back to broad metadata tags here. A missing
-                    // prefab is safer as "no verified optic" than a loose,
-                    // incompatible attachment that can crash GunGame spawn.
-                    Logger.LogDebug("Could not inspect GunGame mount prefab for " + item.ItemID + ": " + exception.Message);
-                }
+                yield return StartCoroutine(InspectRuntimePrefab(
+                    item,
+                    declaredCategory,
+                    result => inspection = result));
 
                 frameStart = Stopwatch.GetTimestamp();
             }
+
+            var roundType = inspection.HasRoundType ? inspection.RoundType : (int)item.RoundType;
 
             entries.Add(new RuntimeMetadataEntry
             {
@@ -724,7 +750,7 @@ public sealed class Plugin : BaseUnityPlugin
                 IsModContent = item.IsModContent,
                 MagazineType = (int)item.MagazineType,
                 ClipType = (int)item.ClipType,
-                RoundType = (int)item.RoundType,
+                RoundType = roundType,
                 CompatibleMagazines = ObjectIds(item.CompatibleMagazines),
                 CompatibleClips = ObjectIds(item.CompatibleClips),
                 CompatibleSpeedLoaders = ObjectIds(item.CompatibleSpeedLoaders),
@@ -741,8 +767,12 @@ public sealed class Plugin : BaseUnityPlugin
                     : item.TagFirearmMounts.Select(mount => mount.ToString()).ToList(),
                 AttachmentMount = item.TagAttachmentMount.ToString(),
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
-                OpticKind = opticKind,
-                PhysicalMountTypes = physicalMountTypes,
+                OpticKind = inspection.OpticKind,
+                PhysicalMountTypes = inspection.PhysicalMountTypes,
+                OpticMinMagnification = inspection.OpticMinMagnification,
+                OpticMaxMagnification = inspection.OpticMaxMagnification,
+                IsVariableMagnification = inspection.IsVariableMagnification,
+                IsGunGameRoundDisplaySupported = declaredCategory != "Firearm" || HasGunGameRoundDisplayData(roundType),
             });
 
             if (HasExceededCaptureBudget(frameStart))
@@ -754,6 +784,69 @@ public sealed class Plugin : BaseUnityPlugin
 
         entries.Sort((left, right) => string.CompareOrdinal(left.ObjectID, right.ObjectID));
         complete(new RuntimeMetadataCapture(entries, timer.ElapsedMilliseconds));
+    }
+
+    private IEnumerator InspectRuntimePrefab(
+        FVRObject item,
+        string declaredCategory,
+        Action<RuntimePrefabInspection> complete)
+    {
+        var inspection = RuntimePrefabInspection.Empty();
+        try
+        {
+            var prefabCallback = item.GetGameObjectAsync();
+            var deadline = Time.realtimeSinceStartup + PrefabInspectionTimeoutSeconds;
+            while (!prefabCallback.IsCompleted && Time.realtimeSinceStartup < deadline)
+            {
+                prefabCallback.Pump();
+                yield return null;
+            }
+
+            if (!prefabCallback.IsCompleted)
+            {
+                Logger.LogDebug("GunGame prefab inspection timed out for " + item.ItemID + ".");
+                complete(inspection);
+                yield break;
+            }
+
+            var prefab = prefabCallback.Result;
+            inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
+            if (declaredCategory == "Attachment")
+            {
+                PopulateOpticInspection(item, prefab, inspection);
+            }
+            else if (declaredCategory == "Firearm")
+            {
+                var firearm = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArm>(true);
+                if (firearm != null)
+                {
+                    inspection.RoundType = (int)firearm.RoundType;
+                    inspection.HasRoundType = true;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            // A malformed Anvil asset must not cancel capture of every later
+            // mod item or prevent the two Modded profiles from being written.
+            Logger.LogDebug("Could not inspect GunGame prefab for " + item.ItemID + ": " + exception.Message);
+        }
+
+        complete(inspection);
+    }
+
+    private static bool HasGunGameRoundDisplayData(int roundType)
+    {
+        try
+        {
+            return AM.SRoundDisplayDataDic != null &&
+                AM.SRoundDisplayDataDic.ContainsKey((FireArmRoundType)roundType);
+        }
+        catch
+        {
+            // Missing display data is unsafe for GunGame's promotion path.
+            return false;
+        }
     }
 
     private static bool HasExceededCaptureBudget(long frameStart)
@@ -961,36 +1054,103 @@ public sealed class Plugin : BaseUnityPlugin
         return property != null && property.PropertyType == typeof(bool) && (bool)property.GetValue(value, null);
     }
 
-    private static string GetOpticKind(FVRObject item, GameObject prefab)
+    private static void PopulateOpticInspection(
+        FVRObject item,
+        GameObject prefab,
+        RuntimePrefabInspection inspection)
     {
         if (item.Category.ToString() != "Attachment" || prefab == null)
         {
-            return string.Empty;
+            return;
         }
 
         var attachments = prefab.GetComponentsInChildren<FVRFireArmAttachment>(true);
-        return PipScopeOpticClassifier.Classify(
+        inspection.OpticKind = PipScopeOpticClassifier.Classify(
             item.ItemID,
             attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.PIPScopeController")),
             attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.ReflexSightController")));
+        if (inspection.OpticKind == "Scope")
+        {
+            PopulateScopeMagnification(attachments, inspection);
+        }
+    }
+
+    private static void PopulateScopeMagnification(
+        IEnumerable<FVRFireArmAttachment> attachments,
+        RuntimePrefabInspection inspection)
+    {
+        var magnifications = new List<float>();
+        foreach (var attachment in attachments ?? Enumerable.Empty<FVRFireArmAttachment>())
+        {
+            var scopeType = FindAttachmentInterfaceType(attachment, "FistVR.PIPScopeController");
+            if (scopeType == null)
+            {
+                continue;
+            }
+
+            try
+            {
+                var valuesField = scopeType.GetField(
+                    "MagnificationValues",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var values = valuesField == null
+                    ? null
+                    : valuesField.GetValue(attachment.AttachmentInterface) as System.Collections.IEnumerable;
+                if (values == null)
+                {
+                    continue;
+                }
+
+                foreach (var value in values)
+                {
+                    var magnification = Convert.ToSingle(value);
+                    if (magnification > 0f)
+                    {
+                        magnifications.Add(magnification);
+                    }
+                }
+            }
+            catch
+            {
+                // Keep this optional data best-effort. Physical mount and
+                // optic interface validation still determine compatibility.
+            }
+        }
+
+        if (magnifications.Count == 0)
+        {
+            return;
+        }
+
+        inspection.OpticMinMagnification = magnifications.Min();
+        inspection.OpticMaxMagnification = magnifications.Max();
+        inspection.IsVariableMagnification = magnifications
+            .Select(value => Math.Round(value, 3))
+            .Distinct()
+            .Count() > 1;
     }
 
     private static bool HasAttachmentInterface(FVRFireArmAttachment attachment, string expectedTypeName)
     {
+        return FindAttachmentInterfaceType(attachment, expectedTypeName) != null;
+    }
+
+    private static Type FindAttachmentInterfaceType(FVRFireArmAttachment attachment, string expectedTypeName)
+    {
         if (attachment == null || attachment.AttachmentInterface == null)
         {
-            return false;
+            return null;
         }
 
         for (var type = attachment.AttachmentInterface.GetType(); type != null; type = type.BaseType)
         {
             if (string.Equals(type.FullName, expectedTypeName, StringComparison.Ordinal))
             {
-                return true;
+                return type;
             }
         }
 
-        return false;
+        return null;
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)
@@ -1055,6 +1215,8 @@ public sealed class Plugin : BaseUnityPlugin
             json.Append(item.ClipType);
             json.Append(",\"RoundType\":");
             json.Append(item.RoundType);
+            json.Append(",\"IsGunGameRoundDisplaySupported\":");
+            json.Append(item.IsGunGameRoundDisplaySupported ? "true" : "false");
             AppendJsonNamedStringArray(json, "CompatibleMagazines", item.CompatibleMagazines);
             AppendJsonNamedStringArray(json, "CompatibleClips", item.CompatibleClips);
             AppendJsonNamedStringArray(json, "CompatibleSpeedLoaders", item.CompatibleSpeedLoaders);
@@ -1069,6 +1231,12 @@ public sealed class Plugin : BaseUnityPlugin
             AppendJsonNamedString(json, "AttachmentFeature", item.AttachmentFeature);
             AppendJsonNamedString(json, "OpticKind", item.OpticKind);
             AppendJsonNamedStringArray(json, "PhysicalMountTypes", item.PhysicalMountTypes);
+            json.Append(",\"OpticMinMagnification\":");
+            json.Append(item.OpticMinMagnification.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            json.Append(",\"OpticMaxMagnification\":");
+            json.Append(item.OpticMaxMagnification.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            json.Append(",\"IsVariableMagnification\":");
+            json.Append(item.IsVariableMagnification ? "true" : "false");
             json.Append('}');
             if (index < entries.Count - 1)
             {
@@ -1505,6 +1673,26 @@ public sealed class Plugin : BaseUnityPlugin
                 error = failure;
                 isCompleted = true;
             }
+        }
+    }
+
+    private sealed class RuntimePrefabInspection
+    {
+        public List<string> PhysicalMountTypes { get; set; }
+        public string OpticKind { get; set; }
+        public float OpticMinMagnification { get; set; }
+        public float OpticMaxMagnification { get; set; }
+        public bool IsVariableMagnification { get; set; }
+        public int RoundType { get; set; }
+        public bool HasRoundType { get; set; }
+
+        public static RuntimePrefabInspection Empty()
+        {
+            return new RuntimePrefabInspection
+            {
+                PhysicalMountTypes = new List<string>(),
+                OpticKind = string.Empty,
+            };
         }
     }
 

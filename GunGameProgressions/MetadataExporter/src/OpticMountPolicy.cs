@@ -6,16 +6,24 @@ namespace HLin.GunGameProgressions;
 
 public sealed class OpticMountRule
 {
-    public OpticMountRule(string mountType, string opticKind, int priority)
+    public OpticMountRule(string mountType, IEnumerable<string> opticKinds, int priority)
     {
         MountType = mountType;
-        OpticKind = opticKind;
+        OpticKinds = (opticKinds ?? Enumerable.Empty<string>())
+            .Where(kind => !string.IsNullOrEmpty(kind))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
         Priority = priority;
     }
 
     public string MountType { get; private set; }
-    public string OpticKind { get; private set; }
+    public List<string> OpticKinds { get; private set; }
     public int Priority { get; private set; }
+
+    public bool Accepts(string opticKind)
+    {
+        return OpticKinds.Any(kind => string.Equals(kind, opticKind, StringComparison.Ordinal));
+    }
 }
 
 /// <summary>
@@ -42,19 +50,20 @@ public static class OpticMountPolicy
         if (string.Equals(mountType, "RMR", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(mountType, "Handgun", StringComparison.OrdinalIgnoreCase))
         {
-            return new OpticMountRule(mountType, "Reflex", 20);
+            return new OpticMountRule(mountType, new[] { "Reflex" }, 20);
         }
 
         if (string.Equals(mountType, "Picatinny", StringComparison.OrdinalIgnoreCase))
         {
-            // A real Picatinny rail is the universal default: give it a
-            // magnified Picatinny scope unless a more specific optic mount is
-            // present on the same firearm.
-            return new OpticMountRule(mountType, "Scope", 100);
+            // A verified Picatinny rail accepts both verified scopes and
+            // reflex sights. The firearm role decides between those two after
+            // this physical compatibility check; a proprietary mount still
+            // wins because it has a lower priority value.
+            return new OpticMountRule(mountType, new[] { "Scope", "Reflex" }, 100);
         }
 
         return IsScopeMount(mountType)
-            ? new OpticMountRule(mountType, "Scope", 10)
+            ? new OpticMountRule(mountType, new[] { "Scope" }, 10)
             : null;
     }
 

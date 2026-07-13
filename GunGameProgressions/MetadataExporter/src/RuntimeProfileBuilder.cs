@@ -26,6 +26,10 @@ public sealed class RuntimeMetadataEntry
     public string AttachmentFeature { get; set; }
     public string OpticKind { get; set; }
     public List<string> PhysicalMountTypes { get; set; }
+    public float OpticMinMagnification { get; set; }
+    public float OpticMaxMagnification { get; set; }
+    public bool IsVariableMagnification { get; set; }
+    public bool IsGunGameRoundDisplaySupported { get; set; } = true;
 }
 
 public sealed class RuntimeEnemyEntry
@@ -207,6 +211,12 @@ public static class RuntimeProfileBuilder
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
         {
+            if (!firearm.IsGunGameRoundDisplaySupported)
+            {
+                skipped.Add(firearm.ObjectID);
+                continue;
+            }
+
             var feeds = GetCompatibleFeeds(index, firearm);
             if (feeds.Count == 0)
             {
@@ -428,15 +438,14 @@ public static class RuntimeProfileBuilder
         foreach (var rule in OpticMountPolicy.Rank(firearm.PhysicalMountTypes))
         {
             var candidates = directCandidates
-                .Concat(index.GetOptics(rule.OpticKind))
+                .Concat(index.GetOptics(rule.OpticKinds))
                 .Where(attachment => IsCompatibleWithRule(attachment, rule))
                 .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
                 .Select(group => group.First())
-                .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
                 .ToList();
             if (candidates.Count > 0)
             {
-                return candidates[random.Next(candidates.Count)].ObjectID;
+                return SelectPreferredOptic(candidates, firearm, random);
             }
         }
 
@@ -446,10 +455,8 @@ public static class RuntimeProfileBuilder
         var directFallback = directCandidates
             .Where(attachment => IsVerifiedOptic(attachment) &&
                 HasSharedPhysicalMount(firearm.PhysicalMountTypes, attachment.PhysicalMountTypes))
-            .OrderByDescending(attachment => attachment.OpticKind == "Scope")
-            .ThenBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
             .ToList();
-        return directFallback.Count == 0 ? null : directFallback[random.Next(directFallback.Count)].ObjectID;
+        return directFallback.Count == 0 ? null : SelectPreferredOptic(directFallback, firearm, random);
     }
 
     private static List<RuntimeMetadataEntry> GetDirectOptics(
@@ -472,8 +479,86 @@ public static class RuntimeProfileBuilder
     private static bool IsCompatibleWithRule(RuntimeMetadataEntry attachment, OpticMountRule rule)
     {
         return IsVerifiedOptic(attachment) &&
-            string.Equals(attachment.OpticKind, rule.OpticKind, StringComparison.Ordinal) &&
+            rule.Accepts(attachment.OpticKind) &&
             HasMount(attachment.PhysicalMountTypes, rule.MountType);
+    }
+
+    private static string SelectPreferredOptic(
+        IEnumerable<RuntimeMetadataEntry> candidates,
+        RuntimeMetadataEntry firearm,
+        Random random)
+    {
+        var candidateList = candidates
+            .Where(candidate => candidate != null)
+            .ToList();
+        if (candidateList.Count == 0)
+        {
+            return null;
+        }
+
+        var bestRank = candidateList.Min(candidate => OpticFitRank(firearm, candidate));
+        var bestCandidates = candidateList
+            .Where(candidate => OpticFitRank(firearm, candidate) == bestRank)
+            .OrderBy(candidate => candidate.ObjectID, StringComparer.Ordinal)
+            .ToList();
+        return bestCandidates[random.Next(bestCandidates.Count)].ObjectID;
+    }
+
+    // This is a selection preference only. Physical mount verification and
+    // proprietary-mount priority are enforced before it is called.
+    private static int OpticFitRank(RuntimeMetadataEntry firearm, RuntimeMetadataEntry optic)
+    {
+        if (IsCloseRangeFirearm(firearm))
+        {
+            if (optic.OpticKind == "Reflex")
+            {
+                return 0;
+            }
+
+            return optic.OpticMaxMagnification > 0f && optic.OpticMaxMagnification <= 4f ? 10 : 20;
+        }
+
+        if (IsHighPowerFirearm(firearm))
+        {
+            if (optic.OpticKind == "Scope")
+            {
+                if (optic.OpticMaxMagnification >= 8f)
+                {
+                    return 0;
+                }
+
+                return optic.OpticMaxMagnification >= 4f ? 10 : 20;
+            }
+
+            return 100;
+        }
+
+        if (optic.OpticKind == "Scope")
+        {
+            return optic.IsVariableMagnification && optic.OpticMinMagnification <= 3f && optic.OpticMaxMagnification >= 4f
+                ? 0
+                : 10;
+        }
+
+        return 30;
+    }
+
+    private static bool IsCloseRangeFirearm(RuntimeMetadataEntry firearm)
+    {
+        return firearm.FirearmRoundPower == "Tiny" ||
+            firearm.FirearmRoundPower == "Pistol" ||
+            firearm.FirearmRoundPower == "Shotgun" ||
+            firearm.FirearmSize == "Pocket" ||
+            firearm.FirearmSize == "Pistol" ||
+            (firearm.FirearmAction == "Automatic" &&
+                (firearm.FirearmSize == "Compact" || firearm.FirearmSize == "Carbine"));
+    }
+
+    private static bool IsHighPowerFirearm(RuntimeMetadataEntry firearm)
+    {
+        return firearm.FirearmRoundPower == "AntiMaterial" ||
+            (firearm.FirearmAction == "BoltAction" &&
+                (firearm.FirearmRoundPower == "FullPower" || firearm.FirearmRoundPower == "Exotic"));
     }
 
     private static bool IsVerifiedOptic(RuntimeMetadataEntry attachment)
@@ -604,12 +689,23 @@ public static class RuntimeProfileBuilder
                 : new List<FeedCandidate>();
         }
 
-        public List<RuntimeMetadataEntry> GetOptics(string opticKind)
+        public List<RuntimeMetadataEntry> GetOptics(IEnumerable<string> opticKinds)
+        {
+            return (opticKinds ?? Enumerable.Empty<string>())
+                .Where(kind => !string.IsNullOrEmpty(kind))
+                .Distinct(StringComparer.Ordinal)
+                .SelectMany(GetOptics)
+                .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private IEnumerable<RuntimeMetadataEntry> GetOptics(string opticKind)
         {
             List<RuntimeMetadataEntry> candidates;
             return opticsByKind.TryGetValue(opticKind, out candidates)
-                ? new List<RuntimeMetadataEntry>(candidates)
-                : new List<RuntimeMetadataEntry>();
+                ? candidates
+                : Enumerable.Empty<RuntimeMetadataEntry>();
         }
 
         private void IndexFeed(RuntimeMetadataEntry entry)
