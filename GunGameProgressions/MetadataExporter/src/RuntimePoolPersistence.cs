@@ -41,8 +41,13 @@ public static class RuntimePoolPersistence
 
         using (var hash = new SHA256Managed())
         {
-            return string.Concat(hash.ComputeHash(Encoding.UTF8.GetBytes(content.ToString()))
-                .Select(value => value.ToString("x2", CultureInfo.InvariantCulture)));
+            var fingerprint = new StringBuilder();
+            foreach (var value in hash.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())))
+            {
+                fingerprint.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return fingerprint.ToString();
         }
     }
 
