@@ -12,12 +12,19 @@ is packaged beside those two profiles for repeatable offline validation.
 > **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
 > item or attachment. Never guess an object ID from a name or shared caliber.
 
+> **Prefab reconciliation rule:** catalog metadata is the baseline. For a
+> resolved runtime prefab, the real `FVRFireArm`, magazine, clip, speedloader,
+> or cartridge component overrides its catalog feed type. A registry entry
+> declared as a firearm must resolve to an `FVRFireArm`; otherwise it is not a
+> progression weapon. This repairs incomplete mod catalog data without naming
+> individual mods or weapons.
+
 ## Safety gate
 
 | Metadata state | Result |
 | --- | --- |
 | Not a supported firearm | Skip |
-| No action or no round-power classification | Skip |
+| Resolved firearm entry has no `FVRFireArm` component | Skip |
 | No verified compatible feed | Skip |
 | No compatible optic | Spawn the firearm without an optic |
 
@@ -130,6 +137,7 @@ with coverage for the same condition.
 | --- | --- | --- |
 | `Slingshot` | Explicitly blacklist it; it can freeze GunGame when fired. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot` |
 | Firearm with no verified compatible feed | Skip it; never guess a magazine, round, or arrow from its name or model. This covers malformed mod entries such as `CompoundBow`, MCX rail objects mislabeled as firearms, and incomplete G28 variants. The sole exception is the self-contained `GravitonBeamer`, which intentionally uses an empty feed. | `Runtime_profile_builder_allows_only_graviton_to_be_feedless` |
+| Mod firearm or feed has an incomplete catalog type | Reconcile the exact type from its resolved physical prefab, then use the ordinary direct/exact feed rule. A declared firearm with no resolved `FVRFireArm` is excluded. | `Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
 | G28-style magazine-fed firearm receives a loose round | Prefer its direct/exact magazine in both pool families. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |

@@ -474,6 +474,56 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var prefabType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePrefabMetadata"));
+        var reconcilerType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataReconciler"));
+        var apply = Assert.IsAssignableFrom<MethodInfo>(reconcilerType.GetMethod("Apply", BindingFlags.Public | BindingFlags.Static));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+
+        var firearm = RuntimeEntry(entryType, "ModdedPrefabGun", "Firearm", true, magazineType: 0);
+        var firearmPrefab = Activator.CreateInstance(prefabType)!;
+        SetRuntimeProperty(prefabType, firearmPrefab, "WasResolved", true);
+        SetRuntimeProperty(prefabType, firearmPrefab, "HasFirearmComponent", true);
+        SetRuntimeProperty(prefabType, firearmPrefab, "HasMagazineType", true);
+        SetRuntimeProperty(prefabType, firearmPrefab, "MagazineType", 4242);
+        apply.Invoke(null, new[] { firearm, firearmPrefab });
+
+        var magazine = RuntimeEntry(entryType, "ModdedPrefabMagazine", "Magazine", true, magazineType: 0);
+        var magazinePrefab = Activator.CreateInstance(prefabType)!;
+        SetRuntimeProperty(prefabType, magazinePrefab, "WasResolved", true);
+        SetRuntimeProperty(prefabType, magazinePrefab, "HasMagazineType", true);
+        SetRuntimeProperty(prefabType, magazinePrefab, "MagazineType", 4242);
+        apply.Invoke(null, new[] { magazine, magazinePrefab });
+
+        var mislabeledRail = RuntimeEntry(entryType, "MislabeledRail", "Firearm", true, magazineType: 4242);
+        var railPrefab = Activator.CreateInstance(prefabType)!;
+        SetRuntimeProperty(prefabType, railPrefab, "WasResolved", true);
+        SetRuntimeProperty(prefabType, railPrefab, "HasFirearmComponent", false);
+        apply.Invoke(null, new[] { mislabeledRail, railPrefab });
+
+        var entries = Array.CreateInstance(entryType, 3);
+        entries.SetValue(firearm, 0);
+        entries.SetValue(magazine, 1);
+        entries.SetValue(mislabeledRail, 2);
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns");
+
+        var generatedGun = Assert.Single(guns);
+        Assert.Equal("ModdedPrefabGun", ReadString(generatedGun, "GunName"));
+        Assert.Equal("ModdedPrefabMagazine", ReadString(generatedGun, "MagName"));
+    }
+
+    [Fact]
     public void Runtime_pool_persistence_fingerprint_is_stable_and_changes_with_runtime_metadata()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1246,6 +1296,7 @@ public sealed class GunGameGeneratorTests
         {
             "Runtime_profile_builder_skips_explicitly_blacklisted_slingshot",
             "Runtime_profile_builder_allows_only_graviton_to_be_feedless",
+            "Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs",
             "Runtime_profile_builder_skips_firearms_without_gungame_round_display_data",
             "Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type",

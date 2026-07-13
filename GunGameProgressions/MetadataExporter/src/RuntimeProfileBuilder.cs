@@ -31,6 +31,75 @@ public sealed class RuntimeMetadataEntry
     public float OpticMaxMagnification { get; set; }
     public bool IsVariableMagnification { get; set; }
     public bool IsGunGameRoundDisplaySupported { get; set; } = true;
+    // Offline fallback metadata predates prefab verification, so it remains
+    // trusted. Runtime capture replaces this with the inspected prefab result.
+    public bool IsVerifiedFirearmPrefab { get; set; } = true;
+}
+
+public sealed class RuntimePrefabMetadata
+{
+    public bool WasResolved { get; set; }
+    public bool HasFirearmComponent { get; set; }
+    public bool HasMagazineType { get; set; }
+    public int MagazineType { get; set; }
+    public bool HasClipType { get; set; }
+    public int ClipType { get; set; }
+    public bool HasRoundType { get; set; }
+    public int RoundType { get; set; }
+    public List<string> PhysicalMountTypes { get; set; }
+    public List<string> ProvidedMountTypes { get; set; }
+    public string OpticKind { get; set; }
+    public float OpticMinMagnification { get; set; }
+    public float OpticMaxMagnification { get; set; }
+    public bool IsVariableMagnification { get; set; }
+
+    public static RuntimePrefabMetadata Empty()
+    {
+        return new RuntimePrefabMetadata
+        {
+            PhysicalMountTypes = new List<string>(),
+            ProvidedMountTypes = new List<string>(),
+            OpticKind = string.Empty,
+        };
+    }
+}
+
+public static class RuntimeMetadataReconciler
+{
+    public static RuntimeMetadataEntry Apply(RuntimeMetadataEntry entry, RuntimePrefabMetadata prefab)
+    {
+        if (entry == null)
+        {
+            throw new ArgumentNullException("entry");
+        }
+
+        if (prefab == null)
+        {
+            return entry;
+        }
+
+        if (entry.Category == "Firearm" && prefab.WasResolved)
+        {
+            entry.IsVerifiedFirearmPrefab = prefab.HasFirearmComponent;
+        }
+
+        if (prefab.HasMagazineType)
+        {
+            entry.MagazineType = prefab.MagazineType;
+        }
+
+        if (prefab.HasClipType)
+        {
+            entry.ClipType = prefab.ClipType;
+        }
+
+        if (prefab.HasRoundType)
+        {
+            entry.RoundType = prefab.RoundType;
+        }
+
+        return entry;
+    }
 }
 
 public sealed class RuntimeEnemyEntry
@@ -399,6 +468,7 @@ public static class RuntimeProfileBuilder
     private static bool IsSupportedGunGameFirearm(RuntimeMetadataEntry firearm)
     {
         return firearm.IsGunGameRoundDisplaySupported &&
+            firearm.IsVerifiedFirearmPrefab &&
             !ExplicitFirearmBlacklist.Contains(firearm.ObjectID ?? string.Empty);
     }
 

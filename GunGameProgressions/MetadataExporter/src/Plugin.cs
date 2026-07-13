@@ -783,8 +783,8 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var declaredCategory = item.Category.ToString();
-            var inspection = RuntimePrefabInspection.Empty();
-            if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
+            var inspection = RuntimePrefabMetadata.Empty();
+            if (ShouldInspectRuntimePrefab(item, declaredCategory))
             {
                 yield return StartCoroutine(InspectRuntimePrefab(
                     item,
@@ -795,14 +795,13 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var roundType = inspection.HasRoundType ? inspection.RoundType : (int)item.RoundType;
-
-            entries.Add(new RuntimeMetadataEntry
+            var capturedEntry = new RuntimeMetadataEntry
             {
                 ObjectID = item.ItemID,
                 Category = declaredCategory,
                 IsModContent = item.IsModContent,
-                MagazineType = (int)item.MagazineType,
-                ClipType = (int)item.ClipType,
+                MagazineType = inspection.HasMagazineType ? inspection.MagazineType : (int)item.MagazineType,
+                ClipType = inspection.HasClipType ? inspection.ClipType : (int)item.ClipType,
                 RoundType = roundType,
                 CompatibleMagazines = ObjectIds(item.CompatibleMagazines),
                 CompatibleClips = ObjectIds(item.CompatibleClips),
@@ -827,7 +826,8 @@ public sealed class Plugin : BaseUnityPlugin
                 OpticMaxMagnification = inspection.OpticMaxMagnification,
                 IsVariableMagnification = inspection.IsVariableMagnification,
                 IsGunGameRoundDisplaySupported = declaredCategory != "Firearm" || HasGunGameRoundDisplayData(roundType),
-            });
+            };
+            entries.Add(RuntimeMetadataReconciler.Apply(capturedEntry, inspection));
 
             if (HasExceededCaptureBudget(frameStart))
             {
@@ -843,9 +843,9 @@ public sealed class Plugin : BaseUnityPlugin
     private IEnumerator InspectRuntimePrefab(
         FVRObject item,
         string declaredCategory,
-        Action<RuntimePrefabInspection> complete)
+        Action<RuntimePrefabMetadata> complete)
     {
-        var inspection = RuntimePrefabInspection.Empty();
+        var inspection = RuntimePrefabMetadata.Empty();
         AnvilCallback<GameObject> prefabCallback = null;
         var callbackCreationFailed = false;
         try
@@ -881,18 +881,66 @@ public sealed class Plugin : BaseUnityPlugin
         try
         {
             var prefab = prefabCallback.Result;
-            inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
-            inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
+            inspection.WasResolved = true;
             if (declaredCategory == "Attachment")
             {
+                inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
+                inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
                 PopulateOpticInspection(item, prefab, inspection);
             }
             else if (declaredCategory == "Firearm")
             {
                 var firearm = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArm>(true);
+                inspection.HasFirearmComponent = firearm != null;
                 if (firearm != null)
                 {
+                    inspection.MagazineType = (int)firearm.MagazineType;
+                    inspection.HasMagazineType = true;
+                    inspection.ClipType = (int)firearm.ClipType;
+                    inspection.HasClipType = true;
                     inspection.RoundType = (int)firearm.RoundType;
+                    inspection.HasRoundType = true;
+                    inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
+                    inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
+                }
+            }
+            else if (declaredCategory == "Magazine")
+            {
+                var magazine = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmMagazine>(true);
+                if (magazine != null)
+                {
+                    inspection.MagazineType = (int)magazine.MagazineType;
+                    inspection.HasMagazineType = true;
+                    inspection.RoundType = (int)magazine.RoundType;
+                    inspection.HasRoundType = true;
+                }
+            }
+            else if (declaredCategory == "Clip")
+            {
+                var clip = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmClip>(true);
+                if (clip != null)
+                {
+                    inspection.ClipType = (int)clip.ClipType;
+                    inspection.HasClipType = true;
+                    inspection.RoundType = (int)clip.RoundType;
+                    inspection.HasRoundType = true;
+                }
+            }
+            else if (declaredCategory == "SpeedLoader")
+            {
+                var speedloader = prefab == null ? null : prefab.GetComponentInChildren<Speedloader>(true);
+                if (speedloader != null && speedloader.Chambers != null && speedloader.Chambers.Count > 0)
+                {
+                    inspection.RoundType = (int)speedloader.Chambers[0].Type;
+                    inspection.HasRoundType = true;
+                }
+            }
+            else if (declaredCategory == "Cartridge")
+            {
+                var cartridge = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmRound>(true);
+                if (cartridge != null)
+                {
+                    inspection.RoundType = (int)cartridge.RoundType;
                     inspection.HasRoundType = true;
                 }
             }
@@ -905,6 +953,20 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         complete(inspection);
+    }
+
+    private static bool ShouldInspectRuntimePrefab(FVRObject item, string declaredCategory)
+    {
+        if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
+        {
+            return true;
+        }
+
+        return item != null && item.IsModContent &&
+            (declaredCategory == "Magazine" ||
+                declaredCategory == "Clip" ||
+                declaredCategory == "SpeedLoader" ||
+                declaredCategory == "Cartridge");
     }
 
     private static bool HasGunGameRoundDisplayData(int roundType)
@@ -1145,7 +1207,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static void PopulateOpticInspection(
         FVRObject item,
         GameObject prefab,
-        RuntimePrefabInspection inspection)
+        RuntimePrefabMetadata inspection)
     {
         if (item.Category.ToString() != "Attachment" || prefab == null)
         {
@@ -1171,7 +1233,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static void PopulateScopeMagnification(
         IEnumerable<FVRFireArmAttachment> attachments,
-        RuntimePrefabInspection inspection)
+        RuntimePrefabMetadata inspection)
     {
         var magnifications = new List<float>();
         foreach (var attachment in attachments ?? Enumerable.Empty<FVRFireArmAttachment>())
@@ -1311,6 +1373,8 @@ public sealed class Plugin : BaseUnityPlugin
             json.Append(item.RoundType);
             json.Append(",\"IsGunGameRoundDisplaySupported\":");
             json.Append(item.IsGunGameRoundDisplaySupported ? "true" : "false");
+            json.Append(",\"IsVerifiedFirearmPrefab\":");
+            json.Append(item.IsVerifiedFirearmPrefab ? "true" : "false");
             AppendJsonNamedStringArray(json, "CompatibleMagazines", item.CompatibleMagazines);
             AppendJsonNamedStringArray(json, "CompatibleClips", item.CompatibleClips);
             AppendJsonNamedStringArray(json, "CompatibleSpeedLoaders", item.CompatibleSpeedLoaders);
@@ -1756,28 +1820,6 @@ public sealed class Plugin : BaseUnityPlugin
                 error = failure;
                 isCompleted = true;
             }
-        }
-    }
-
-    private sealed class RuntimePrefabInspection
-    {
-        public List<string> PhysicalMountTypes { get; set; }
-        public List<string> ProvidedMountTypes { get; set; }
-        public string OpticKind { get; set; }
-        public float OpticMinMagnification { get; set; }
-        public float OpticMaxMagnification { get; set; }
-        public bool IsVariableMagnification { get; set; }
-        public int RoundType { get; set; }
-        public bool HasRoundType { get; set; }
-
-        public static RuntimePrefabInspection Empty()
-        {
-            return new RuntimePrefabInspection
-            {
-                PhysicalMountTypes = new List<string>(),
-                ProvidedMountTypes = new List<string>(),
-                OpticKind = string.Empty,
-            };
         }
     }
 

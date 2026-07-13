@@ -12,7 +12,7 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "10";
+    private const string GenerationPolicyVersion = "11";
     private const int ExpectedModdedPoolCount = 2;
 
     public static string CreateFingerprint(
@@ -167,6 +167,7 @@ public static class RuntimePoolPersistence
         AppendValue(content, entry.OpticMaxMagnification.ToString("R", CultureInfo.InvariantCulture));
         AppendValue(content, entry.IsVariableMagnification ? "1" : "0");
         AppendValue(content, entry.IsGunGameRoundDisplaySupported ? "1" : "0");
+        AppendValue(content, entry.IsVerifiedFirearmPrefab ? "1" : "0");
     }
 
     private static void AppendList(StringBuilder content, IEnumerable<string> values)
