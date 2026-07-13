@@ -751,7 +751,7 @@ public sealed class GunGameGeneratorTests
         var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 3);
+        var entries = Array.CreateInstance(entryType, 5);
 
         var revolver = RuntimeEntry(entryType, "PicatinnyRevolver", "Firearm", true);
         SetRuntimeProperty(entryType, revolver, "CompatibleMagazines", new List<string> { "RevolverSpeedloader" });
@@ -1431,6 +1431,8 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(shotgun, 0);
         entries.SetValue(RuntimeEntry(entryType, "WrongRotaryLoader", "SpeedLoader", true, roundType: 12), 1);
         entries.SetValue(RuntimeEntry(entryType, "Shell12Gauge", "Cartridge", true, roundType: 12), 2);
+        entries.SetValue(RuntimeEntry(entryType, "SafeControlFirearm", "Firearm", true, magazineType: 7), 3);
+        entries.SetValue(RuntimeEntry(entryType, "SafeControlMagazine", "Magazine", true, magazineType: 7), 4);
 
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
@@ -1439,7 +1441,7 @@ public sealed class GunGameGeneratorTests
                 .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
             "Guns");
 
-        Assert.Empty(guns);
+        Assert.Equal(new[] { "SafeControlFirearm" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
     }
 
     [Fact]
