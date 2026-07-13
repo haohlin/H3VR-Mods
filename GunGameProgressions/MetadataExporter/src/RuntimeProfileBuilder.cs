@@ -330,37 +330,63 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
-        if (IsShellFedShotgun(firearm))
+        if (firearm.FirearmRoundPower == "Shotgun")
         {
-            var directSpeedLoaders = GetDirectFeeds(
-                firearm.CompatibleSpeedLoaders,
-                index.EntriesById,
-                "SpeedLoader");
-            if (UsesExplicitRevolverSpeedLoader(firearm, directSpeedLoaders))
-            {
-                return directSpeedLoaders;
-            }
-
-            var shells = GetCompatibleShells(index, firearm);
-            if (shells.Count > 0)
-            {
-                return shells;
-            }
-
-            // A non-box-fed shotgun without a compatible shell is safer to
-            // exclude than to equip with a same-round-type rotary loader.
-            return new List<FeedCandidate>();
+            return GetCompatibleShotgunFeeds(index, firearm);
         }
 
+        return GetStandardFeeds(index, firearm, true);
+    }
+
+    private static List<FeedCandidate> GetCompatibleShotgunFeeds(
+        RuntimeProfileIndex index,
+        RuntimeMetadataEntry firearm)
+    {
+        if (!IsShellFedShotgun(firearm))
+        {
+            // A detachable or rotary shotgun may only use a loader the
+            // firearm explicitly supports (or a magazine with its exact
+            // MagazineType). Do not infer a rotary loader from round type.
+            return GetStandardFeeds(index, firearm, false);
+        }
+
+        var directSpeedLoaders = GetDirectFeeds(
+            firearm.CompatibleSpeedLoaders,
+            index.EntriesById,
+            "SpeedLoader");
+        if (UsesExplicitRevolverSpeedLoader(firearm, directSpeedLoaders))
+        {
+            return directSpeedLoaders;
+        }
+
+        var shells = GetCompatibleShells(index, firearm);
+        if (shells.Count > 0)
+        {
+            return shells;
+        }
+
+        // A shell-fed shotgun without a compatible shell is safer to exclude
+        // than to equip with a same-round-type rotary loader.
+        return new List<FeedCandidate>();
+    }
+
+    private static List<FeedCandidate> GetStandardFeeds(
+        RuntimeProfileIndex index,
+        RuntimeMetadataEntry firearm,
+        bool allowCartridges)
+    {
         return FirstAvailableFeeds(
             GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine"),
             index.GetFeeds("Magazine", firearm.MagazineType),
             GetDirectFeeds(firearm.CompatibleClips, index.EntriesById, "Clip"),
             index.GetFeeds("Clip", firearm.ClipType),
             GetDirectFeeds(firearm.CompatibleSpeedLoaders, index.EntriesById, "SpeedLoader"),
-            index.GetFeeds("SpeedLoader", firearm.RoundType),
-            GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
-            index.GetFeeds("Cartridge", firearm.RoundType));
+            allowCartridges
+                ? GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge")
+                : new List<FeedCandidate>(),
+            allowCartridges
+                ? index.GetFeeds("Cartridge", firearm.RoundType)
+                : new List<FeedCandidate>());
     }
 
     private static bool IsSupportedGunGameFirearm(RuntimeMetadataEntry firearm)

@@ -1242,6 +1242,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, clipSecond, "CompatibleSingleRounds", new List<string> { "Cartridge83" });
         entries.SetValue(clipSecond, 1);
         var speedloaderThird = RuntimeEntry(entryType, "SpeedloaderThird", "Firearm", true, magazineType: 99, clipType: 98, roundType: 83);
+        SetRuntimeProperty(entryType, speedloaderThird, "CompatibleSpeedLoaders", new List<string> { "Speedloader83" });
         SetRuntimeProperty(entryType, speedloaderThird, "CompatibleSingleRounds", new List<string> { "Cartridge83" });
         entries.SetValue(speedloaderThird, 2);
         var cartridgeLast = RuntimeEntry(entryType, "CartridgeLast", "Firearm", true, roundType: 84);
@@ -1266,6 +1267,35 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Clip82", ReadString(guns["ClipSecond"], "MagName"));
         Assert.Equal("Speedloader83", ReadString(guns["SpeedloaderThird"], "MagName"));
         Assert.Equal("Cartridge84", ReadString(guns["CartridgeLast"], "MagName"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 3);
+
+        var firearm = RuntimeEntry(entryType, "NoSpeedloaderCompatibility", "Firearm", true, roundType: 83);
+        SetRuntimeProperty(entryType, firearm, "CompatibleSingleRounds", new List<string> { "SafeCartridge83" });
+        entries.SetValue(firearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "WrongSpeedloader83", "SpeedLoader", true, roundType: 83), 1);
+        entries.SetValue(RuntimeEntry(entryType, "SafeCartridge83", "Cartridge", true, roundType: 83), 2);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("SafeCartridge83", ReadString(gun, "MagName"));
+        Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
     [Fact]
@@ -1380,6 +1410,36 @@ public sealed class GunGameGeneratorTests
 
         Assert.Equal("RevolverShotgunLoader", ReadString(gun, "MagName"));
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 3);
+
+        var shotgun = RuntimeEntry(entryType, "UnknownBoxShotgun", "Firearm", true, roundType: 12);
+        SetRuntimeProperty(entryType, shotgun, "FirearmRoundPower", "Shotgun");
+        SetRuntimeProperty(entryType, shotgun, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, shotgun, "FirearmFeedOptions", new List<string> { "BoxMag" });
+        SetRuntimeProperty(entryType, shotgun, "CompatibleSingleRounds", new List<string> { "Shell12Gauge" });
+        entries.SetValue(shotgun, 0);
+        entries.SetValue(RuntimeEntry(entryType, "WrongRotaryLoader", "SpeedLoader", true, roundType: 12), 1);
+        entries.SetValue(RuntimeEntry(entryType, "Shell12Gauge", "Cartridge", true, roundType: 12), 2);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns");
+
+        Assert.Empty(guns);
     }
 
     [Fact]
