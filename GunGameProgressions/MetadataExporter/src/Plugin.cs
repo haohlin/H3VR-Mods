@@ -792,23 +792,40 @@ public sealed class Plugin : BaseUnityPlugin
         Action<RuntimePrefabInspection> complete)
     {
         var inspection = RuntimePrefabInspection.Empty();
+        AnvilCallback<GameObject> prefabCallback = null;
+        var callbackCreationFailed = false;
         try
         {
-            var prefabCallback = item.GetGameObjectAsync();
-            var deadline = Time.realtimeSinceStartup + PrefabInspectionTimeoutSeconds;
-            while (!prefabCallback.IsCompleted && Time.realtimeSinceStartup < deadline)
-            {
-                prefabCallback.Pump();
-                yield return null;
-            }
+            prefabCallback = item.GetGameObjectAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogDebug("Could not inspect GunGame prefab for " + item.ItemID + ": " + exception.Message);
+            callbackCreationFailed = true;
+        }
 
-            if (!prefabCallback.IsCompleted)
-            {
-                Logger.LogDebug("GunGame prefab inspection timed out for " + item.ItemID + ".");
-                complete(inspection);
-                yield break;
-            }
+        if (callbackCreationFailed)
+        {
+            complete(inspection);
+            yield break;
+        }
 
+        var deadline = Time.realtimeSinceStartup + PrefabInspectionTimeoutSeconds;
+        while (!prefabCallback.IsCompleted && Time.realtimeSinceStartup < deadline)
+        {
+            prefabCallback.Pump();
+            yield return null;
+        }
+
+        if (!prefabCallback.IsCompleted)
+        {
+            Logger.LogDebug("GunGame prefab inspection timed out for " + item.ItemID + ".");
+            complete(inspection);
+            yield break;
+        }
+
+        try
+        {
             var prefab = prefabCallback.Result;
             inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
             if (declaredCategory == "Attachment")
