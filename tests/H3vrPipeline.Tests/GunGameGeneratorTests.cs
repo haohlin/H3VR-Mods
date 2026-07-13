@@ -173,6 +173,10 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(typeof(string), opticKind!.PropertyType);
         Assert.NotNull(physicalMountTypes);
         Assert.Equal(typeof(List<string>), physicalMountTypes!.PropertyType);
+        Assert.Equal(typeof(float), entryType.GetProperty("OpticMinMagnification")!.PropertyType);
+        Assert.Equal(typeof(float), entryType.GetProperty("OpticMaxMagnification")!.PropertyType);
+        Assert.Equal(typeof(bool), entryType.GetProperty("IsVariableMagnification")!.PropertyType);
+        Assert.True((bool)entryType.GetProperty("IsGunGameRoundDisplaySupported")!.GetValue(Activator.CreateInstance(entryType))!);
     }
 
     [Fact]
@@ -699,7 +703,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_profile_builder_uses_a_picatinny_scope_when_non_optic_mounts_are_also_present()
+    public void Runtime_profile_builder_prefers_a_picatinny_reflex_for_close_range_firearms()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -734,7 +738,93 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .Single();
 
-        Assert.Equal("PicatinnyScope", ReadString(gun, "Extra"));
+        Assert.Equal("PicatinnyReflex", ReadString(gun, "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        var sniper = RuntimeEntry(entryType, "Sniper", "Firearm", true);
+        SetRuntimeProperty(entryType, sniper, "CompatibleMagazines", new List<string> { "SniperMagazine" });
+        SetRuntimeProperty(entryType, sniper, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, sniper, "FirearmRoundPower", "FullPower");
+        SetRuntimeProperty(entryType, sniper, "FirearmAction", "BoltAction");
+        SetRuntimeProperty(entryType, sniper, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(sniper, 0);
+
+        var smg = RuntimeEntry(entryType, "Smg", "Firearm", true);
+        SetRuntimeProperty(entryType, smg, "CompatibleMagazines", new List<string> { "SmgMagazine" });
+        SetRuntimeProperty(entryType, smg, "FirearmSize", "Compact");
+        SetRuntimeProperty(entryType, smg, "FirearmRoundPower", "Pistol");
+        SetRuntimeProperty(entryType, smg, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, smg, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(smg, 1);
+
+        var rifle = RuntimeEntry(entryType, "Rifle", "Firearm", true);
+        SetRuntimeProperty(entryType, rifle, "CompatibleMagazines", new List<string> { "RifleMagazine" });
+        SetRuntimeProperty(entryType, rifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, rifle, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, rifle, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, rifle, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(rifle, 2);
+
+        entries.SetValue(RuntimeEntry(entryType, "SniperMagazine", "Magazine", true, magazineType: 1), 3);
+        entries.SetValue(RuntimeEntry(entryType, "SmgMagazine", "Magazine", true, magazineType: 2), 4);
+        entries.SetValue(RuntimeEntry(entryType, "RifleMagazine", "Magazine", true, magazineType: 3), 5);
+
+        entries.SetValue(Optic(entryType, "PicatinnyReflex", "Reflex", 1f, 1f, false), 6);
+        entries.SetValue(Optic(entryType, "PicatinnyLowScope", "Scope", 1f, 4f, false), 7);
+        entries.SetValue(Optic(entryType, "PicatinnyVariableScope", "Scope", 1f, 6f, true), 8);
+        entries.SetValue(Optic(entryType, "PicatinnyHighScope", "Scope", 6f, 24f, true), 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
+
+        Assert.Equal("PicatinnyHighScope", ReadString(guns["Sniper"], "Extra"));
+        Assert.Equal("PicatinnyReflex", ReadString(guns["Smg"], "Extra"));
+        Assert.Equal("PicatinnyVariableScope", ReadString(guns["Rifle"], "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_skips_firearms_without_gungame_round_display_data()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var safe = RuntimeEntry(entryType, "SafeGun", "Firearm", false);
+        SetRuntimeProperty(entryType, safe, "CompatibleMagazines", new List<string> { "SafeMagazine" });
+        entries.SetValue(safe, 0);
+        var unsupported = RuntimeEntry(entryType, "UnsupportedGun", "Firearm", false);
+        SetRuntimeProperty(entryType, unsupported, "CompatibleMagazines", new List<string> { "UnsupportedMagazine" });
+        SetRuntimeProperty(entryType, unsupported, "IsGunGameRoundDisplaySupported", false);
+        entries.SetValue(unsupported, 1);
+        entries.SetValue(RuntimeEntry(entryType, "SafeMagazine", "Magazine", false, magazineType: 1), 2);
+        entries.SetValue(RuntimeEntry(entryType, "UnsupportedMagazine", "Magazine", false, magazineType: 2), 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"),
+            "Guns");
+
+        Assert.Equal(new[] { "SafeGun" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
     }
 
     [Fact]
@@ -1327,6 +1417,23 @@ public sealed class GunGameGeneratorTests
         entryType.GetProperty("ClipType")!.SetValue(entry, clipType);
         entryType.GetProperty("RoundType")!.SetValue(entry, roundType);
         return entry;
+    }
+
+    private static object Optic(
+        Type entryType,
+        string objectId,
+        string opticKind,
+        float minimumMagnification,
+        float maximumMagnification,
+        bool variableMagnification)
+    {
+        var optic = RuntimeEntry(entryType, objectId, "Attachment", true);
+        SetRuntimeProperty(entryType, optic, "OpticKind", opticKind);
+        SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, optic, "OpticMinMagnification", minimumMagnification);
+        SetRuntimeProperty(entryType, optic, "OpticMaxMagnification", maximumMagnification);
+        SetRuntimeProperty(entryType, optic, "IsVariableMagnification", variableMagnification);
+        return optic;
     }
 
     private static object RuntimeEnemyEntry(Type enemyType, string enemyNameString, bool isModContent, int difficultyScore)
