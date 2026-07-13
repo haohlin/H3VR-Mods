@@ -1219,7 +1219,7 @@ public sealed class GunGameGeneratorTests
         var requiredGuards = new[]
         {
             "Runtime_profile_builder_skips_explicitly_blacklisted_slingshot",
-            "Runtime_profile_builder_keeps_damage_capable_unclassified_firearms_except_slingshot",
+            "Runtime_profile_builder_allows_only_graviton_to_be_feedless",
             "Runtime_profile_builder_skips_firearms_without_gungame_round_display_data",
             "Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type",
@@ -1505,7 +1505,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_profile_builder_keeps_damage_capable_unclassified_firearms_except_slingshot()
+    public void Runtime_profile_builder_allows_only_graviton_to_be_feedless()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1513,7 +1513,7 @@ public sealed class GunGameGeneratorTests
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 6);
+        var entries = Array.CreateInstance(entryType, 7);
 
         var safeFirearm = RuntimeEntry(entryType, "SafeFirearm", "Firearm", true, magazineType: 1);
         entries.SetValue(safeFirearm, 0);
@@ -1524,10 +1524,14 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, unclassifiedWithFeed, "FirearmRoundPower", "None");
         entries.SetValue(unclassifiedWithFeed, 2);
         entries.SetValue(RuntimeEntry(entryType, "GenericCartridge", "Cartridge", true, roundType: 158), 3);
-        var unclassifiedWithoutFeed = RuntimeEntry(entryType, "UnclassifiedWithoutFeed", "Firearm", true);
-        SetRuntimeProperty(entryType, unclassifiedWithoutFeed, "FirearmAction", "None");
-        SetRuntimeProperty(entryType, unclassifiedWithoutFeed, "FirearmRoundPower", "None");
-        entries.SetValue(unclassifiedWithoutFeed, 4);
+        var graviton = RuntimeEntry(entryType, "GravitonBeamer", "Firearm", true);
+        SetRuntimeProperty(entryType, graviton, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, graviton, "FirearmRoundPower", "None");
+        entries.SetValue(graviton, 4);
+        var malformedFeedlessMod = RuntimeEntry(entryType, "CompoundBow", "Firearm", true);
+        SetRuntimeProperty(entryType, malformedFeedlessMod, "FirearmAction", "None");
+        SetRuntimeProperty(entryType, malformedFeedlessMod, "FirearmRoundPower", "None");
+        entries.SetValue(malformedFeedlessMod, 5);
 
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
@@ -1537,9 +1541,9 @@ public sealed class GunGameGeneratorTests
             "Guns");
 
         Assert.Equal(
-            new[] { "SafeFirearm", "UnclassifiedWithFeed", "UnclassifiedWithoutFeed" },
+            new[] { "SafeFirearm", "UnclassifiedWithFeed", "GravitonBeamer" },
             guns.Select(gun => ReadString(gun, "GunName")).ToArray());
-        var feedless = guns.Single(gun => ReadString(gun, "GunName") == "UnclassifiedWithoutFeed");
+        var feedless = guns.Single(gun => ReadString(gun, "GunName") == "GravitonBeamer");
         Assert.Equal(string.Empty, ReadString(feedless, "MagName"));
         Assert.Empty(ReadObjects(feedless, "MagNames"));
     }
