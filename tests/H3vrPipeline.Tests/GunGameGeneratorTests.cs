@@ -447,6 +447,33 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
+        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldPromoteModdedCandidate", BindingFlags.Public | BindingFlags.Static));
+
+        // A partial capture must not replace the last persisted two-profile set.
+        Assert.False((bool)shouldPromote.Invoke(null, new object[] { 1, 24 })!);
+        Assert.False((bool)shouldPromote.Invoke(null, new object[] { 2, 0 })!);
+
+        // A full generated set replaces the old set; a confirmed empty snapshot
+        // clears it so disabled mods cannot leave stale object IDs behind.
+        Assert.True((bool)shouldPromote.Invoke(null, new object[] { 2, 24 })!);
+        Assert.True((bool)shouldPromote.Invoke(null, new object[] { 0, 0 })!);
+
+        var source = File.ReadAllText(PluginSourcePath);
+        var prepareStart = source.IndexOf("private IEnumerator PrepareModdedProfilesForSelector", StringComparison.Ordinal);
+        var prepareEnd = source.IndexOf("private void Trace", prepareStart, StringComparison.Ordinal);
+        Assert.True(prepareStart >= 0 && prepareEnd > prepareStart);
+        var prepareBody = source.Substring(prepareStart, prepareEnd - prepareStart);
+        Assert.Contains("AddPersistedModdedPoolChoices(weaponPoolLoader)", prepareBody, StringComparison.Ordinal);
+        Assert.True(
+            prepareBody.IndexOf("AddPersistedModdedPoolChoices(weaponPoolLoader)", StringComparison.Ordinal) <
+            prepareBody.IndexOf("selector readiness wait started.", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Runtime_pool_persistence_fingerprint_is_stable_and_changes_with_runtime_metadata()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1238,6 +1265,7 @@ public sealed class GunGameGeneratorTests
             "Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet",
             "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
+            "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
         };
 
         Assert.Contains("## Playtest regression matrix", policy, StringComparison.Ordinal);

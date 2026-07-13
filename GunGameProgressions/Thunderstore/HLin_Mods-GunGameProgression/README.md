@@ -12,6 +12,10 @@ GunGame Progressions expands GunGame with compatible gear, distinct difficulty s
 
 The built-in vanilla selection covers **661 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
 
+## Modded profile refresh
+
+Your last complete Modded profiles remain available after restarting H3VR. The mod refreshes them in the background and replaces them only after a complete new pair is ready; a confirmed empty active mod set removes the old pair so disabled items cannot be selected.
+
 | Profile | Weapons | Enemies | Play style |
 | --- | --- | --- | --- |
 | Runtime 01 - Vanilla Rot | Vanilla firearms | Rotwieners only | A consistent, lower-pressure progression. |

@@ -213,6 +213,12 @@ public sealed class Plugin : BaseUnityPlugin
             yield return null;
         }
 
+        var persistedChoicesAdded = AddPersistedModdedPoolChoices(weaponPoolLoader);
+        if (persistedChoicesAdded > 0)
+        {
+            Trace("selector restored " + persistedChoicesAdded + " persisted modded profiles.");
+        }
+
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
         Trace("selector readiness wait started.");
         var readinessGate = new ModdedProfileReadinessGate();
@@ -580,6 +586,22 @@ public sealed class Plugin : BaseUnityPlugin
             : string.Empty;
     }
 
+    private int AddPersistedModdedPoolChoices(object loader)
+    {
+        var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        if (string.IsNullOrEmpty(packagePath) || !Directory.Exists(packagePath))
+        {
+            return 0;
+        }
+
+        var poolFileNames = Directory.GetFiles(packagePath, "GunGameWeaponPool_Runtime_*.json")
+            .Select(Path.GetFileName)
+            .Where(RuntimeProfileFamily.IsModdedPoolFile)
+            .OrderBy(fileName => fileName, StringComparer.Ordinal)
+            .ToList();
+        return AddGeneratedPoolChoices(loader, poolFileNames);
+    }
+
     private int AddGeneratedPoolChoices(object loader, IEnumerable<string> poolFileNames)
     {
         try
@@ -600,9 +622,18 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var existingNames = new HashSet<string>(
+                pools.Cast<object>().Select(GunGamePoolName),
+                StringComparer.Ordinal);
             var added = 0;
             foreach (var poolFileName in poolFileNames ?? Enumerable.Empty<string>())
             {
+                var poolName = RuntimePoolDisplayName(poolFileName);
+                if (!string.IsNullOrEmpty(poolName) && existingNames.Contains(poolName))
+                {
+                    continue;
+                }
+
                 var pool = loadPool.Invoke(loader, new object[] { Path.Combine(packagePath, poolFileName) });
                 if (pool == null)
                 {
@@ -627,6 +658,7 @@ public sealed class Plugin : BaseUnityPlugin
                     component.transform.SetSiblingIndex(insertionIndex);
                 }
 
+                existingNames.Add(GunGamePoolName(pool));
                 added++;
             }
 
@@ -1528,6 +1560,23 @@ public sealed class Plugin : BaseUnityPlugin
             SkippedFirearms = result.SkippedFirearms,
             FirearmsWithoutOptics = result.FirearmsWithoutOptics,
         };
+        var eligibleWeaponsPerPool = phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count;
+        if (phase == RuntimeGenerationPhase.Modded &&
+            !RuntimePoolPersistence.ShouldPromoteModdedCandidate(phasePools.Count, eligibleWeaponsPerPool))
+        {
+            // A partial candidate must never erase the last known-good modded
+            // pools. The next quiet/complete loader pass can promote a full set.
+            return new RuntimeGenerationReport(
+                profileEntries.Count,
+                profileEntries.Count(entry => entry.IsModContent),
+                enemyEntries.Count,
+                phasePools.Count,
+                eligibleWeaponsPerPool,
+                result.SkippedFirearms.Count,
+                new List<string>(),
+                false);
+        }
+
         var expectedPoolFiles = new HashSet<string>(StringComparer.Ordinal);
         foreach (var runtimePool in phasePools)
         {
@@ -1550,7 +1599,7 @@ public sealed class Plugin : BaseUnityPlugin
                 profileEntries.Count(entry => entry.IsModContent),
                 enemyEntries.Count,
                 phasePools.Count,
-                phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
+                eligibleWeaponsPerPool,
                 result.SkippedFirearms.Count,
                 expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
                 false);
@@ -1578,7 +1627,7 @@ public sealed class Plugin : BaseUnityPlugin
             profileEntries.Count(entry => entry.IsModContent),
             enemyEntries.Count,
             phasePools.Count,
-            phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count,
+            eligibleWeaponsPerPool,
             result.SkippedFirearms.Count,
             expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
             true);

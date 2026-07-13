@@ -12,7 +12,8 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "9";
+    private const string GenerationPolicyVersion = "10";
+    private const int ExpectedModdedPoolCount = 2;
 
     public static string CreateFingerprint(
         IEnumerable<RuntimeMetadataEntry> entries,
@@ -76,6 +77,15 @@ public static class RuntimePoolPersistence
         return !poolFilesMatch ||
             string.IsNullOrEmpty(storedFingerprint) ||
             !string.Equals(storedFingerprint, candidateFingerprint, StringComparison.Ordinal);
+    }
+
+    // A Modded capture replaces the saved profiles only after both generated
+    // profiles are complete. A confirmed empty snapshot is also promotable: it
+    // removes stale profiles when the user disables all compatible mod weapons.
+    public static bool ShouldPromoteModdedCandidate(int candidatePoolCount, int eligibleWeaponsPerPool)
+    {
+        return candidatePoolCount == 0 ||
+            (candidatePoolCount == ExpectedModdedPoolCount && eligibleWeaponsPerPool > 0);
     }
 
     public static string ReadFingerprint(string receiptPath)

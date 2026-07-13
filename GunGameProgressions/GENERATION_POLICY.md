@@ -88,14 +88,16 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 
 | Situation | Required behavior |
 | --- | --- |
-| Startup | Generate Vanilla pools as soon as the object registry is available; request Modded generation in the background. |
+| Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools and request a fresh Modded capture in the background. |
 | Mod loader is complete | Capture Modded metadata immediately. |
 | Loader has no complete signal | Wait for five seconds with no registry-count change, then capture. |
 | Selector opens while Modded profiles are pending | Keep Vanilla choices usable and display a concise Modded-loading status. |
-| A Modded snapshot changes | Persist a new fingerprinted pool set and remove stale generated entries from that completed snapshot. No fixed firearm count is assumed. |
+| Complete Modded replacement | Build the candidate off the play path. Replace the saved pair only after both generated Modded pools contain eligible weapons. |
+| Confirmed empty Modded snapshot | Remove the saved Modded pair. This prevents disabled mods from leaving stale object IDs behind. |
+| Partial capture, capture failure, or build failure | Keep the previous saved Modded pair unchanged and request a later background refresh. |
 | Generated ID is missing, has the wrong category, or throws while spawning | Clear the bad buffer, skip that loadout, and promote to the next weapon on the following frame. Do not crash or freeze the session. |
 
-The loader signal is authoritative only for the content that exposes it. The five-second quiet fallback is deliberately non-blocking; later selector entries and GunGame-session exits request another background refresh.
+The loader signal is authoritative only for the content that exposes it. The five-second quiet fallback is deliberately non-blocking; later selector entries and GunGame-session exits request another background refresh. Modded files and their fingerprint receipt stay in the installed plugin folder across H3VR restarts: the selector restores that last complete pair first, then a completed fresh candidate replaces it for a later selector load.
 
 ## Offline fallback contract
 
@@ -146,6 +148,7 @@ with coverage for the same condition.
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state is unavailable | Vanilla remains usable; Modded refresh waits in the background. | `Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
+| H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |
 
 ## Change checklist
 
