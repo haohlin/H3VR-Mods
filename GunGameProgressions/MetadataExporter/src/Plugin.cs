@@ -122,7 +122,7 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        return weaponPoolLoaderType == null ? null : UnityEngine.Object.FindObjectOfType(weaponPoolLoaderType);
+        return GunGameSelectorLocator.Resolve(weaponPoolLoaderType);
     }
 
     private IEnumerator PrepareModdedProfilesForSelector(object weaponPoolLoader)

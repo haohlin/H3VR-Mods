@@ -536,7 +536,7 @@ public sealed class GunGameGeneratorTests
         var assembly = LoadBuiltMetadataExporter();
         var locatorType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.GunGameSelectorLocator"));
         var resolveSingleton = Assert.IsAssignableFrom<MethodInfo>(locatorType.GetMethod("ResolveSingleton", BindingFlags.Public | BindingFlags.Static));
-        var selector = new object();
+        var selector = new GunGameSelectorSingletonFixture();
         GunGameSelectorSingletonFixture.Instance = selector;
 
         try
@@ -1284,9 +1284,13 @@ public sealed class GunGameGeneratorTests
         public string Identifier = string.Empty;
     }
 
-    private sealed class GunGameSelectorSingletonFixture
+    private class GunGameSelectorSingletonBase<T> where T : class
     {
-        public static object? Instance { get; set; }
+        public static T? Instance { get; set; }
+    }
+
+    private sealed class GunGameSelectorSingletonFixture : GunGameSelectorSingletonBase<GunGameSelectorSingletonFixture>
+    {
     }
 
     private sealed class SequenceRandom : Random
