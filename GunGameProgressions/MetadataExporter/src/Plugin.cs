@@ -151,6 +151,11 @@ public sealed class Plugin : BaseUnityPlugin
         {
             weaponPoolLoaderAwake.Invoke(weaponPoolLoader, null);
         }
+        catch (TargetInvocationException exception)
+        {
+            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
+            Logger.LogDebug("GunGame first pool load failed: " + (exception.InnerException ?? exception));
+        }
         catch (Exception exception)
         {
             Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);

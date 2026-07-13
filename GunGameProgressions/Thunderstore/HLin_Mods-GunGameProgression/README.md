@@ -23,16 +23,18 @@ Rot pools are the most predictable option. Mixed Enemy pools are for a more vari
 
 ## First Start
 
-The vanilla profiles are ready immediately. A GunGame selector always opens normally using the profiles already on disk.
+Vanilla profiles are generated at startup. The first GunGame session deliberately gives mod content time to register before Kodeman reads its pool files.
 
 | When | What happens |
 | --- | --- |
-| GunGame map opens | The existing Modded profiles are available immediately; a background refresh starts. |
+| H3VR starts | A 15-second warmup runs while H3VR and mod loaders continue normally. |
+| First GunGame map | After the startup warmup, the selector waits 15 seconds, generates the current Modded profiles, then loads them. |
+| Later GunGame maps | They open normally; a background refresh starts. |
 | GunGame map closes | Another background refresh runs, so content that finished loading during the session can be included. |
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
 | A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
 
-This process never holds the GunGame selector or pauses H3VR. On a first install with no previous Modded profiles, leave and reopen a GunGame map after the background refresh has completed.
+This is a yielding wait, not a hard main-thread sleep: mod loaders continue to run. If you enter GunGame during the initial 15-second startup warmup, the first selector waits for the remaining startup warmup and its own 15-second window, then finishes the profile write. Later content continues to be discovered in the background.
 
 ## Enemy Pacing
 

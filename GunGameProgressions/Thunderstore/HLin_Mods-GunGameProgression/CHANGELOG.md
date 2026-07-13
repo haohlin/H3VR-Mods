@@ -4,7 +4,8 @@ All notable changes to GunGame Progressions are documented here.
 
 ## Unreleased
 
-- Refresh Modded pools in the background after every Kodeman GunGame load and scene exit; never hold the GunGame selector.
+- Give mod content a 15-second startup warmup, then hold only the first GunGame selector for a further yielding 15-second profile warmup before Kodeman reads its pools.
+- Continue background refreshes after GunGame loads and scene exits, so later-loading content can still grow the Modded pools.
 - Preserve a generated Modded pool unless a refresh finds a strictly larger compatible gun count.
 - Prefer Russian side-rail optics when a firearm exposes a Russian mount alongside generic mounts.
 - Give internally fed shotguns shells while retaining magazines for true box-mag shotguns.
