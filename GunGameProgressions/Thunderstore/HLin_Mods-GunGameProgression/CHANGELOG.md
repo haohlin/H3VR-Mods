@@ -2,6 +2,11 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.3.9
+
+- Restore the original package-card summary after the Modded-profile refresh note.
+- Replace the fixed time estimate with "depends on mod count."
+
 ## 1.3.8
 
 - Use an ASCII-only package-card notice so the Modded-profile refresh message displays correctly on mobile.
