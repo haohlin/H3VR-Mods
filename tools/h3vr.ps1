@@ -330,8 +330,9 @@ function Test-GunGamePools {
         throw "Missing versioned GunGame vanilla metadata snapshot: $offlineMetadataPath"
     }
 
-    $offlineMetadata = @(Get-Content -LiteralPath $offlineMetadataPath -Raw | ConvertFrom-Json)
-    if ($offlineMetadata.Count -eq 0 -or @($offlineMetadata | Where-Object { $_.IsModContent }).Count -ne 0) {
+    $offlineMetadataRoot = Get-Content -LiteralPath $offlineMetadataPath -Raw | ConvertFrom-Json
+    $offlineMetadata = [object[]]$offlineMetadataRoot
+    if ($offlineMetadata.Count -eq 0 -or @($offlineMetadata | Where-Object { $_.IsModContent -eq $true }).Count -ne 0) {
         throw "GunGame offline metadata must contain only vanilla entries."
     }
 
