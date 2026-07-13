@@ -339,6 +339,10 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "Russian" })!);
         Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "Scope_Mosin" })!);
         Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Stock" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Muzzle" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Grip" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Side" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Bottom" })!);
         Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Suppressor" })!);
         Assert.True((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "Picatinny" })!);
         Assert.True((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "MLokRail" })!);
@@ -442,6 +446,23 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("yield return null;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions()
+    {
+        var safetyPath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "GunGameSpawnSafety.cs");
+        var source = File.ReadAllText(safetyPath);
+
+        Assert.Contains("TryValidateGunData", source, StringComparison.Ordinal);
+        Assert.Contains("HasExpectedObject", source, StringComparison.Ordinal);
+        Assert.Contains("id is unavailable", source, StringComparison.Ordinal);
+        Assert.Contains("id has category", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
+        Assert.Contains("QueueSkip", source, StringComparison.Ordinal);
+        Assert.Contains("ClearWeaponBuffer", source, StringComparison.Ordinal);
+        Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
+        Assert.Contains("return null;", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -947,6 +968,45 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 6);
+
+        var vanillaRifle = RuntimeEntry(entryType, "VanillaMagazineRifle", "Firearm", false, magazineType: 11, roundType: 556);
+        SetRuntimeProperty(entryType, vanillaRifle, "CompatibleMagazines", new List<string> { "VanillaRifleMagazine" });
+        SetRuntimeProperty(entryType, vanillaRifle, "CompatibleSingleRounds", new List<string> { "VanillaLoose556" });
+        entries.SetValue(vanillaRifle, 0);
+
+        var moddedRifle = RuntimeEntry(entryType, "ModdedMagazineRifle", "Firearm", true, magazineType: 22, roundType: 556);
+        SetRuntimeProperty(entryType, moddedRifle, "CompatibleMagazines", new List<string> { "ModdedRifleMagazine" });
+        SetRuntimeProperty(entryType, moddedRifle, "CompatibleSingleRounds", new List<string> { "ModdedLoose556" });
+        entries.SetValue(moddedRifle, 1);
+
+        entries.SetValue(RuntimeEntry(entryType, "VanillaRifleMagazine", "Magazine", false, magazineType: 11), 2);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedRifleMagazine", "Magazine", true, magazineType: 22), 3);
+        entries.SetValue(RuntimeEntry(entryType, "VanillaLoose556", "Cartridge", false, roundType: 556), 4);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedLoose556", "Cartridge", true, roundType: 556), 5);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
+
+        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"), "Guns").Single();
+        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"), "Guns").Single();
+
+        Assert.Equal("VanillaRifleMagazine", ReadString(vanillaGun, "MagName"));
+        Assert.Equal("ModdedRifleMagazine", ReadString(moddedGun, "MagName"));
+        Assert.Equal(0, ReadInt(vanillaGun, "CategoryID"));
+        Assert.Equal(0, ReadInt(moddedGun, "CategoryID"));
+    }
+
+    [Fact]
     public void Runtime_profile_builder_skips_firearms_without_gungame_round_display_data()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1007,6 +1067,72 @@ public sealed class GunGameGeneratorTests
             .Single();
 
         Assert.Equal(string.Empty, ReadString(gun, "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var mountTypes = new[] { "Muzzle", "Stock", "Grip", "Side" };
+        var entries = Array.CreateInstance(entryType, mountTypes.Length * 3);
+
+        for (var index = 0; index < mountTypes.Length; index++)
+        {
+            var firearm = RuntimeEntry(entryType, "UnsafeMountFirearm" + index, "Firearm", true, magazineType: index + 1);
+            SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "UnsafeMountMagazine" + index });
+            SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { mountTypes[index] });
+            entries.SetValue(firearm, index * 3);
+
+            entries.SetValue(RuntimeEntry(entryType, "UnsafeMountMagazine" + index, "Magazine", true, magazineType: index + 1), index * 3 + 1);
+            var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", true);
+            SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+            SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { mountTypes[index] });
+            entries.SetValue(scope, index * 3 + 2);
+        }
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns");
+
+        Assert.Equal(mountTypes.Length, guns.Count);
+        Assert.All(guns, gun => Assert.Equal(string.Empty, ReadString(gun, "Extra")));
+    }
+
+    [Fact]
+    public void Generation_policy_records_each_playtest_regression_and_its_guard()
+    {
+        var policyPath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "..", "..", "GENERATION_POLICY.md");
+        var policy = File.ReadAllText(Path.GetFullPath(policyPath));
+        var requiredGuards = new[]
+        {
+            "Runtime_profile_builder_skips_unclassified_firearm_entries",
+            "Runtime_profile_builder_skips_firearms_without_gungame_round_display_data",
+            "Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles",
+            "Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type",
+            "Runtime_profile_builder_uses_shells_for_non_box_shotguns_in_both_profile_families",
+            "Runtime_profile_builder_keeps_a_revolver_shotguns_direct_speedloader",
+            "Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader",
+            "GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions",
+            "Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny",
+            "Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts",
+            "Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role",
+            "Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts",
+            "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",
+            "Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles",
+            "Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet",
+            "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector",
+            "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
+        };
+
+        Assert.Contains("## Playtest regression matrix", policy, StringComparison.Ordinal);
+        Assert.All(requiredGuards, guard => Assert.Contains(guard, policy, StringComparison.Ordinal));
     }
 
     [Fact]

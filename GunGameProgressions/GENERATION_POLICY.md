@@ -3,6 +3,9 @@
 This policy applies identically to **Vanilla** and **Modded** runtime pools.
 They both call `RuntimeProfileBuilder`; neither pool may have a separate feed or optic rule.
 
+> **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
+> item or attachment. Never guess an object ID from a name or shared caliber.
+
 ## Safety gate
 
 | Metadata state | Result |
@@ -71,11 +74,49 @@ Candidate gate: the object must be an `Attachment` classified as `Scope` or `Ref
 
 Mount matching uses captured prefab metadata (`PhysicalMountTypes`, direct compatibility, and an adapter's `ProvidedMountTypes`), not firearm or scope name lists. The small hard-coded list in `OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it contains no individual weapon or attachment IDs. Runtime mounting reuses that same taxonomy, checks the exact mount type, and permits rail mounts only when oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail positions are rejected.
 
+## Runtime availability and recovery
+
+| Situation | Required behavior |
+| --- | --- |
+| Startup | Generate Vanilla pools as soon as the object registry is available; request Modded generation in the background. |
+| Mod loader is complete | Capture Modded metadata immediately. |
+| Loader has no complete signal | Wait for five seconds with no registry-count change, then capture. |
+| Selector opens while Modded profiles are pending | Keep Vanilla choices usable and display a concise Modded-loading status. |
+| A Modded snapshot changes | Persist a new fingerprinted pool set and remove stale generated entries from that completed snapshot. No fixed firearm count is assumed. |
+| Generated ID is missing, has the wrong category, or throws while spawning | Clear the bad buffer, skip that loadout, and promote to the next weapon on the following frame. Do not crash or freeze the session. |
+
+The loader signal is authoritative only for the content that exposes it. The five-second quiet fallback is deliberately non-blocking; later selector entries and GunGame-session exits request another background refresh.
+
+## Playtest regression matrix
+
+Every entry below came from a reported or observed playtest failure. The named
+test is the regression guard; do not remove or weaken one without replacing it
+with coverage for the same condition.
+
+| Never reintroduce | Required outcome | Regression test |
+| --- | --- | --- |
+| Pseudo-firearm (for example, slingshot) with no action or round power | Skip it; never enter a progression. | `Runtime_profile_builder_skips_unclassified_firearm_entries` |
+| Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
+| G28-style magazine-fed firearm receives a loose round | Prefer its direct/exact magazine in both pool families. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles` |
+| Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |
+| Tube, internal, or break-action shotgun receives P6-12/Jackhammer-style rotary feed | Use a verified shell; never a generic magazine or rotary loader. | `Runtime_profile_builder_uses_shells_for_non_box_shotguns_in_both_profile_families` |
+| Real revolver shotgun loses its direct loader | Retain only its explicitly compatible speedloader. | `Runtime_profile_builder_keeps_a_revolver_shotguns_direct_speedloader` |
+| Box-fed shotgun has no verified box loader | Skip it; do not fall back to shells or generic loaders. | `Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader` |
+| Missing ID, wrong ID category, or spawn exception | Skip and promote; no crash or stuck progression. | `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
+| Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
+| Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
+| CQC, rifle, and sniper receive indiscriminate optic power | Rank verified compatible optics by firearm role. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| Scope is assigned to muzzle, stock, grip, or a generic side mount | Emit no optic for a non-sighting mount. | `Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts` |
+| Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
+| Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
+| Mods are still loading or loader state is unavailable | Vanilla remains usable; Modded refresh waits in the background. | `Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector` |
+| Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
+
 ## Change checklist
 
 When changing this algorithm:
 
-1. Update this policy and bump `GenerationPolicyVersion`.
+1. Update this policy and, when behavior changes, bump `GenerationPolicyVersion`.
 2. Add one positive and one negative unit test for the new rule.
 3. Keep the resolver shared by Vanilla and Modded profiles.
 4. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
