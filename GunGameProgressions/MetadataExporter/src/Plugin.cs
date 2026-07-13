@@ -21,12 +21,16 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
+    private const float StartupModWarmupSeconds = 15f;
+    private const float FirstGunGameModWarmupSeconds = 15f;
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
 
     private static Plugin instance;
+    private readonly InitialGunGameLoadGate initialGunGameLoadGate = new InitialGunGameLoadGate();
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
+    private bool startupModWarmupFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
     private Harmony harmony;
@@ -42,6 +46,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Start()
     {
+        StartCoroutine(CompleteStartupModWarmup());
         StartCoroutine(GenerateVanillaPoolsAtStartup());
     }
 
@@ -64,25 +69,32 @@ public sealed class Plugin : BaseUnityPlugin
         weaponPoolLoaderAwake = loaderType == null ? null : AccessTools.Method(loaderType, "Awake");
         var gameManagerType = AccessTools.TypeByName("GunGame.Scripts.GameManager");
         gameManagerOnDestroy = gameManagerType == null ? null : AccessTools.Method(gameManagerType, "OnDestroy");
+        var loaderPrefix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePrefix");
         var loaderPostfix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePostfix");
         var exitPostfix = AccessTools.Method(typeof(Plugin), "GameManagerOnDestroyPostfix");
-        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPostfix == null || exitPostfix == null)
+        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPrefix == null || loaderPostfix == null || exitPostfix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(weaponPoolLoaderAwake, postfix: new HarmonyMethod(loaderPostfix));
+        harmony.Patch(weaponPoolLoaderAwake, prefix: new HarmonyMethod(loaderPrefix), postfix: new HarmonyMethod(loaderPostfix));
         harmony.Patch(gameManagerOnDestroy, postfix: new HarmonyMethod(exitPostfix));
         var loaderPatchInfo = Harmony.GetPatchInfo(weaponPoolLoaderAwake);
         var exitPatchInfo = Harmony.GetPatchInfo(gameManagerOnDestroy);
         if (loaderPatchInfo == null || exitPatchInfo == null ||
+            !loaderPatchInfo.Prefixes.Any(patch => patch.owner == HarmonyId) ||
             !loaderPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId) ||
             !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
         }
+    }
+
+    private static bool WeaponPoolLoaderAwakePrefix(object __instance)
+    {
+        return instance == null || instance.HandleWeaponPoolLoaderAwake(__instance);
     }
 
     private static void WeaponPoolLoaderAwakePostfix()
@@ -98,6 +110,75 @@ public sealed class Plugin : BaseUnityPlugin
         if (instance != null)
         {
             instance.RequestModdedRefresh();
+        }
+    }
+
+    private bool HandleWeaponPoolLoaderAwake(object weaponPoolLoader)
+    {
+        var action = initialGunGameLoadGate.NextAction();
+        if (action == InitialGunGameLoadAction.AllowOriginalLoad)
+        {
+            return true;
+        }
+
+        if (action == InitialGunGameLoadAction.BeginPreparation)
+        {
+            StartCoroutine(PrepareFirstGunGamePoolsThenLoadWeaponPools(weaponPoolLoader));
+        }
+
+        return false;
+    }
+
+    private IEnumerator CompleteStartupModWarmup()
+    {
+        yield return new WaitForSecondsRealtime(StartupModWarmupSeconds);
+        startupModWarmupFinished = true;
+    }
+
+    private IEnumerator PrepareFirstGunGamePoolsThenLoadWeaponPools(object weaponPoolLoader)
+    {
+        while (!startupModWarmupFinished)
+        {
+            yield return null;
+        }
+
+        Logger.LogInfo(RuntimeStatusMessages.Preparing);
+        yield return new WaitForSecondsRealtime(FirstGunGameModWarmupSeconds);
+        yield return StartCoroutine(GenerateInitialModdedPools());
+
+        initialGunGameLoadGate.CompletePreparation();
+        try
+        {
+            weaponPoolLoaderAwake.Invoke(weaponPoolLoader, null);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(RuntimeStatusMessages.PoolLoadFailed);
+            Logger.LogDebug("GunGame first pool load failed: " + exception);
+        }
+    }
+
+    private IEnumerator GenerateInitialModdedPools()
+    {
+        while (!vanillaGenerationFinished)
+        {
+            yield return null;
+        }
+
+        Dictionary<string, FVRObject> objects;
+        if (!TryGetObjectData(out objects) || objects.Count == 0)
+        {
+            yield break;
+        }
+
+        RuntimeMetadataCapture metadataCapture = null;
+        yield return StartCoroutine(CaptureRuntimeMetadata(
+            objects,
+            item => item.IsModContent,
+            capture => metadataCapture = capture));
+        if (metadataCapture != null)
+        {
+            yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, Stopwatch.StartNew()));
         }
     }
 
