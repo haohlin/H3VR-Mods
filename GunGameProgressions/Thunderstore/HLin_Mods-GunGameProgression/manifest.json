@@ -1,9 +1,9 @@
 {
     "name": "GunGame_Progressions",
     "author": "HLin_Mods",
-    "version_number": "1.3.6",
+    "version_number": "1.3.7",
     "dependencies": ["Kodeman-GunGame-1.0.0"
     ],
-    "description": "GunGame, supercharged: 661 versioned vanilla firearms with validated compatible feeds, plus all supported active modded guns and custom Sosigs.",
+    "description": "⚠ Modded profiles generate in the background (1-5 min). Reload GunGame to show them.",
     "website_url": "https://github.com/haohlin/H3VR-Mods"
 }

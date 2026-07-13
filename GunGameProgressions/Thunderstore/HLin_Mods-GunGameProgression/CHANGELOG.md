@@ -2,13 +2,12 @@
 
 All notable changes to GunGame Progressions are documented here.
 
-## Unreleased
+## 1.3.7
 
-- Give mod content a 15-second startup warmup, then hold only the first GunGame selector for a further yielding 15-second profile warmup before Kodeman reads its pools.
-- Continue background refreshes after GunGame loads and scene exits, so later-loading content can still grow the Modded pools.
-- Preserve a generated Modded pool unless a refresh finds a strictly larger compatible gun count.
-- Prefer Russian side-rail optics when a firearm exposes a Russian mount alongside generic mounts.
-- Give internally fed shotguns shells while retaining magazines for true box-mag shotguns.
+- Keep completed Modded profiles across H3VR restarts while generating refreshed profiles in the background.
+- Reconcile mod firearm and feed data against resolved runtime prefab components; exclude props registered as firearms.
+- Preserve the verified magazine, clip, speedloader, shell, and optic compatibility rules across Vanilla and Modded profiles.
+- Add a prominent listing note for Modded-profile generation time and the GunGame reload step.
 
 ## 1.3.6
 
