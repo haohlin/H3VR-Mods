@@ -376,6 +376,12 @@ function Invoke-GunGameBuild {
 
     $sourcePath = Join-Path $RepoRoot 'GunGameProgressions'
     $profileSourcePath = Join-Path $RepoRoot $ModConfig.profileSource
+    $offlineMetadataPath = Join-Path $profileSourcePath 'ObjectData.json'
+    $offlineGeneratorProject = Join-Path $RepoRoot $ModConfig.offlineProfileGeneratorCsproj
+    Invoke-CheckedNative {
+        & dotnet run --project $offlineGeneratorProject -c Release -- --input $offlineMetadataPath --output-dir $profileSourcePath --verify
+    }
+
     $offlinePoolNames = @(
         'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
         'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json'
@@ -386,7 +392,7 @@ function Invoke-GunGameBuild {
             throw "Missing offline GunGame fallback profile: $offlinePoolPath"
         }
     }
-    Write-Host "Using tracked GunGame fallback profile assets."
+    Write-Host "Using tracked GunGame fallback profiles verified against the shared runtime resolver."
     Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
     $offlinePoolPaths | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stagingPath }
     Test-GunGamePools $stagingPath

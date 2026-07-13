@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    The offline fallback is deliberately built from the same policy source as
+    the BepInEx runtime exporter. Do not copy generation rules into this tool.
+  -->
+  <ItemGroup>
+    <Compile Include="..\MetadataExporter\src\RuntimeProfileBuilder.cs" Link="Shared\RuntimeProfileBuilder.cs" />
+    <Compile Include="..\MetadataExporter\src\OpticMountPolicy.cs" Link="Shared\OpticMountPolicy.cs" />
+    <Compile Include="..\MetadataExporter\src\MountResolution.cs" Link="Shared\MountResolution.cs" />
+    <Compile Include="..\MetadataExporter\src\EnemyWeightPolicy.cs" Link="Shared\EnemyWeightPolicy.cs" />
+  </ItemGroup>
+</Project>

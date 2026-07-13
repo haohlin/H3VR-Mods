@@ -19,6 +19,9 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(
             "GunGameProgressions\\MetadataExporter\\GunGameProgressionsMetadataExporter.csproj",
             gunGame.GetProperty("metadataExporterCsproj").GetString());
+        Assert.Equal(
+            "GunGameProgressions\\OfflineProfileGenerator\\OfflineProfileGenerator.csproj",
+            gunGame.GetProperty("offlineProfileGeneratorCsproj").GetString());
         Assert.Equal("GunGameProgressions", gunGame.GetProperty("profileSource").GetString());
         Assert.Equal(
             "GunGameProgressions\\Thunderstore\\HLin_Mods-GunGameProgression",
@@ -140,8 +143,35 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("$offlinePoolNames = @(", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json", pipeline, StringComparison.Ordinal);
+        Assert.Contains("offlineProfileGeneratorCsproj", pipeline, StringComparison.Ordinal);
+        Assert.Contains("--verify", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Using metadata exported by the installed GunGame package", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$runtimeMetadataPath", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GunGame_offline_fallbacks_are_generated_by_the_shared_runtime_profile_builder()
+    {
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"run --project \"{OfflineProfileGeneratorProjectPath}\" -c Release -- --input \"{Path.Combine(profileDirectory, "ObjectData.json")}\" --output-dir \"{profileDirectory}\" --verify",
+            WorkingDirectory = Path.GetDirectoryName(OfflineProfileGeneratorProjectPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.True(
+            process.ExitCode == 0,
+            $"Offline fallback does not match the shared runtime profile builder:{Environment.NewLine}{standardOutput}{standardError}");
     }
 
     [Fact]
@@ -2002,6 +2032,25 @@ public sealed class GunGameGeneratorTests
             }
 
             throw new DirectoryNotFoundException("Could not locate the GunGame metadata exporter project.");
+        }
+    }
+
+    private static string OfflineProfileGeneratorProjectPath
+    {
+        get
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current != null && !File.Exists(Path.Combine(current.FullName, "build", "mods.json")))
+            {
+                current = current.Parent;
+            }
+
+            Assert.NotNull(current);
+            return Path.Combine(
+                current!.FullName,
+                "GunGameProgressions",
+                "OfflineProfileGenerator",
+                "OfflineProfileGenerator.csproj");
         }
     }
 

@@ -3,6 +3,10 @@
 This policy applies identically to **Vanilla** and **Modded** runtime pools.
 They both call `RuntimeProfileBuilder`; neither pool may have a separate feed or optic rule.
 
+The two tracked **offline Vanilla fallback** pools are generated from the same
+`RuntimeProfileBuilder` source by `OfflineProfileGenerator`. They are a
+vanilla-only safe starting point, not a substitute for runtime Modded capture.
+
 > **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
 > item or attachment. Never guess an object ID from a name or shared caliber.
 
@@ -91,6 +95,26 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 
 The loader signal is authoritative only for the content that exposes it. The five-second quiet fallback is deliberately non-blocking; later selector entries and GunGame-session exits request another background refresh.
 
+## Offline fallback contract
+
+```text
+policy change
+    |
+    +-- shared RuntimeProfileBuilder test: positive + negative case
+    |
+    +-- OfflineProfileGenerator --verify
+    |       |
+    |       `-- tracked Vanilla fallback matches shared resolver
+    |
+    `-- Build / Package accepts the release payload
+```
+
+The packaged fallback contains only the two Vanilla profiles. It must never
+contain a user-specific Modded profile. When a policy change affects a loadout,
+refresh the tracked Vanilla fallback with the offline generator and commit its
+JSON output in the same change. The package build runs `--verify` and rejects a
+stale fallback.
+
 ## Playtest regression matrix
 
 Every entry below came from a reported or observed playtest failure. The named
@@ -123,10 +147,11 @@ with coverage for the same condition.
 
 When changing this algorithm:
 
-1. Update this policy and, when behavior changes, bump `GenerationPolicyVersion`.
-2. Add one positive and one negative unit test for the new rule.
-3. Keep the resolver shared by Vanilla and Modded profiles.
-4. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
-5. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
+1. Record the rule and its intended outcome in this file; bump `GenerationPolicyVersion` when behavior changes.
+2. Add a focused positive and negative unit test, covering the reported case and the nearest incompatible case.
+3. Keep one shared resolver for Vanilla, Modded, and offline Vanilla fallback profiles; do not duplicate policy in a generator script.
+4. Regenerate the tracked offline Vanilla fallback with `OfflineProfileGenerator`, then run it with `--verify`.
+5. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
+6. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
 
 The policy version is included in the persistence fingerprint. A rule change therefore regenerates existing runtime pools instead of preserving old compatibility decisions.
