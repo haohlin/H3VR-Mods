@@ -697,10 +697,10 @@ public sealed class Plugin : BaseUnityPlugin
             var opticKind = string.Empty;
             if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
             {
+                var prefabCallback = item.GetGameObjectAsync();
+                yield return prefabCallback;
                 try
                 {
-                    var prefabCallback = item.GetGameObjectAsync();
-                    yield return prefabCallback;
                     var prefab = prefabCallback.Result;
                     physicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
                     opticKind = GetOpticKind(item, prefab);
@@ -970,8 +970,26 @@ public sealed class Plugin : BaseUnityPlugin
         var attachments = prefab.GetComponentsInChildren<FVRFireArmAttachment>(true);
         return PipScopeOpticClassifier.Classify(
             item.ItemID,
-            attachments.Any(attachment => attachment != null && attachment.AttachmentInterface is PIPScopeController),
-            attachments.Any(attachment => attachment != null && attachment.AttachmentInterface is ReflexSightController));
+            attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.PIPScopeController")),
+            attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.ReflexSightController")));
+    }
+
+    private static bool HasAttachmentInterface(FVRFireArmAttachment attachment, string expectedTypeName)
+    {
+        if (attachment == null || attachment.AttachmentInterface == null)
+        {
+            return false;
+        }
+
+        for (var type = attachment.AttachmentInterface.GetType(); type != null; type = type.BaseType)
+        {
+            if (string.Equals(type.FullName, expectedTypeName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)
