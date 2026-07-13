@@ -424,124 +424,79 @@ public static class RuntimeProfileBuilder
         RuntimeMetadataEntry firearm,
         Random random)
     {
-        var desiredKind = DesiredOpticKind(firearm);
-        var directCandidates = new List<RuntimeMetadataEntry>();
-        foreach (var objectId in firearm.BespokeAttachments ?? new List<string>())
+        var directCandidates = GetDirectOptics(index, firearm);
+        foreach (var rule in OpticMountPolicy.Rank(firearm.PhysicalMountTypes))
         {
-            RuntimeMetadataEntry attachment;
-            if (index.EntriesById.TryGetValue(objectId, out attachment) && IsCompatibleOptic(attachment, firearm, desiredKind))
+            var candidates = directCandidates
+                .Concat(index.GetOptics(rule.OpticKind))
+                .Where(attachment => IsCompatibleWithRule(attachment, rule))
+                .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+                .ToList();
+            if (candidates.Count > 0)
             {
-                directCandidates.Add(attachment);
+                return candidates[random.Next(candidates.Count)].ObjectID;
             }
         }
 
-        var opticCandidates = PreferRussianSideRailOptics(
-            PreferDedicatedCompactOptics(directCandidates, firearm),
-            firearm);
-        if (opticCandidates.Count == 0)
-        {
-            opticCandidates = PreferRussianSideRailOptics(
-                PreferDedicatedCompactOptics(
-                    index.GetOptics(desiredKind).Where(attachment => IsCompatibleOptic(attachment, firearm, desiredKind)).ToList(),
-                    firearm),
-                firearm);
-        }
-
-        var distinct = opticCandidates
-            .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+        // BespokeAttachments is a direct game-authored compatibility list. It
+        // permits an otherwise unknown proprietary optic mount, but still
+        // requires a verified optic component and a physical shared mount.
+        var directFallback = directCandidates
+            .Where(attachment => IsVerifiedOptic(attachment) &&
+                HasSharedPhysicalMount(firearm.PhysicalMountTypes, attachment.PhysicalMountTypes))
+            .OrderByDescending(attachment => attachment.OpticKind == "Scope")
+            .ThenBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
             .ToList();
-        if (distinct.Count == 0)
-        {
-            return null;
-        }
-
-        return distinct[random.Next(distinct.Count)].ObjectID;
+        return directFallback.Count == 0 ? null : directFallback[random.Next(directFallback.Count)].ObjectID;
     }
 
-    private static List<RuntimeMetadataEntry> PreferRussianSideRailOptics(
-        List<RuntimeMetadataEntry> candidates,
+    private static List<RuntimeMetadataEntry> GetDirectOptics(
+        RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
-        if (!ResolvedMountTypes(firearm.PhysicalMountTypes)
-                .Any(mount => string.Equals(mount, "Russian", StringComparison.OrdinalIgnoreCase)))
+        var candidates = new List<RuntimeMetadataEntry>();
+        foreach (var objectId in firearm.BespokeAttachments ?? new List<string>())
         {
-            return candidates;
+            RuntimeMetadataEntry attachment;
+            if (index.EntriesById.TryGetValue(objectId, out attachment) && IsVerifiedOptic(attachment))
+            {
+                candidates.Add(attachment);
+            }
         }
 
-        var russianCandidates = candidates
-            .Where(attachment => ResolvedMountTypes(attachment.PhysicalMountTypes)
-                .Any(mount => string.Equals(mount, "Russian", StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-        return russianCandidates.Count > 0 ? russianCandidates : candidates;
+        return candidates;
     }
 
-    private static bool IsCompatibleOptic(
-        RuntimeMetadataEntry attachment,
-        RuntimeMetadataEntry firearm,
-        string desiredKind)
+    private static bool IsCompatibleWithRule(RuntimeMetadataEntry attachment, OpticMountRule rule)
+    {
+        return IsVerifiedOptic(attachment) &&
+            string.Equals(attachment.OpticKind, rule.OpticKind, StringComparison.Ordinal) &&
+            HasMount(attachment.PhysicalMountTypes, rule.MountType);
+    }
+
+    private static bool IsVerifiedOptic(RuntimeMetadataEntry attachment)
     {
         return attachment.Category == "Attachment" &&
-            attachment.OpticKind == desiredKind &&
-            HasSharedPhysicalMount(firearm.PhysicalMountTypes, attachment.PhysicalMountTypes);
+            (attachment.OpticKind == "Scope" || attachment.OpticKind == "Reflex");
     }
 
     private static bool HasSharedPhysicalMount(IEnumerable<string> firearmMounts, IEnumerable<string> attachmentMounts)
     {
-        if (firearmMounts == null || attachmentMounts == null)
-        {
-            return false;
-        }
-
-        var firearmMountSet = new HashSet<string>(
-            ResolvedMountTypes(firearmMounts),
-            StringComparer.OrdinalIgnoreCase);
-        return ResolvedMountTypes(attachmentMounts).Any(mount => firearmMountSet.Contains(mount));
+        return (firearmMounts ?? Enumerable.Empty<string>())
+            .Select(MountResolution.Resolve)
+            .Where(resolution => resolution.IsResolved)
+            .Select(resolution => resolution.CanonicalMount)
+            .Any(mount => HasMount(attachmentMounts, mount));
     }
 
-    private static List<RuntimeMetadataEntry> PreferDedicatedCompactOptics(
-        List<RuntimeMetadataEntry> candidates,
-        RuntimeMetadataEntry firearm)
-    {
-        if (!IsCompact(firearm.FirearmSize))
-        {
-            return candidates;
-        }
-
-        var dedicatedMounts = ResolvedMountTypes(firearm.PhysicalMountTypes)
-            .Where(IsDedicatedCompactOpticMount)
-            .ToList();
-        if (dedicatedMounts.Count == 0)
-        {
-            return candidates;
-        }
-
-        return candidates
-            .Where(attachment => HasSharedPhysicalMount(dedicatedMounts, attachment.PhysicalMountTypes))
-            .ToList();
-    }
-
-    private static IEnumerable<string> ResolvedMountTypes(IEnumerable<string> mounts)
+    private static bool HasMount(IEnumerable<string> mounts, string expectedMount)
     {
         return (mounts ?? Enumerable.Empty<string>())
             .Select(MountResolution.Resolve)
             .Where(resolution => resolution.IsResolved)
-            .Select(resolution => resolution.CanonicalMount)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-    }
-
-    private static bool IsDedicatedCompactOpticMount(string mount)
-    {
-        return !string.Equals(mount, "Picatinny", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "Suppressor", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "Stock", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "M203", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "GP25", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "AKFore", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(mount, "MLokRail", StringComparison.OrdinalIgnoreCase) &&
-            mount.IndexOf("Bayonet", StringComparison.OrdinalIgnoreCase) < 0 &&
-            mount.IndexOf("Foregrip", StringComparison.OrdinalIgnoreCase) < 0;
+            .Any(resolution => string.Equals(resolution.CanonicalMount, expectedMount, StringComparison.OrdinalIgnoreCase));
     }
 
     private static RuntimeEnemyEntry[] DefaultEnemies()
@@ -556,18 +511,6 @@ public static class RuntimeProfileBuilder
                 DifficultyScore = 1,
             },
         };
-    }
-
-    private static bool IsCompact(string firearmSize)
-    {
-        return firearmSize == "Pocket" || firearmSize == "Pistol" || firearmSize == "Compact";
-    }
-
-    private static string DesiredOpticKind(RuntimeMetadataEntry firearm)
-    {
-        var hasDedicatedCompactMount = IsCompact(firearm.FirearmSize) &&
-            ResolvedMountTypes(firearm.PhysicalMountTypes).Any(IsDedicatedCompactOpticMount);
-        return hasDedicatedCompactMount ? "Reflex" : "Scope";
     }
 
     private static List<string> DistinctIds(params List<string>[] lists)

@@ -21,7 +21,6 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
-    private const float GunGameSelectorPollSeconds = 0.25f;
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
 
@@ -34,20 +33,22 @@ public sealed class Plugin : BaseUnityPlugin
     private Harmony harmony;
     private Type weaponPoolLoaderType;
     private MethodInfo gameManagerOnDestroy;
+    private EventInfo weaponPoolLoadedEvent;
+    private Delegate weaponPoolLoadedHandler;
 
     private void Awake()
     {
         instance = this;
         InstallGunGameRefreshHooks();
+        SubscribeToWeaponPoolLoaderReadyEvent();
         Trace("plugin awake.");
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
     private void Start()
     {
-        Trace("starting vanilla generation and selector watch.");
+        Trace("starting vanilla generation.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
-        StartCoroutine(WatchForGunGamePoolLoader());
     }
 
     private void OnDestroy()
@@ -55,6 +56,11 @@ public sealed class Plugin : BaseUnityPlugin
         if (harmony != null)
         {
             harmony.UnpatchSelf();
+        }
+
+        if (weaponPoolLoadedEvent != null && weaponPoolLoadedHandler != null)
+        {
+            weaponPoolLoadedEvent.RemoveEventHandler(null, weaponPoolLoadedHandler);
         }
 
         if (instance == this)
@@ -95,20 +101,49 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator WatchForGunGamePoolLoader()
+    private void SubscribeToWeaponPoolLoaderReadyEvent()
     {
-        Trace("selector watch active.");
-        while (true)
+        weaponPoolLoaderType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
+        var callback = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderReady");
+        weaponPoolLoadedEvent = weaponPoolLoaderType == null
+            ? null
+            : weaponPoolLoaderType.GetEvent(
+                "WeaponLoadedEvent",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        if (weaponPoolLoadedEvent == null || callback == null || weaponPoolLoadedEvent.EventHandlerType == null)
         {
-            var loader = FindGunGamePoolLoader();
-            if (selectorTracker.Observe(loader))
-            {
-                Trace("live selector detected.");
-                yield return StartCoroutine(PrepareModdedProfilesForSelector(loader));
-            }
-
-            yield return new WaitForSeconds(GunGameSelectorPollSeconds);
+            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
+            return;
         }
+
+        try
+        {
+            weaponPoolLoadedHandler = Delegate.CreateDelegate(weaponPoolLoadedEvent.EventHandlerType, callback);
+            weaponPoolLoadedEvent.AddEventHandler(null, weaponPoolLoadedHandler);
+            Trace("GunGame selector ready event subscribed.");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
+            Logger.LogDebug("Could not subscribe to GunGame selector ready event: " + exception);
+        }
+    }
+
+    private static void WeaponPoolLoaderReady()
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        var loader = instance.FindGunGamePoolLoader();
+        if (!instance.selectorTracker.Observe(loader))
+        {
+            return;
+        }
+
+        instance.Trace("live selector ready event received.");
+        instance.StartCoroutine(instance.PrepareModdedProfilesForSelector(loader));
     }
 
     private object FindGunGamePoolLoader()
@@ -658,6 +693,29 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var declaredCategory = item.Category.ToString();
+            var physicalMountTypes = new List<string>();
+            var opticKind = string.Empty;
+            if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
+            {
+                try
+                {
+                    var prefabCallback = item.GetGameObjectAsync();
+                    yield return prefabCallback;
+                    var prefab = prefabCallback.Result;
+                    physicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
+                    opticKind = GetOpticKind(item, prefab);
+                }
+                catch (Exception exception)
+                {
+                    // Do not fall back to broad metadata tags here. A missing
+                    // prefab is safer as "no verified optic" than a loose,
+                    // incompatible attachment that can crash GunGame spawn.
+                    Logger.LogDebug("Could not inspect GunGame mount prefab for " + item.ItemID + ": " + exception.Message);
+                }
+
+                frameStart = Stopwatch.GetTimestamp();
+            }
+
             entries.Add(new RuntimeMetadataEntry
             {
                 ObjectID = item.ItemID,
@@ -682,8 +740,8 @@ public sealed class Plugin : BaseUnityPlugin
                     : item.TagFirearmMounts.Select(mount => mount.ToString()).ToList(),
                 AttachmentMount = item.TagAttachmentMount.ToString(),
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
-                OpticKind = GetOpticKind(item),
-                PhysicalMountTypes = GetDeclaredMountTypes(item, declaredCategory),
+                OpticKind = opticKind,
+                PhysicalMountTypes = physicalMountTypes,
             });
 
             if (HasExceededCaptureBudget(frameStart))
@@ -717,26 +775,33 @@ public sealed class Plugin : BaseUnityPlugin
             .ToList();
     }
 
-    private static List<string> GetDeclaredMountTypes(FVRObject item, string category)
+    private static List<string> GetPhysicalMountTypes(GameObject prefab, string category)
     {
-        if (category == "Firearm")
+        if (prefab == null)
         {
-            return item.TagFirearmMounts == null
-                ? new List<string>()
-                : item.TagFirearmMounts
-                    .Select(mount => mount.ToString())
-                    .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(mount => mount, StringComparer.Ordinal)
-                    .ToList();
+            return new List<string>();
         }
 
         if (category == "Attachment")
         {
-            var mount = item.TagAttachmentMount.ToString();
-            return string.IsNullOrEmpty(mount) || mount == "None"
-                ? new List<string>()
-                : new List<string> { mount };
+            return prefab.GetComponentsInChildren<FVRFireArmAttachment>(true)
+                .Where(attachment => attachment != null)
+                .Select(attachment => attachment.Type.ToString())
+                .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(mount => mount, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        if (category == "Firearm")
+        {
+            return prefab.GetComponentsInChildren<FVRFireArmAttachmentMount>(true)
+                .Where(mount => mount != null)
+                .Select(mount => mount.Type.ToString())
+                .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(mount => mount, StringComparer.Ordinal)
+                .ToList();
         }
 
         return new List<string>();
@@ -895,14 +960,18 @@ public sealed class Plugin : BaseUnityPlugin
         return property != null && property.PropertyType == typeof(bool) && (bool)property.GetValue(value, null);
     }
 
-    private static string GetOpticKind(FVRObject item)
+    private static string GetOpticKind(FVRObject item, GameObject prefab)
     {
-        if (item.Category.ToString() != "Attachment")
+        if (item.Category.ToString() != "Attachment" || prefab == null)
         {
             return string.Empty;
         }
 
-        return PipScopeOpticClassifier.ClassifyFromMetadata(item.ItemID, item.TagAttachmentFeature.ToString());
+        var attachments = prefab.GetComponentsInChildren<FVRFireArmAttachment>(true);
+        return PipScopeOpticClassifier.Classify(
+            item.ItemID,
+            attachments.Any(attachment => attachment != null && attachment.AttachmentInterface is PIPScopeController),
+            attachments.Any(attachment => attachment != null && attachment.AttachmentInterface is ReflexSightController));
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)

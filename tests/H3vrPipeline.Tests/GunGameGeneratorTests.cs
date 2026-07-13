@@ -707,7 +707,7 @@ public sealed class GunGameGeneratorTests
         var pistol = RuntimeEntry(entryType, "PicatinnyPistol", "Firearm", true);
         SetRuntimeProperty(entryType, pistol, "CompatibleSpeedLoaders", new List<string> { "PistolSpeedloader" });
         SetRuntimeProperty(entryType, pistol, "FirearmSize", "Pistol");
-        SetRuntimeProperty(entryType, pistol, "PhysicalMountTypes", new List<string> { "Muzzle", "Stock", "Picatinny" });
+        SetRuntimeProperty(entryType, pistol, "PhysicalMountTypes", new List<string> { "NonOpticMountA", "NonOpticMountB", "Picatinny" });
         entries.SetValue(pistol, 0);
         entries.SetValue(RuntimeEntry(entryType, "PistolSpeedloader", "SpeedLoader", true, roundType: 9), 1);
 
@@ -733,7 +733,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_profile_builder_never_uses_muzzle_or_stock_as_an_optic_mount()
+    public void Runtime_profile_builder_ignores_unrecognized_non_optic_mounts()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -745,13 +745,13 @@ public sealed class GunGameGeneratorTests
 
         var firearm = RuntimeEntry(entryType, "NonOpticMountFirearm", "Firearm", true);
         SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "Magazine" });
-        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "Muzzle", "Stock" });
+        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "NonOpticMountA", "NonOpticMountB" });
         entries.SetValue(firearm, 0);
         entries.SetValue(RuntimeEntry(entryType, "Magazine", "Magazine", true, magazineType: 1), 1);
 
-        var invalidScope = RuntimeEntry(entryType, "MuzzleScope", "Attachment", true);
+        var invalidScope = RuntimeEntry(entryType, "UnrecognizedMountScope", "Attachment", true);
         SetRuntimeProperty(entryType, invalidScope, "OpticKind", "Scope");
-        SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "Muzzle" });
+        SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "NonOpticMountA" });
         entries.SetValue(invalidScope, 2);
 
         var enemies = Array.CreateInstance(enemyType, 1);
