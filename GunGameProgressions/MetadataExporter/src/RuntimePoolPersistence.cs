@@ -146,6 +146,7 @@ public static class RuntimePoolPersistence
         AppendValue(content, entry.AttachmentFeature);
         AppendValue(content, entry.OpticKind);
         AppendList(content, entry.PhysicalMountTypes);
+        AppendList(content, entry.ProvidedMountTypes);
         AppendValue(content, entry.OpticMinMagnification.ToString("R", CultureInfo.InvariantCulture));
         AppendValue(content, entry.OpticMaxMagnification.ToString("R", CultureInfo.InvariantCulture));
         AppendValue(content, entry.IsVariableMagnification ? "1" : "0");

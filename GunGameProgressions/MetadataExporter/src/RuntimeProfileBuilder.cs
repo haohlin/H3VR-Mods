@@ -26,6 +26,7 @@ public sealed class RuntimeMetadataEntry
     public string AttachmentFeature { get; set; }
     public string OpticKind { get; set; }
     public List<string> PhysicalMountTypes { get; set; }
+    public List<string> ProvidedMountTypes { get; set; }
     public float OpticMinMagnification { get; set; }
     public float OpticMaxMagnification { get; set; }
     public bool IsVariableMagnification { get; set; }
@@ -404,10 +405,16 @@ public static class RuntimeProfileBuilder
         Random random)
     {
         var directCandidates = GetDirectOptics(index, firearm);
+        if (directCandidates.Count > 0)
+        {
+            // BespokeAttachments is the game's direct compatibility list. A
+            // verified optic there is the authoritative proprietary choice.
+            return SelectPreferredOptic(directCandidates, firearm, random);
+        }
+
         foreach (var rule in OpticMountPolicy.Rank(firearm.PhysicalMountTypes))
         {
-            var candidates = directCandidates
-                .Concat(index.GetOptics(rule.OpticKinds))
+            var candidates = index.GetOptics(rule.OpticKinds)
                 .Where(attachment => IsCompatibleWithRule(attachment, rule))
                 .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
                 .Select(group => group.First())
@@ -416,16 +423,31 @@ public static class RuntimeProfileBuilder
             {
                 return SelectPreferredOptic(candidates, firearm, random);
             }
+
+            var adapterCandidates = GetAdapterCompatibleOptics(index, rule);
+            if (adapterCandidates.Count > 0)
+            {
+                return SelectPreferredOptic(adapterCandidates, firearm, random);
+            }
         }
 
-        // BespokeAttachments is a direct game-authored compatibility list. It
-        // permits an otherwise unknown proprietary optic mount, but still
-        // requires a verified optic component and a physical shared mount.
-        var directFallback = directCandidates
-            .Where(attachment => IsVerifiedOptic(attachment) &&
-                HasSharedPhysicalMount(firearm.PhysicalMountTypes, attachment.PhysicalMountTypes))
+        return null;
+    }
+
+    private static List<RuntimeMetadataEntry> GetAdapterCompatibleOptics(
+        RuntimeProfileIndex index,
+        OpticMountRule firearmRule)
+    {
+        return index.EntriesById.Values
+            .Where(adapter => adapter.Category == "Attachment" &&
+                adapter.AttachmentFeature == "Adapter" &&
+                HasMount(adapter.PhysicalMountTypes, firearmRule.MountType))
+            .SelectMany(adapter => OpticMountPolicy.Rank(adapter.ProvidedMountTypes))
+            .SelectMany(rule => index.GetOptics(rule.OpticKinds)
+                .Where(attachment => IsCompatibleWithRule(attachment, rule)))
+            .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+            .Select(group => group.First())
             .ToList();
-        return directFallback.Count == 0 ? null : SelectPreferredOptic(directFallback, firearm, random);
     }
 
     private static List<RuntimeMetadataEntry> GetDirectOptics(
@@ -534,15 +556,6 @@ public static class RuntimeProfileBuilder
     {
         return attachment.Category == "Attachment" &&
             (attachment.OpticKind == "Scope" || attachment.OpticKind == "Reflex");
-    }
-
-    private static bool HasSharedPhysicalMount(IEnumerable<string> firearmMounts, IEnumerable<string> attachmentMounts)
-    {
-        return (firearmMounts ?? Enumerable.Empty<string>())
-            .Select(MountResolution.Resolve)
-            .Where(resolution => resolution.IsResolved)
-            .Select(resolution => resolution.CanonicalMount)
-            .Any(mount => HasMount(attachmentMounts, mount));
     }
 
     private static bool HasMount(IEnumerable<string> mounts, string expectedMount)

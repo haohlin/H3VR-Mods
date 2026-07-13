@@ -790,6 +790,7 @@ public sealed class Plugin : BaseUnityPlugin
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
                 OpticKind = inspection.OpticKind,
                 PhysicalMountTypes = inspection.PhysicalMountTypes,
+                ProvidedMountTypes = inspection.ProvidedMountTypes,
                 OpticMinMagnification = inspection.OpticMinMagnification,
                 OpticMaxMagnification = inspection.OpticMaxMagnification,
                 IsVariableMagnification = inspection.IsVariableMagnification,
@@ -849,6 +850,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             var prefab = prefabCallback.Result;
             inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
+            inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
             if (declaredCategory == "Attachment")
             {
                 PopulateOpticInspection(item, prefab, inspection);
@@ -937,6 +939,22 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         return new List<string>();
+    }
+
+    private static List<string> GetProvidedMountTypes(GameObject prefab, string category)
+    {
+        if (prefab == null || category != "Attachment")
+        {
+            return new List<string>();
+        }
+
+        return prefab.GetComponentsInChildren<FVRFireArmAttachmentMount>(true)
+            .Where(mount => mount != null)
+            .Select(mount => mount.Type.ToString())
+            .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(mount => mount, StringComparer.Ordinal)
+            .ToList();
     }
 
     private IEnumerator CaptureEnemyEntries(Action<RuntimeEnemyCapture> complete)
@@ -1107,6 +1125,12 @@ public sealed class Plugin : BaseUnityPlugin
             item.ItemID,
             attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.PIPScopeController")),
             attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.ReflexSightController")));
+        if (string.IsNullOrEmpty(inspection.OpticKind))
+        {
+            inspection.OpticKind = PipScopeOpticClassifier.ClassifyFromMetadata(
+                item.ItemID,
+                item.TagAttachmentFeature.ToString());
+        }
         if (inspection.OpticKind == "Scope")
         {
             PopulateScopeMagnification(attachments, inspection);
@@ -1269,6 +1293,7 @@ public sealed class Plugin : BaseUnityPlugin
             AppendJsonNamedString(json, "AttachmentFeature", item.AttachmentFeature);
             AppendJsonNamedString(json, "OpticKind", item.OpticKind);
             AppendJsonNamedStringArray(json, "PhysicalMountTypes", item.PhysicalMountTypes);
+            AppendJsonNamedStringArray(json, "ProvidedMountTypes", item.ProvidedMountTypes);
             json.Append(",\"OpticMinMagnification\":");
             json.Append(item.OpticMinMagnification.ToString(System.Globalization.CultureInfo.InvariantCulture));
             json.Append(",\"OpticMaxMagnification\":");
@@ -1688,6 +1713,7 @@ public sealed class Plugin : BaseUnityPlugin
     private sealed class RuntimePrefabInspection
     {
         public List<string> PhysicalMountTypes { get; set; }
+        public List<string> ProvidedMountTypes { get; set; }
         public string OpticKind { get; set; }
         public float OpticMinMagnification { get; set; }
         public float OpticMaxMagnification { get; set; }
@@ -1700,6 +1726,7 @@ public sealed class Plugin : BaseUnityPlugin
             return new RuntimePrefabInspection
             {
                 PhysicalMountTypes = new List<string>(),
+                ProvidedMountTypes = new List<string>(),
                 OpticKind = string.Empty,
             };
         }

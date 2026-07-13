@@ -61,9 +61,10 @@ public sealed class GunGameSpawnSafety
             ? null
             : FindMethod(weaponBufferType, "SpawnAsync", 2);
         var spawnPrefix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAndEquipPrefix");
+        var spawnPostfix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAndEquipPostfix");
         var spawnFinalizer = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAndEquipFinalizer");
         var bufferPrefix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAsyncPrefix");
-        if (spawnAndEquip == null || spawnAsync == null || spawnPrefix == null || spawnFinalizer == null || bufferPrefix == null)
+        if (spawnAndEquip == null || spawnAsync == null || spawnPrefix == null || spawnPostfix == null || spawnFinalizer == null || bufferPrefix == null)
         {
             return false;
         }
@@ -74,6 +75,7 @@ public sealed class GunGameSpawnSafety
             harmony.Patch(
                 spawnAndEquip,
                 prefix: new HarmonyMethod(spawnPrefix),
+                postfix: new HarmonyMethod(spawnPostfix),
                 finalizer: new HarmonyMethod(spawnFinalizer));
             harmony.Patch(spawnAsync, prefix: new HarmonyMethod(bufferPrefix));
 
@@ -120,6 +122,14 @@ public sealed class GunGameSpawnSafety
 
         active.QueueSkip(__instance, ReadCurrentWeaponId(__instance), "spawn exception " + __exception.GetType().Name);
         return null;
+    }
+
+    private static void SpawnAndEquipPostfix(object __instance)
+    {
+        if (active != null)
+        {
+            active.TryMountGeneratedOptic(__instance);
+        }
     }
 
     private static bool SpawnAsyncPrefix(object __1, ref IEnumerator __result)
@@ -206,6 +216,269 @@ public sealed class GunGameSpawnSafety
 
         var extraId = ReadField(gunData, "Extra");
         return string.IsNullOrEmpty(extraId) || HasExpectedObject(objects, extraId, "Extra", out reason);
+    }
+
+    private void TryMountGeneratedOptic(object progression)
+    {
+        try
+        {
+            var weaponId = ReadCurrentWeaponId(progression);
+            var currentPool = GetCurrentPool();
+            if (weaponId < 0 || !IsGeneratedRuntimePool(currentPool))
+            {
+                return;
+            }
+
+            var gunData = GetCurrentGunData(currentPool, weaponId);
+            var opticId = ReadField(gunData, "Extra");
+            if (string.IsNullOrEmpty(opticId))
+            {
+                return;
+            }
+
+            var equipment = GetCurrentEquipment(progression);
+            var firearm = FindFirearm(equipment, ReadField(gunData, "GunName"));
+            var optic = FindAttachment(equipment, opticId);
+            if (firearm == null || optic == null || optic.curMount != null)
+            {
+                return;
+            }
+
+            if (TryAttachOptic(firearm, optic) || TryAttachOpticThroughAdapter(firearm, optic))
+            {
+                return;
+            }
+
+            trace("could not mount generated optic for loadout " + weaponId + ".");
+        }
+        catch (Exception exception)
+        {
+            trace("could not mount generated optic: " + exception.GetType().Name);
+        }
+    }
+
+    private static object GetCurrentPool()
+    {
+        try
+        {
+            var gameSettingsType = AccessTools.TypeByName("GunGame.Scripts.Options.GameSettings");
+            var property = gameSettingsType == null
+                ? null
+                : gameSettingsType.GetProperty(
+                    "CurrentPool",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            return property == null ? null : property.GetValue(null, null);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static object GetCurrentGunData(object currentPool, int weaponId)
+    {
+        try
+        {
+            var getWeapon = currentPool == null ? null : FindMethod(currentPool.GetType(), "GetWeapon", 1);
+            return getWeapon == null ? null : getWeapon.Invoke(currentPool, new object[] { weaponId });
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsGeneratedRuntimePool(object currentPool)
+    {
+        var name = ReadProperty(currentPool, "Name");
+        return name.StartsWith("Runtime ", StringComparison.Ordinal);
+    }
+
+    private static IList GetCurrentEquipment(object progression)
+    {
+        var field = progression == null
+            ? null
+            : progression.GetType().GetField("_currentEquipment", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        return field == null ? null : field.GetValue(progression) as IList;
+    }
+
+    private static FVRFireArm FindFirearm(IList equipment, string firearmId)
+    {
+        foreach (var item in equipment ?? new object[0])
+        {
+            var gameObject = item as GameObject;
+            var firearm = gameObject == null ? null : gameObject.GetComponent<FVRFireArm>();
+            if (firearm != null && HasObjectId(firearm, firearmId))
+            {
+                return firearm;
+            }
+        }
+
+        return null;
+    }
+
+    private static FVRFireArmAttachment FindAttachment(IList equipment, string opticId)
+    {
+        foreach (var item in equipment ?? new object[0])
+        {
+            var gameObject = item as GameObject;
+            var attachment = gameObject == null ? null : gameObject.GetComponent<FVRFireArmAttachment>();
+            if (attachment != null && HasObjectId(attachment, opticId))
+            {
+                return attachment;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasObjectId(FVRPhysicalObject item, string objectId)
+    {
+        return item != null &&
+            item.ObjectWrapper != null &&
+            string.Equals(item.ObjectWrapper.ItemID, objectId, StringComparison.Ordinal);
+    }
+
+    private static bool TryAttachOptic(FVRPhysicalObject parent, FVRFireArmAttachment optic)
+    {
+        var mount = FindCompatibleOpticMount(parent, optic);
+        if (mount == null)
+        {
+            return false;
+        }
+
+        optic.ClearQuickbeltState();
+        optic.AttachToMount(mount, playSound: false);
+        return true;
+    }
+
+    private static bool TryAttachOpticThroughAdapter(FVRFireArm firearm, FVRFireArmAttachment optic)
+    {
+        Dictionary<string, FVRObject> objects;
+        try
+        {
+            objects = IM.OD;
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (objects == null)
+        {
+            return false;
+        }
+
+        foreach (var candidate in objects.Values)
+        {
+            if (candidate == null ||
+                candidate.Category != FVRObject.ObjectCategory.Attachment ||
+                candidate.TagAttachmentFeature != FVRObject.OTagAttachmentFeature.Adapter)
+            {
+                continue;
+            }
+
+            GameObject adapterObject;
+            FVRFireArmAttachment adapter;
+            try
+            {
+                adapterObject = UnityEngine.Object.Instantiate(
+                    candidate.GetGameObject(),
+                    firearm.transform.position,
+                    firearm.transform.rotation);
+                adapter = adapterObject.GetComponent<FVRFireArmAttachment>();
+            }
+            catch
+            {
+                continue;
+            }
+
+            var firearmMount = adapter == null ? null : FindCompatibleOpticMount(firearm, adapter);
+            if (firearmMount == null)
+            {
+                UnityEngine.Object.Destroy(adapterObject);
+                continue;
+            }
+
+            adapter.AttachToMount(firearmMount, playSound: false);
+            if (TryAttachOptic(adapter, optic))
+            {
+                return true;
+            }
+
+            adapter.DetachFromMount();
+            UnityEngine.Object.Destroy(adapterObject);
+        }
+
+        return false;
+    }
+
+    private static FVRFireArmAttachmentMount FindCompatibleOpticMount(
+        FVRPhysicalObject parent,
+        FVRFireArmAttachment attachment)
+    {
+        if (parent == null || attachment == null || !IsOpticMountType(attachment.Type))
+        {
+            return null;
+        }
+
+        foreach (var mount in parent.AttachmentMounts ?? new List<FVRFireArmAttachmentMount>())
+        {
+            if (mount == null ||
+                mount.Type != attachment.Type ||
+                !IsOpticMountType(mount.Type) ||
+                !IsTopSightingMount(parent, mount) ||
+                !mount.isMountableOn(attachment))
+            {
+                continue;
+            }
+
+            return mount;
+        }
+
+        return null;
+    }
+
+    private static bool IsTopSightingMount(FVRPhysicalObject parent, FVRFireArmAttachmentMount mount)
+    {
+        if (mount.Type != FVRFireArmAttachementMountType.Picatinny &&
+            mount.Type != FVRFireArmAttachementMountType.MLokRail)
+        {
+            return true;
+        }
+
+        return Vector3.Angle(mount.transform.up, parent.transform.up) < 46f;
+    }
+
+    private static bool IsOpticMountType(FVRFireArmAttachementMountType mountType)
+    {
+        switch (mountType)
+        {
+            case FVRFireArmAttachementMountType.Picatinny:
+            case FVRFireArmAttachementMountType.Handgun:
+            case FVRFireArmAttachementMountType.MAS4956Scope:
+            case FVRFireArmAttachementMountType.Russian:
+            case FVRFireArmAttachementMountType.SVTScope:
+            case FVRFireArmAttachementMountType.M16HandleMount:
+            case FVRFireArmAttachementMountType.M1GarandScope:
+            case FVRFireArmAttachementMountType.M1CarbineScope:
+            case FVRFireArmAttachementMountType.MP5RailMount:
+            case FVRFireArmAttachementMountType.PythonScopeMount:
+            case FVRFireArmAttachementMountType.FamasTopRail:
+            case FVRFireArmAttachementMountType.Mini14TopRail:
+            case FVRFireArmAttachementMountType.R1022TopRail:
+            case FVRFireArmAttachementMountType.MLokRail:
+            case FVRFireArmAttachementMountType.RMR:
+            case FVRFireArmAttachementMountType.Scope_KAR:
+            case FVRFireArmAttachementMountType.Scope_LeeEnfield:
+            case FVRFireArmAttachementMountType.Scope_M1903:
+            case FVRFireArmAttachementMountType.Scope_Mosin:
+            case FVRFireArmAttachementMountType.Scope_Model8Scope:
+            case FVRFireArmAttachementMountType.Scope_AR18:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private void QueueSkip(object progression, int weaponId, string reason)

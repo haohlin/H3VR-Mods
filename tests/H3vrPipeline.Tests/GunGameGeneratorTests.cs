@@ -182,6 +182,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(typeof(string), opticKind!.PropertyType);
         Assert.NotNull(physicalMountTypes);
         Assert.Equal(typeof(List<string>), physicalMountTypes!.PropertyType);
+        Assert.Equal(typeof(List<string>), entryType.GetProperty("ProvidedMountTypes")!.PropertyType);
         Assert.Equal(typeof(float), entryType.GetProperty("OpticMinMagnification")!.PropertyType);
         Assert.Equal(typeof(float), entryType.GetProperty("OpticMaxMagnification")!.PropertyType);
         Assert.Equal(typeof(bool), entryType.GetProperty("IsVariableMagnification")!.PropertyType);
@@ -410,9 +411,13 @@ public sealed class GunGameGeneratorTests
         var source = File.ReadAllText(safetyPath);
 
         Assert.Contains("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAndEquipPostfix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAsyncPrefix(object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
         Assert.Contains("TryValidateCurrentLoadout", source, StringComparison.Ordinal);
+        Assert.Contains("TryMountGeneratedOptic", source, StringComparison.Ordinal);
+        Assert.Contains("TryAttachOpticThroughAdapter", source, StringComparison.Ordinal);
+        Assert.Contains("IsTopSightingMount", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("yield return null;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
@@ -965,6 +970,95 @@ public sealed class GunGameGeneratorTests
             .Single();
 
         Assert.Equal("Z_HandleMountScope", ReadString(gun, "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_uses_a_verified_bespoke_scope_when_its_prefab_mount_metadata_is_missing()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var firearm = RuntimeEntry(entryType, "PythonRifle", "Firearm", true);
+        SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "PythonMagazine" });
+        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "PythonScopeMount", "Picatinny" });
+        SetRuntimeProperty(entryType, firearm, "BespokeAttachments", new List<string> { "ScopePython" });
+        entries.SetValue(firearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "PythonMagazine", "Magazine", true, magazineType: 1), 1);
+
+        // ScopePython is a real proprietary choice. Its prefab exposes the
+        // physical mount through the attachment component at runtime, but old
+        // capture data did not retain that field, so direct game compatibility
+        // must still beat the generic Picatinny fallback.
+        var pythonScope = RuntimeEntry(entryType, "ScopePython", "Attachment", true);
+        SetRuntimeProperty(entryType, pythonScope, "AttachmentFeature", "Magnification");
+        SetRuntimeProperty(entryType, pythonScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, pythonScope, "PhysicalMountTypes", new List<string>());
+        entries.SetValue(pythonScope, 2);
+
+        var picatinnyScope = RuntimeEntry(entryType, "PicatinnyScope", "Attachment", true);
+        SetRuntimeProperty(entryType, picatinnyScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(picatinnyScope, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("ScopePython", ReadString(gun, "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_uses_an_adapter_when_a_special_top_rail_exposes_picatinny()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var firearm = RuntimeEntry(entryType, "FamasG2", "Firearm", true);
+        SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "FamasMagazine" });
+        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "FamasTopRail" });
+        SetRuntimeProperty(entryType, firearm, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, firearm, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, firearm, "FirearmAction", "Automatic");
+        entries.SetValue(firearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "FamasMagazine", "Magazine", true, magazineType: 1), 1);
+
+        var adapter = RuntimeEntry(entryType, "RailAdapterFamas", "Attachment", true);
+        SetRuntimeProperty(entryType, adapter, "AttachmentFeature", "Adapter");
+        SetRuntimeProperty(entryType, adapter, "PhysicalMountTypes", new List<string> { "FamasTopRail" });
+        SetRuntimeProperty(entryType, adapter, "ProvidedMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(adapter, 2);
+
+        var optic = RuntimeEntry(entryType, "PicatinnyVariableScope", "Attachment", true);
+        SetRuntimeProperty(entryType, optic, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, optic, "OpticMinMagnification", 1f);
+        SetRuntimeProperty(entryType, optic, "OpticMaxMagnification", 6f);
+        SetRuntimeProperty(entryType, optic, "IsVariableMagnification", true);
+        entries.SetValue(optic, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("PicatinnyVariableScope", ReadString(gun, "Extra"));
     }
 
     [Fact]
