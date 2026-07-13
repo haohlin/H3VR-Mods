@@ -21,28 +21,33 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
+    private const float GunGameSelectorPollSeconds = 0.25f;
     private const float ModdedRefreshTimeoutSeconds = 120f;
     private const float ModdedRefreshPollSeconds = 1f;
 
     private static Plugin instance;
+    private readonly GunGameSelectorInstanceTracker selectorTracker = new GunGameSelectorInstanceTracker();
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
     private Harmony harmony;
-    private MethodInfo weaponPoolLoaderAwake;
+    private Type weaponPoolLoaderType;
     private MethodInfo gameManagerOnDestroy;
 
     private void Awake()
     {
         instance = this;
         InstallGunGameRefreshHooks();
+        Trace("plugin awake.");
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
     private void Start()
     {
+        Trace("starting vanilla generation and selector watch.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
+        StartCoroutine(WatchForGunGamePoolLoader());
     }
 
     private void OnDestroy()
@@ -60,50 +65,70 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void InstallGunGameRefreshHooks()
     {
-        var loaderType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
-        weaponPoolLoaderAwake = loaderType == null ? null : AccessTools.Method(loaderType, "Awake");
         var gameManagerType = AccessTools.TypeByName("GunGame.Scripts.GameManager");
         gameManagerOnDestroy = gameManagerType == null ? null : AccessTools.Method(gameManagerType, "OnDestroy");
-        var loaderPostfix = AccessTools.Method(typeof(Plugin), "WeaponPoolLoaderAwakePostfix");
         var exitPostfix = AccessTools.Method(typeof(Plugin), "GameManagerOnDestroyPostfix");
-        if (weaponPoolLoaderAwake == null || gameManagerOnDestroy == null || loaderPostfix == null || exitPostfix == null)
+        if (gameManagerOnDestroy == null || exitPostfix == null)
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
             return;
         }
 
         harmony = new Harmony(HarmonyId);
-        harmony.Patch(weaponPoolLoaderAwake, postfix: new HarmonyMethod(loaderPostfix));
         harmony.Patch(gameManagerOnDestroy, postfix: new HarmonyMethod(exitPostfix));
-        var loaderPatchInfo = Harmony.GetPatchInfo(weaponPoolLoaderAwake);
         var exitPatchInfo = Harmony.GetPatchInfo(gameManagerOnDestroy);
-        if (loaderPatchInfo == null || exitPatchInfo == null ||
-            !loaderPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId) ||
-            !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
+        if (exitPatchInfo == null || !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
         {
             Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
+            return;
         }
-    }
 
-    private static void WeaponPoolLoaderAwakePostfix(object __instance)
-    {
-        if (instance != null)
-        {
-            instance.StartCoroutine(instance.PrepareModdedProfilesForSelector(__instance));
-        }
+        Trace("GunGame session-exit hook active.");
     }
 
     private static void GameManagerOnDestroyPostfix()
     {
         if (instance != null)
         {
+            instance.Trace("GunGame session ended; background refresh requested.");
             instance.RequestModdedRefresh();
         }
+    }
+
+    private IEnumerator WatchForGunGamePoolLoader()
+    {
+        Trace("selector watch active.");
+        while (true)
+        {
+            var loader = FindGunGamePoolLoader();
+            if (selectorTracker.Observe(loader))
+            {
+                Trace("live selector detected.");
+                yield return StartCoroutine(PrepareModdedProfilesForSelector(loader));
+            }
+
+            yield return new WaitForSeconds(GunGameSelectorPollSeconds);
+        }
+    }
+
+    private object FindGunGamePoolLoader()
+    {
+        if (weaponPoolLoaderType == null)
+        {
+            weaponPoolLoaderType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponPoolLoader");
+            if (weaponPoolLoaderType != null)
+            {
+                Trace("selector type resolved.");
+            }
+        }
+
+        return weaponPoolLoaderType == null ? null : UnityEngine.Object.FindObjectOfType(weaponPoolLoaderType);
     }
 
     private IEnumerator PrepareModdedProfilesForSelector(object weaponPoolLoader)
     {
         var loadingDisplay = CreateModdedProfileLoadingDisplay(weaponPoolLoader);
+        Trace(loadingDisplay == null ? "selector status row unavailable." : "selector status row created.");
         while (!vanillaGenerationFinished)
         {
             UpdateModdedProfileLoadingDisplay(loadingDisplay, "Preparing vanilla profiles");
@@ -111,6 +136,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
+        Trace("selector readiness wait started.");
         var readinessGate = new ModdedProfileReadinessGate();
         RuntimeMetadataCapture metadataCapture = null;
         do
@@ -126,6 +152,7 @@ public sealed class Plugin : BaseUnityPlugin
                     ModdedProfileLoadingMessage(readinessGate, now, externalLoadState));
                 if (readinessGate.IsReady(now, externalLoadState))
                 {
+                    Trace("mod content ready; capturing metadata.");
                     yield return StartCoroutine(CaptureRuntimeMetadata(
                         objects,
                         item => item.IsModContent,
@@ -153,6 +180,7 @@ public sealed class Plugin : BaseUnityPlugin
             if (report != null && report.PoolCount > 0)
             {
                 var choicesAdded = AddGeneratedPoolChoices(weaponPoolLoader, report.PoolFileNames);
+                Trace("selector insertion added " + choicesAdded + " of " + report.PoolCount + " modded profiles.");
                 if (choicesAdded < report.PoolCount && !LoaderAlreadyHasGeneratedPools(weaponPoolLoader, report.PoolFileNames))
                 {
                     Logger.LogWarning(RuntimeStatusMessages.ProfileUiUpdateFailed);
@@ -161,7 +189,13 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         DestroyModdedProfileLoadingDisplay(loadingDisplay);
+        Trace("selector preparation finished; background refresh requested.");
         RequestModdedRefresh();
+    }
+
+    private void Trace(string message)
+    {
+        Logger.LogInfo("GunGame Progressions trace: " + message);
     }
 
     private void RequestModdedRefresh()
