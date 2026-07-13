@@ -122,15 +122,15 @@ public sealed class GunGameSpawnSafety
         return null;
     }
 
-    private static bool SpawnAsyncPrefix(object[] __args, ref IEnumerator __result)
+    private static bool SpawnAsyncPrefix(object __1, ref IEnumerator __result)
     {
-        if (active == null || __args == null || __args.Length < 2)
+        if (active == null)
         {
             return true;
         }
 
         string reason;
-        if (active.TryValidateGunData(__args[1], out reason))
+        if (active.TryValidateGunData(__1, out reason))
         {
             return true;
         }

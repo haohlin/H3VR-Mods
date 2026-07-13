@@ -411,7 +411,7 @@ public sealed class GunGameGeneratorTests
 
         Assert.Contains("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
-        Assert.Contains("SpawnAsyncPrefix", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPrefix(object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
         Assert.Contains("TryValidateCurrentLoadout", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("yield return null;", source, StringComparison.Ordinal);
