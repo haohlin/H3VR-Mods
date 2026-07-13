@@ -492,9 +492,10 @@ public sealed class GunGameGeneratorTests
     {
         var source = File.ReadAllText(PluginSourcePath);
 
-        Assert.Contains("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
+        Assert.Contains("WatchForGunGamePoolLoader", source, StringComparison.Ordinal);
+        Assert.Contains("FindGunGamePoolLoader", source, StringComparison.Ordinal);
+        Assert.Contains("GunGameSelectorInstanceTracker", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
-        Assert.Contains("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
         Assert.Contains("PrepareModdedProfilesForSelector", source, StringComparison.Ordinal);
         Assert.Contains("CreateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
@@ -509,6 +510,24 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("FirstGunGameModWarmupSeconds", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
         Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_selector_tracker_handles_one_live_selector_instance_at_a_time()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var trackerType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.GunGameSelectorInstanceTracker"));
+        var tracker = Activator.CreateInstance(trackerType)!;
+        var observe = Assert.IsAssignableFrom<MethodInfo>(trackerType.GetMethod("Observe", BindingFlags.Instance | BindingFlags.Public));
+        var firstSelector = new object();
+        var secondSelector = new object();
+
+        Assert.False((bool)observe.Invoke(tracker, new object?[] { null })!);
+        Assert.True((bool)observe.Invoke(tracker, new[] { firstSelector })!);
+        Assert.False((bool)observe.Invoke(tracker, new[] { firstSelector })!);
+        Assert.False((bool)observe.Invoke(tracker, new object?[] { null })!);
+        Assert.True((bool)observe.Invoke(tracker, new[] { secondSelector })!);
     }
 
     [Fact]
