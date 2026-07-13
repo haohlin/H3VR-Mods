@@ -330,15 +330,26 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
-        if (UsesLooseShotgunShells(firearm))
+        if (IsShellFedShotgun(firearm))
         {
-            var shells = FirstAvailableFeeds(
-                GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
-                index.GetFeeds("Cartridge", firearm.RoundType));
+            var directSpeedLoaders = GetDirectFeeds(
+                firearm.CompatibleSpeedLoaders,
+                index.EntriesById,
+                "SpeedLoader");
+            if (UsesExplicitRevolverSpeedLoader(firearm, directSpeedLoaders))
+            {
+                return directSpeedLoaders;
+            }
+
+            var shells = GetCompatibleShells(index, firearm);
             if (shells.Count > 0)
             {
                 return shells;
             }
+
+            // A non-box-fed shotgun without a compatible shell is safer to
+            // exclude than to equip with a same-round-type rotary loader.
+            return new List<FeedCandidate>();
         }
 
         return FirstAvailableFeeds(
@@ -366,7 +377,7 @@ public static class RuntimeProfileBuilder
             ?? new List<FeedCandidate>();
     }
 
-    private static bool UsesLooseShotgunShells(RuntimeMetadataEntry firearm)
+    private static bool IsShellFedShotgun(RuntimeMetadataEntry firearm)
     {
         if (firearm.FirearmRoundPower != "Shotgun")
         {
@@ -374,8 +385,25 @@ public static class RuntimeProfileBuilder
         }
 
         var options = firearm.FirearmFeedOptions ?? new List<string>();
-        return options.Contains("BreachLoad") ||
-            (options.Contains("InternalMag") && !options.Contains("BoxMag"));
+        return !options.Contains("BoxMag");
+    }
+
+    private static bool UsesExplicitRevolverSpeedLoader(
+        RuntimeMetadataEntry firearm,
+        List<FeedCandidate> directSpeedLoaders)
+    {
+        return string.Equals(firearm.FirearmAction, "Revolver", StringComparison.Ordinal) &&
+            directSpeedLoaders != null &&
+            directSpeedLoaders.Count > 0;
+    }
+
+    private static List<FeedCandidate> GetCompatibleShells(
+        RuntimeProfileIndex index,
+        RuntimeMetadataEntry firearm)
+    {
+        return FirstAvailableFeeds(
+            GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
+            index.GetFeeds("Cartridge", firearm.RoundType));
     }
 
     private static List<FeedCandidate> GetDirectFeeds(

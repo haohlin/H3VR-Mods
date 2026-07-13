@@ -10,11 +10,17 @@ namespace HLin.GunGameProgressions;
 
 public static class RuntimePoolPersistence
 {
+    // Bump when a generation rule changes so persisted runtime pools cannot
+    // retain an obsolete compatibility decision after a plugin update.
+    private const string GenerationPolicyVersion = "4";
+
     public static string CreateFingerprint(
         IEnumerable<RuntimeMetadataEntry> entries,
         IEnumerable<RuntimeEnemyEntry> enemies)
     {
         var content = new StringBuilder();
+        content.Append("generationPolicy|");
+        AppendValue(content, GenerationPolicyVersion);
         foreach (var entry in (entries ?? Enumerable.Empty<RuntimeMetadataEntry>())
                      .Where(entry => entry != null)
                      .OrderBy(entry => entry.ObjectID ?? string.Empty, StringComparer.Ordinal))
