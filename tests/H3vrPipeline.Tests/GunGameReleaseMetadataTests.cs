@@ -19,7 +19,7 @@ public sealed class GunGameReleaseMetadataTests
 
         Assert.Equal("1.3.6", root.GetProperty("version_number").GetString());
         Assert.Equal(
-            "GunGame, supercharged: 615 vanilla firearms and 553 compatible mags, plus all supported active modded guns and custom Sosigs.",
+            "GunGame, supercharged: 654 versioned vanilla firearms with validated compatible feeds, plus all supported active modded guns and custom Sosigs.",
             root.GetProperty("description").GetString());
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));
@@ -28,6 +28,7 @@ public sealed class GunGameReleaseMetadataTests
         Assert.Contains("## Enemy Pacing", readme);
         Assert.Contains("## Compatible Loadouts", readme);
         Assert.Contains("## Your Enabled Content", readme);
+        Assert.Contains("versioned vanilla metadata snapshot", readme);
 
         var changelog = File.ReadAllText(Path.Combine(packageRoot, "CHANGELOG.md"));
         Assert.Contains("## 1.3.6", changelog);

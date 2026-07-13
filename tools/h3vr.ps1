@@ -325,6 +325,16 @@ function Get-GunGameStagingPath {
 function Test-GunGamePools {
     param([string]$Path)
 
+    $offlineMetadataPath = Join-Path $Path 'ObjectData.json'
+    if (-not (Test-Path -LiteralPath $offlineMetadataPath)) {
+        throw "Missing versioned GunGame vanilla metadata snapshot: $offlineMetadataPath"
+    }
+
+    $offlineMetadata = @(Get-Content -LiteralPath $offlineMetadataPath -Raw | ConvertFrom-Json)
+    if ($offlineMetadata.Count -eq 0 -or @($offlineMetadata | Where-Object { $_.IsModContent }).Count -ne 0) {
+        throw "GunGame offline metadata must contain only vanilla entries."
+    }
+
     $offlinePoolNames = @(
         'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
         'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json'
@@ -394,6 +404,7 @@ function Invoke-GunGameBuild {
     }
     Write-Host "Using tracked GunGame fallback profiles verified against the shared runtime resolver."
     Copy-Item -LiteralPath (Join-Path $sourcePath 'profile-rules.json') -Destination $stagingPath
+    Copy-Item -LiteralPath $offlineMetadataPath -Destination $stagingPath
     $offlinePoolPaths | ForEach-Object { Copy-Item -LiteralPath $_ -Destination $stagingPath }
     Test-GunGamePools $stagingPath
     return $stagingPath

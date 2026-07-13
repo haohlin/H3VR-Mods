@@ -30,6 +30,11 @@ public sealed class GunGameGeneratorTests
         Assert.Contains(
             gunGame.GetProperty("payload").EnumerateArray(),
             payload => payload.GetProperty("to").GetString() == "GunGameProgressionsMetadataExporter.dll");
+        Assert.Contains(
+            gunGame.GetProperty("payload").EnumerateArray(),
+            payload =>
+                payload.GetProperty("from").GetString() == "GunGameProgressions\\ObjectData.json" &&
+                payload.GetProperty("to").GetString() == "ObjectData.json");
         var externalTargets = gunGame.GetProperty("externalPatchTargets").EnumerateArray().ToArray();
         Assert.Contains(
             externalTargets,
@@ -131,7 +136,11 @@ public sealed class GunGameGeneratorTests
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
             Assert.All(pools, pool => Assert.Equal(654, pool.RootElement.GetProperty("Guns").GetArrayLength()));
 
-            using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(profileDirectory, "ObjectData.json")));
+            var metadataPath = Path.Combine(profileDirectory, "ObjectData.json");
+            Assert.True(File.Exists(metadataPath));
+            using var metadata = JsonDocument.Parse(File.ReadAllText(metadataPath));
+            Assert.Equal(4339, metadata.RootElement.GetArrayLength());
+            Assert.All(metadata.RootElement.EnumerateArray(), entry => Assert.False(entry.GetProperty("IsModContent").GetBoolean()));
             var variablePicatinnyScopes = metadata.RootElement
                 .EnumerateArray()
                 .Where(entry =>
@@ -162,6 +171,8 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("offlineProfileGeneratorCsproj", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Missing versioned GunGame vanilla metadata snapshot", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGame offline metadata must contain only vanilla entries.", pipeline, StringComparison.Ordinal);
         Assert.Contains("--verify", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Using metadata exported by the installed GunGame package", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$runtimeMetadataPath", pipeline, StringComparison.Ordinal);

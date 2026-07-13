@@ -10,7 +10,7 @@ GunGame Progressions expands GunGame with compatible gear, distinct difficulty s
 
 ## Choose a Pool
 
-The built-in vanilla selection covers **615 firearms** with **553 compatible magazines**, ready for a dependable Rot-focused game.
+The built-in vanilla selection covers **654 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
 
 | Profile | Weapons | Enemies | Play style |
 | --- | --- | --- | --- |
@@ -23,18 +23,18 @@ Rot pools are the most predictable option. Mixed Enemy pools are for a more vari
 
 ## First Start
 
-Vanilla profiles are generated at startup. The first GunGame session deliberately gives mod content time to register before Kodeman reads its pool files.
+The packaged Vanilla profiles are available immediately. Runtime generation then refreshes them from the live vanilla registry and builds Modded profiles after content finishes registering.
 
 | When | What happens |
 | --- | --- |
-| H3VR starts | A 15-second warmup runs while H3VR and mod loaders continue normally. |
-| First GunGame map | After the startup warmup, the selector waits 15 seconds, generates the current Modded profiles, then loads them. |
+| H3VR starts | Vanilla metadata and profiles refresh as soon as the object registry is available. |
+| First GunGame map | Vanilla choices remain available; Modded generation continues in the background. |
 | Later GunGame maps | They open normally; a background refresh starts. |
 | GunGame map closes | Another background refresh runs, so content that finished loading during the session can be included. |
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
 | A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
 
-This is a yielding wait, not a hard main-thread sleep: mod loaders continue to run. If you enter GunGame during the initial 15-second startup warmup, the first selector waits for the remaining startup warmup and its own 15-second window, then finishes the profile write. Later content continues to be discovered in the background.
+The loader waits only for a confirmed completion signal or five seconds of registry quiet; it never blocks the main game thread. If Modded pools are not ready yet, use a Vanilla choice and the selector will gain Modded choices after a later refresh.
 
 ## Enemy Pacing
 

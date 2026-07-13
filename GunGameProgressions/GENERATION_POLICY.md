@@ -6,6 +6,8 @@ They both call `RuntimeProfileBuilder`; neither pool may have a separate feed or
 The two tracked **offline Vanilla fallback** pools are generated from the same
 `RuntimeProfileBuilder` source by `OfflineProfileGenerator`. They are a
 vanilla-only safe starting point, not a substitute for runtime Modded capture.
+The versioned `ObjectData.json` vanilla snapshot is required generator input and
+is packaged beside those two profiles for repeatable offline validation.
 
 > **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
 > item or attachment. Never guess an object ID from a name or shared caliber.
@@ -109,11 +111,12 @@ policy change
     `-- Build / Package accepts the release payload
 ```
 
-The packaged fallback contains only the two Vanilla profiles. It must never
-contain a user-specific Modded profile. When a policy change affects a loadout,
-refresh the tracked Vanilla fallback with the offline generator and commit its
-JSON output in the same change. The package build runs `--verify` and rejects a
-stale fallback.
+The packaged fallback contains the versioned vanilla metadata snapshot and two
+Vanilla profiles. It must never contain a user-specific Modded profile. When a
+policy change affects a loadout, refresh the tracked Vanilla fallback with the
+offline generator and commit its JSON output in the same change. The package
+build and GitHub workflow run `--verify` and reject a missing, modded, or stale
+baseline.
 
 ## Playtest regression matrix
 
@@ -150,8 +153,9 @@ When changing this algorithm:
 1. Record the rule and its intended outcome in this file; bump `GenerationPolicyVersion` when behavior changes.
 2. Add a focused positive and negative unit test, covering the reported case and the nearest incompatible case.
 3. Keep one shared resolver for Vanilla, Modded, and offline Vanilla fallback profiles; do not duplicate policy in a generator script.
-4. Regenerate the tracked offline Vanilla fallback with `OfflineProfileGenerator`, then run it with `--verify`.
-5. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
-6. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
+4. Keep the versioned `ObjectData.json` snapshot vanilla-only; refresh it from a current runtime capture when the game data/schema changes.
+5. Regenerate the tracked offline Vanilla fallback with `OfflineProfileGenerator`, then run it with `--verify`.
+6. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
+7. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
 
 The policy version is included in the persistence fingerprint. A rule change therefore regenerates existing runtime pools instead of preserving old compatibility decisions.
