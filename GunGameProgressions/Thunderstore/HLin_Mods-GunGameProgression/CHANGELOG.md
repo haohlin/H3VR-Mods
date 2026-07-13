@@ -2,6 +2,11 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.3.8
+
+- Use an ASCII-only package-card notice so the Modded-profile refresh message displays correctly on mobile.
+- Add a Markdown callout to the package Details page.
+
 ## 1.3.7
 
 - Keep completed Modded profiles across H3VR restarts while generating refreshed profiles in the background.

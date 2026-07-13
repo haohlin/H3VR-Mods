@@ -4,6 +4,8 @@ GunGame, supercharged.
 
 GunGame Progressions expands GunGame with compatible gear, distinct difficulty styles, and weapon and Sosig pools that reflect the content enabled in your H3VR profile.
 
+> **Modded profiles generate in the background (1-5 min). Reload the GunGame map to show them.**
+
 ## Requirement
 
 - [GunGame](https://thunderstore.io/c/h3vr/p/Kodeman/GunGame/)
