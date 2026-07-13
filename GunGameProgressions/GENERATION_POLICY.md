@@ -47,14 +47,29 @@ Rules:
 ## Optic resolver
 
 ```text
-direct bespoke optic
-  -> exact proprietary mount
-  -> Picatinny / RMR mount
-  -> role-ranked optic (CQC, rifle, sniper)
-  -> no optic
+firearm
+|
++-- direct verified `BespokeAttachments` optic -> use it
+|
++-- supported physical mount
+|   |
+|   +-- proprietary scope mount -> matching scope
+|   +-- RMR / handgun mount    -> matching reflex sight
+|   +-- Picatinny / M-Lok rail -> matching scope or reflex sight
+|   `-- verified adapter       -> supported mount exposed by adapter
+|
+`-- no verified route -> no optic
+
+compatible optics
+|
++-- CQC / pistol / SMG / shotgun -> reflex -> low-power scope
++-- bolt-action full-power / anti-materiel -> high-power scope
+`-- rifle / battle rifle -> variable scope -> other scope -> reflex
 ```
 
-Only sight/optic mounting points are candidates. Muzzle, stock, grip, and unrelated attachment points are never optic targets.
+Candidate gate: the object must be an `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded.
+
+Mount matching uses captured prefab metadata (`PhysicalMountTypes`, direct compatibility, and an adapter's `ProvidedMountTypes`), not firearm or scope name lists. The small hard-coded list in `OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it contains no individual weapon or attachment IDs. Runtime mounting reuses that same taxonomy, checks the exact mount type, and permits rail mounts only when oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail positions are rejected.
 
 ## Change checklist
 

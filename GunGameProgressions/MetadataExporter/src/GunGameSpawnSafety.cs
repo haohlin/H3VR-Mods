@@ -456,9 +456,7 @@ public sealed class GunGameSpawnSafety
 
     private static bool IsTopSightingMount(FVRPhysicalObject parent, FVRFireArmAttachmentMount mount)
     {
-        var mountType = mount.Type.ToString();
-        if (!string.Equals(mountType, "Picatinny", StringComparison.Ordinal) &&
-            !string.Equals(mountType, "MLokRail", StringComparison.Ordinal))
+        if (!OpticMountPolicy.RequiresTopSightingOrientation(mount.Type.ToString()))
         {
             return true;
         }
@@ -468,33 +466,7 @@ public sealed class GunGameSpawnSafety
 
     private static bool IsOpticMountType(FVRFireArmAttachementMountType mountType)
     {
-        switch (mountType.ToString())
-        {
-            case "Picatinny":
-            case "Handgun":
-            case "MAS4956Scope":
-            case "Russian":
-            case "SVTScope":
-            case "M16HandleMount":
-            case "M1GarandScope":
-            case "M1CarbineScope":
-            case "MP5RailMount":
-            case "PythonScopeMount":
-            case "FamasTopRail":
-            case "Mini14TopRail":
-            case "R1022TopRail":
-            case "MLokRail":
-            case "RMR":
-            case "Scope_KAR":
-            case "Scope_LeeEnfield":
-            case "Scope_M1903":
-            case "Scope_Mosin":
-            case "Scope_Model8Scope":
-            case "Scope_AR18":
-                return true;
-            default:
-                return false;
-        }
+        return OpticMountPolicy.IsOpticMountType(mountType.ToString());
     }
 
     private void QueueSkip(object progression, int weaponId, string reason)

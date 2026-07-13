@@ -32,6 +32,36 @@ public sealed class OpticMountRule
 /// </summary>
 public static class OpticMountPolicy
 {
+    // These are H3VR mount *types*, not firearm or attachment IDs. Keeping
+    // this small taxonomy here gives profile selection and runtime mounting
+    // one authoritative definition of an optic-capable mount.
+    private static readonly HashSet<string> ReflexOnlyMounts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "RMR",
+        "Handgun",
+    };
+
+    private static readonly HashSet<string> RailMounts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Picatinny",
+        "MLokRail",
+    };
+
+    private static readonly HashSet<string> ScopeOnlyMounts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Russian",
+        "MAS4956Scope",
+        "SVTScope",
+        "M16HandleMount",
+        "M1GarandScope",
+        "M1CarbineScope",
+        "MP5RailMount",
+        "PythonScopeMount",
+        "FamasTopRail",
+        "Mini14TopRail",
+        "R1022TopRail",
+    };
+
     public static IEnumerable<OpticMountRule> Rank(IEnumerable<string> physicalMountTypes)
     {
         return (physicalMountTypes ?? Enumerable.Empty<string>())
@@ -45,41 +75,59 @@ public static class OpticMountPolicy
             .ThenBy(rule => rule.MountType, StringComparer.Ordinal);
     }
 
+    public static bool IsOpticMountType(string rawMountType)
+    {
+        var resolution = MountResolution.Resolve(rawMountType);
+        return resolution.IsResolved && GetOpticKinds(resolution.CanonicalMount) != null;
+    }
+
+    public static bool RequiresTopSightingOrientation(string rawMountType)
+    {
+        var resolution = MountResolution.Resolve(rawMountType);
+        return resolution.IsResolved && RailMounts.Contains(resolution.CanonicalMount);
+    }
+
     private static OpticMountRule CreateRule(string mountType)
     {
-        if (string.Equals(mountType, "RMR", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "Handgun", StringComparison.OrdinalIgnoreCase))
+        var opticKinds = GetOpticKinds(mountType);
+        if (opticKinds == null)
         {
-            return new OpticMountRule(mountType, new[] { "Reflex" }, 20);
+            return null;
         }
 
-        if (string.Equals(mountType, "Picatinny", StringComparison.OrdinalIgnoreCase))
+        return new OpticMountRule(mountType, opticKinds, GetPriority(mountType));
+    }
+
+    private static IEnumerable<string> GetOpticKinds(string mountType)
+    {
+        if (ReflexOnlyMounts.Contains(mountType))
         {
-            // A verified Picatinny rail accepts both verified scopes and
-            // reflex sights. The firearm role decides between those two after
-            // this physical compatibility check; a proprietary mount still
-            // wins because it has a lower priority value.
-            return new OpticMountRule(mountType, new[] { "Scope", "Reflex" }, 100);
+            return new[] { "Reflex" };
         }
 
-        return IsScopeMount(mountType)
-            ? new OpticMountRule(mountType, new[] { "Scope" }, 10)
-            : null;
+        if (RailMounts.Contains(mountType))
+        {
+            // Rail mounts accept a verified scope or reflex sight. The
+            // firearm role ranks those physically compatible choices later.
+            return new[] { "Scope", "Reflex" };
+        }
+
+        return IsScopeMount(mountType) ? new[] { "Scope" } : null;
+    }
+
+    private static int GetPriority(string mountType)
+    {
+        if (ReflexOnlyMounts.Contains(mountType))
+        {
+            return 20;
+        }
+
+        return RailMounts.Contains(mountType) ? 100 : 10;
     }
 
     private static bool IsScopeMount(string mountType)
     {
-        return string.Equals(mountType, "Russian", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "MAS4956Scope", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "SVTScope", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "M16HandleMount", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "M1GarandScope", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "M1CarbineScope", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "MP5RailMount", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "PythonScopeMount", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "FamasTopRail", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "Mini14TopRail", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(mountType, "R1022TopRail", StringComparison.OrdinalIgnoreCase) ||
+        return ScopeOnlyMounts.Contains(mountType) ||
             mountType.StartsWith("Scope_", StringComparison.OrdinalIgnoreCase) ||
             mountType.EndsWith("Scope", StringComparison.OrdinalIgnoreCase);
     }

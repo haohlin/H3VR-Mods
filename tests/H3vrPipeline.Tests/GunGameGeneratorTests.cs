@@ -327,6 +327,25 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void Optic_mount_policy_is_the_shared_sighting_mount_taxonomy()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.OpticMountPolicy"));
+        var isOpticMountType = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("IsOpticMountType", BindingFlags.Public | BindingFlags.Static));
+        var requiresTopSightingOrientation = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("RequiresTopSightingOrientation", BindingFlags.Public | BindingFlags.Static));
+
+        Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "Picatinny" })!);
+        Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "MLokRail" })!);
+        Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "Russian" })!);
+        Assert.True((bool)isOpticMountType.Invoke(null, new object[] { "Scope_Mosin" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Stock" })!);
+        Assert.False((bool)isOpticMountType.Invoke(null, new object[] { "Suppressor" })!);
+        Assert.True((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "Picatinny" })!);
+        Assert.True((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "MLokRail" })!);
+        Assert.False((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "Russian" })!);
+    }
+
+    [Fact]
     public void Optic_classifier_excludes_magnifier_object_ids_case_insensitively()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -418,6 +437,8 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("TryMountGeneratedOptic", source, StringComparison.Ordinal);
         Assert.Contains("TryAttachOpticThroughAdapter", source, StringComparison.Ordinal);
         Assert.Contains("IsTopSightingMount", source, StringComparison.Ordinal);
+        Assert.Contains("OpticMountPolicy.IsOpticMountType", source, StringComparison.Ordinal);
+        Assert.Contains("OpticMountPolicy.RequiresTopSightingOrientation", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("yield return null;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
@@ -869,6 +890,60 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyHighScope", ReadString(guns["Sniper"], "Extra"));
         Assert.Equal("PicatinnyReflex", ReadString(guns["Smg"], "Extra"));
         Assert.Equal("PicatinnyVariableScope", ReadString(guns["Rifle"], "Extra"));
+    }
+
+    [Fact]
+    public void Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 6);
+
+        var vanillaRifle = RuntimeEntry(entryType, "VanillaRifle", "Firearm", false, magazineType: 1);
+        SetRuntimeProperty(entryType, vanillaRifle, "CompatibleMagazines", new List<string> { "VanillaMagazine" });
+        SetRuntimeProperty(entryType, vanillaRifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, vanillaRifle, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, vanillaRifle, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, vanillaRifle, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(vanillaRifle, 0);
+
+        var moddedSmg = RuntimeEntry(entryType, "ModdedSmg", "Firearm", true, magazineType: 2);
+        SetRuntimeProperty(entryType, moddedSmg, "CompatibleMagazines", new List<string> { "ModdedMagazine" });
+        SetRuntimeProperty(entryType, moddedSmg, "FirearmSize", "Compact");
+        SetRuntimeProperty(entryType, moddedSmg, "FirearmRoundPower", "Pistol");
+        SetRuntimeProperty(entryType, moddedSmg, "FirearmAction", "Automatic");
+        SetRuntimeProperty(entryType, moddedSmg, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(moddedSmg, 1);
+
+        entries.SetValue(RuntimeEntry(entryType, "VanillaMagazine", "Magazine", false, magazineType: 1), 2);
+        entries.SetValue(RuntimeEntry(entryType, "ModdedMagazine", "Magazine", true, magazineType: 2), 3);
+
+        var vanillaVariableScope = RuntimeEntry(entryType, "VanillaVariableScope", "Attachment", false);
+        SetRuntimeProperty(entryType, vanillaVariableScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, vanillaVariableScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, vanillaVariableScope, "OpticMinMagnification", 1f);
+        SetRuntimeProperty(entryType, vanillaVariableScope, "OpticMaxMagnification", 6f);
+        SetRuntimeProperty(entryType, vanillaVariableScope, "IsVariableMagnification", true);
+        entries.SetValue(vanillaVariableScope, 4);
+
+        var moddedReflex = RuntimeEntry(entryType, "ModdedReflex", "Attachment", true);
+        SetRuntimeProperty(entryType, moddedReflex, "OpticKind", "Reflex");
+        SetRuntimeProperty(entryType, moddedReflex, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(moddedReflex, 5);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
+
+        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"), "Guns").Single();
+        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"), "Guns").Single();
+
+        Assert.Equal("VanillaVariableScope", ReadString(vanillaGun, "Extra"));
+        Assert.Equal("ModdedReflex", ReadString(moddedGun, "Extra"));
     }
 
     [Fact]
