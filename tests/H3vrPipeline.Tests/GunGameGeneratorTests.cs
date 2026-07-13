@@ -477,12 +477,17 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_defers_modded_generation_until_the_Kodeman_loader_is_ready()
+    public void Runtime_warms_modded_profiles_before_the_GunGame_selector_opens()
     {
         var source = File.ReadAllText(PluginSourcePath);
         var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
 
         Assert.True(startMethod >= 0);
+        Assert.True(destroyMethod > startMethod);
+        var startBody = source[startMethod..destroyMethod];
+        Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", startBody, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh();", startBody, StringComparison.Ordinal);
         Assert.DoesNotContain("StartCoroutine(GenerateModdedPoolsAtStartup());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
     }

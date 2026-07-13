@@ -47,8 +47,9 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Start()
     {
-        Trace("starting vanilla generation.");
+        Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
+        RequestModdedRefresh();
     }
 
     private void OnDestroy()
