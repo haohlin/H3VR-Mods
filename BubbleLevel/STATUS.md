@@ -16,6 +16,7 @@ State: `released`
 | Wrapper package/deploy | Wrapper validated package, backed up old install, and deployed `2.0.3` with receipt | Passed. |
 | Deployment / VR | User confirmed `2.0.3` works in H3VR, including corrected reverse/180° rail behavior | Passed. |
 | Thunderstore | `HLin_Mods-BubbleLevelSet` `2.0.3` published from fresh validated package | Published. |
+| Documentation | Source `README.md` and standalone `CHANGELOG.md` expanded; package title, short description, build profile, and `2.0.3` package remain unchanged | Published to Unity source `main`. |
 | Materials | CC0 preview renders exist; production prefabs unchanged | Awaiting approval. |
 
 ## Next

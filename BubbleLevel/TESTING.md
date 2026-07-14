@@ -33,3 +33,8 @@ normal `Build`, `Package`, and `Deploy` invoke Unity batch mode.
 `2.0.3` was freshly packaged through MeatKit, published to Thunderstore, and
 confirmed in H3VR by the user. The reverse/180° rail gravity response is the
 verified release-critical regression case.
+
+Documentation follow-up changed Unity-source Markdown only: `README.md` and
+`CHANGELOG.md`. Build profile version, package title, approved short
+description, item assets, and published `2.0.3` ZIP were not changed; no Unity
+or MeatKit rebuild is required for that source-documentation update.
