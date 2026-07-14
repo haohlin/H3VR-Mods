@@ -9,22 +9,22 @@ State: `active`
 | --- | --- | --- |
 | Unity source | In-place `Assets/Projects` Git root in `H3VR-unity-projects`; matching origin `main` commit | Versioned. |
 | Controller | Current gravity/damping controller, prefabs, `.meta`, test tools, build profile | Versioned in Unity repository. |
-| Earlier Unity checks | Nested chains, damping, limits, mount geometry, candidate previews passed on 2026-07-11 | Re-run now license available. |
-| Sensitivity | Earlier check: 1° = `0.095774`; 4° saturates | Recalibration pending. |
-| Package | MeatKit `BubbleLevelSet` `2.0.3` built on 2026-07-11 | Valid package exists; never deployed through wrapper. |
-| Deployment / VR | Installed profile was old `2.0.1`; no `2.0.3` receipt or live H3VR log | Pending. |
+| Unity runtime checks | Licensed Unity batch `RunAll` passed on 2026-07-14 | Passed. |
+| Sensitivity | Center `-0.008400`; 1° `0.095774` = `0.104174` travel; 4° reaches stop | Passed. |
+| 180° rail | Local positions `0.095774` / `-0.107402`; world movement dot `1.000000` | Passed. |
+| Package | MeatKit `BubbleLevelSet` `2.0.3` rebuilt on 2026-07-14 from exact profile | Passed. |
+| Wrapper package/deploy | Wrapper validated package, backed up old install, and deployed `2.0.3` with receipt | Passed. |
+| Deployment / VR | New package installed; no post-deployment H3VR log or VR interaction result yet | Pending. |
 | Materials | CC0 preview renders exist; production prefabs unchanged | Awaiting approval. |
 
 ## Blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| Repeatable package path absent | Wrapper lacked Unity build/package/deploy support | Codex: in progress |
-| Sensitivity and reverse-mount proof absent | Run Unity tests; tune only if checks fail | Codex |
 | Visual choice | Approve/reject material candidate | Human |
 | Runtime proof | Deploy and VR-test real mounts/rails | Human + Codex |
 
 ## Next
 
-[`PLAN.md`](PLAN.md) item 1: run licensed Unity checks, package `2.0.3`,
-deploy through wrapper, then capture H3VR log and VR evidence.
+[`PLAN.md`](PLAN.md) item 1: capture H3VR log and real VR mount evidence for
+deployed `2.0.3`.

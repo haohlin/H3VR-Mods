@@ -221,8 +221,11 @@ Validate the authored object graph (components, transforms, physics, materials,
 audio, IDs, mounts, and scene registration), the MeatKit build profile/build
 item/dependencies/package, and the relevant in-game interaction. Use bespoke
 `MonoBehaviour` scripts in the MeatKit project; use a BepInEx library only for
-shared behavior. The current wrapper supports only `dotnet` and `python`; add a
-tested `unity` kind before using its package/deploy path for Unity content.
+shared behavior. The wrapper supports tested `unity` descriptors. Normal
+`Build`, `Package`, and `Deploy` invoke Unity batch mode with the descriptor's
+exact build method, then validate and deploy the generated package. Use
+`-ReuseExistingUnityPackage` only for an already validated package when no
+Unity source changed; never use it as normal post-edit build behavior.
 
 For a custom magazine, also read `references/custom-magazines.md`. It covers
 the magazine-specific reference prefab, visible rounds, feed/capacity settings,
@@ -237,6 +240,7 @@ Use the helper as the single build and release interface:
 .\tools\h3vr.ps1 -Action Verify -Mod ThePing
 .\tools\h3vr.ps1 -Action Build -Mod ThePing
 .\tools\h3vr.ps1 -Action Package -Mod ThePing
+.\tools\h3vr.ps1 -Action Deploy -Mod BubbleLevel
 ```
 
 Run `Test` for every change. It executes `tests\H3vrPipeline.Tests\H3vrPipeline.Tests.csproj`; these tests cover registry parsing, package layout/metadata validation, GunGame generation, and receipt behavior. Run `Verify -Mod <name>` whenever a descriptor or Harmony patch changes. A release candidate requires successful `Test`, `Verify`, `Build`, and `Package` for that mod.
