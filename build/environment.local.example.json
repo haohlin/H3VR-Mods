@@ -9,5 +9,9 @@
     "profileRoot": "<absolute-path-to-r2modman-h3vr-profile>",
     "pluginsRoot": "<absolute-path-to-r2modman-h3vr-profile>\\BepInEx\\plugins",
     "logPath": "<absolute-path-to-r2modman-h3vr-profile>\\BepInEx\\LogOutput.log"
+  },
+  "unity": {
+    "meatKitProjectRoot": "<absolute-path-to-meatkit-lite-project>",
+    "editorExecutable": "<absolute-path-to-unity-editor-executable>"
   }
 }

@@ -32,7 +32,7 @@ public sealed class GunGameReleaseMetadataTests
             FindRepositoryRoot(),
             "GunGameProgressions",
             "BRANDING.md"));
-        Assert.Contains("## Canonical short description\n\n" + CanonicalShortDescription, branding);
+        Assert.Contains("## Canonical short description\n\n" + CanonicalShortDescription, branding.ReplaceLineEndings("\n"));
         Assert.Contains("Do not reword or replace this description without explicit product approval.", branding);
 
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));

@@ -66,6 +66,18 @@
         }
       ]
     },
+    "BubbleLevel": {
+      "kind": "unity",
+      "packageName": "BubbleLevelSet",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-BubbleLevelSet",
+      "layout": "legacy-flat",
+      "versionProfileRelativePath": "Assets\\Projects\\BubbleLevel\\BuildProfile-BubbleLevel.asset",
+      "packageRelativePath": "AssetBundles\\BubbleLevelSet\\{version}\\HLin_Mods-BubbleLevelSet-{version}.zip",
+      "unityBuildMethod": "HLin_Mods.BubbleLevelSet.Editor.BubbleLevelRuntimeTests.BuildBubbleLevelPackage",
+      "patchTargets": []
+    },
     "Teleport": {
       "patchTargets": [
         {

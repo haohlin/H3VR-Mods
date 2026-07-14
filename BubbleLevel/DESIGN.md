@@ -23,6 +23,9 @@ world gravity
 ## Behavior contract
 
 - Attachment chains and pre-canted mounts use world gravity through final object transform.
+- Bidirectional/180° rail mounting keeps bubble on same **world uphill** side for
+  same physical cant. Local travel sign reverses with rail direction; world
+  result must not. Never infer this from Euler angles.
 - Bubble never leaves `[minimumLocalX, maximumLocalX]`, including inversion and rapid movement.
 - 1° cant must move bubble at least `0.1` local units from center.
 - 4° cant must reach travel stop.
@@ -37,12 +40,12 @@ render before build.
 
 ## Source authority
 
-Current production Unity project must be versioned in `H3VR-unity-projects`
-with project assets and matching `.meta` files. Generated bundles, `Library`,
-and `.vs` remain untracked. This repository records shared mod docs and code
-only when it is identical to authoritative Unity source.
+Current production Unity project is versioned in `H3VR-unity-projects`, whose
+Git root is the in-place `Assets/Projects` folder. It tracks project assets and
+matching `.meta` files. Generated bundles, `Library`, and `.vs` stay untracked.
+This repository records pipeline and handoff docs only.
 
 ## Known gap
 
-Current tested configuration reports `0.095774` local movement at 1°. It does
-not meet `>= 0.1`; tune full-scale angle and rerun all checks before release.
+Recalibrate 1° response after repeatable Unity tests run again. Release gate is
+`>= 0.1` local travel at 1° and saturation at 4°.

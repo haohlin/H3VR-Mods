@@ -9,5 +9,9 @@
     "profileRoot": "%H3VR_R2MODMAN_PROFILE_ROOT%",
     "pluginsRoot": "%H3VR_R2MODMAN_PROFILE_ROOT%\\BepInEx\\plugins",
     "logPath": "%H3VR_R2MODMAN_PROFILE_ROOT%\\BepInEx\\LogOutput.log"
+  },
+  "unity": {
+    "meatKitProjectRoot": "%H3VR_UNITY_MEATKIT_PROJECT%",
+    "editorExecutable": "%H3VR_UNITY_EXECUTABLE%"
   }
 }

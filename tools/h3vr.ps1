@@ -4,12 +4,13 @@ param(
     [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
-    [ValidateSet('ThePing', 'GunGameProgressions', 'Teleport', 'RemoveWhiteOut')]
+    [ValidateSet('ThePing', 'GunGameProgressions', 'BubbleLevel', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
     [string]$Query,
     [switch]$Publish,
-    [switch]$VrApproved
+    [switch]$VrApproved,
+    [switch]$ReuseExistingUnityPackage
 )
 
 Set-StrictMode -Version Latest
@@ -31,7 +32,10 @@ $ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw |
 function Expand-EnvironmentConfiguration {
     param([object]$Config)
 
-    foreach ($section in @($Config.h3vr, $Config.r2modman)) {
+    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity)) {
+        if ($null -eq $section) {
+            continue
+        }
         foreach ($property in $section.PSObject.Properties) {
             if ($property.Value -is [string]) {
                 $property.Value = [Environment]::ExpandEnvironmentVariables($property.Value)
@@ -106,8 +110,47 @@ function Get-ProjectVersion {
         return $version
     }
 
+    if ($ModConfig.kind -eq 'unity') {
+        $projectRoot = Get-UnityProjectRoot
+        $profilePath = Join-Path $projectRoot $ModConfig.versionProfileRelativePath
+        if (-not (Test-Path -LiteralPath $profilePath)) {
+            throw "Unity build profile does not exist: $profilePath"
+        }
+
+        $profileContent = Get-Content -LiteralPath $profilePath -Raw
+        $versionMatch = [regex]::Match($profileContent, '(?m)^Version:\s*(?<version>\S+)\s*$')
+        if (-not $versionMatch.Success) {
+            throw "No Version field found in Unity build profile: $profilePath"
+        }
+
+        return $versionMatch.Groups['version'].Value
+    }
+
     $manifestPath = Join-Path (Join-Path $RepoRoot $ModConfig.packageSource) 'manifest.json'
     return (Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json).version_number
+}
+
+function Get-UnityProjectRoot {
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ($null -eq $unityConfig -or [string]::IsNullOrWhiteSpace($unityConfig.meatKitProjectRoot)) {
+        throw 'Unity project root is not configured. Set H3VR_UNITY_MEATKIT_PROJECT in private configuration.'
+    }
+
+    if (-not (Test-Path -LiteralPath $unityConfig.meatKitProjectRoot)) {
+        throw "Unity project root does not exist: $($unityConfig.meatKitProjectRoot)"
+    }
+
+    return $unityConfig.meatKitProjectRoot
+}
+
+function Get-UnityPackageSourcePath {
+    param(
+        [object]$ModConfig,
+        [string]$Version
+    )
+
+    $relativePath = $ModConfig.packageRelativePath.Replace('{version}', $Version)
+    return Join-Path (Get-UnityProjectRoot) $relativePath
 }
 
 function Get-SourceManifestPath {
@@ -318,6 +361,44 @@ function Invoke-DotNetBuild {
     Invoke-CheckedNative { & dotnet build (Join-Path $RepoRoot $ModConfig.csproj) -c Release }
 }
 
+function Invoke-UnityBuild {
+    param([object]$ModConfig)
+
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+
+    $version = Get-ProjectVersion $ModConfig
+    $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
+    Ensure-Directory $logDirectory
+    $logPath = Join-Path $logDirectory ("$Mod-$version-build.log")
+    Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+
+    Write-Host "Building $Mod with Unity batch mode."
+    $arguments = @(
+        '-batchmode',
+        '-nographics',
+        '-quit',
+        '-projectPath', ('"{0}"' -f $projectRoot),
+        '-executeMethod', $ModConfig.unityBuildMethod,
+        '-logFile', ('"{0}"' -f $logPath)
+    )
+    $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+    }
+
+    $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
+    if (-not (Test-Path -LiteralPath $packagePath)) {
+        throw "Unity build completed without expected package: $packagePath"
+    }
+
+    return $packagePath
+}
+
 function Get-GunGameStagingPath {
     return Join-Path (Join-Path $BuildRoot 'staging') 'GunGameProgressions-generator'
 }
@@ -441,6 +522,11 @@ function Invoke-Build {
         return
     }
 
+    if ($ModConfig.kind -eq 'unity') {
+        Invoke-UnityBuild $ModConfig | Out-Null
+        return
+    }
+
     throw "Unsupported build kind: $($ModConfig.kind)"
 }
 
@@ -503,8 +589,58 @@ function Copy-Payload {
     }
 }
 
+function New-UnityPackage {
+    param([object]$ModConfig)
+
+    $version = Get-ProjectVersion $ModConfig
+    if ($ReuseExistingUnityPackage) {
+        Write-Host "Reusing existing Unity package for $Mod $version by explicit request."
+    }
+    else {
+        Invoke-UnityBuild $ModConfig | Out-Null
+    }
+
+    $sourcePackagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
+    if (-not (Test-Path -LiteralPath $sourcePackagePath)) {
+        throw "Unity package does not exist: $sourcePackagePath"
+    }
+
+    $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
+    Ensure-Directory $artifactDirectory
+    $zipPath = Join-Path $artifactDirectory ("$($ModConfig.namespace)-$($ModConfig.packageName)-$version.zip")
+    Copy-Item -LiteralPath $sourcePackagePath -Destination $zipPath -Force
+
+    Push-Location $RepoRoot
+    try {
+        Invoke-CheckedNative { & dotnet run --project (Join-Path $RepoRoot 'tools\H3vrPipeline\H3vrPipeline.csproj') -- validate $zipPath $ModConfig.layout }
+    }
+    finally {
+        Pop-Location
+    }
+
+    $receiptDirectory = Join-Path $BuildRoot 'receipts'
+    Ensure-Directory $receiptDirectory
+    $receiptPath = Join-Path $receiptDirectory ("$Mod-$version-package.json")
+    Write-JsonFile -Path $receiptPath -Value ([ordered]@{
+        mod = $Mod
+        version = $version
+        commit = Get-CurrentCommit
+        packagePath = $zipPath
+        sha256 = Get-FileSha256 $zipPath
+        sourcePackageSha256 = Get-FileSha256 $sourcePackagePath
+        reusedExistingUnityPackage = [bool]$ReuseExistingUnityPackage
+        createdAt = (Get-Date).ToUniversalTime().ToString('o')
+    })
+
+    return [PSCustomObject]@{ Version = $version; ZipPath = $zipPath; Sha256 = Get-FileSha256 $zipPath }
+}
+
 function New-Package {
     param([object]$ModConfig)
+
+    if ($ModConfig.kind -eq 'unity') {
+        return New-UnityPackage $ModConfig
+    }
 
     Invoke-Build $ModConfig | Out-Null
     $version = Get-ProjectVersion $ModConfig

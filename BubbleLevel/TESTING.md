@@ -15,6 +15,7 @@
 | --- | --- |
 | Level rail, left/right cant | Bubble follows gravity, centers level, stops at travel limits. |
 | Nested rail/attachment chain | Same gravity direction after each mounting layer. |
+| Bidirectional rail, same world cant | Normal and 180° mount settle on same world uphill side; local-X signs are opposite. |
 | Upside-down / rapid handling | Bubble stays in tube; no jitter, escape, or exception. |
 | 30 mm black and tan mounts | Bubble and cosine indicator behave without controller conflict. |
 | Spawn/attach/reload scene | Every listed item spawns, mounts, detaches, and survives scene lifecycle. |
@@ -23,3 +24,5 @@
 
 Record package version/hash, deployment receipt, BepInEx log result, and VR
 outcome in `STATUS.md`. Unity editor checks do not prove H3VR runtime behavior.
+Use `-ReuseExistingUnityPackage` only to deploy a previously validated package;
+normal `Build`, `Package`, and `Deploy` invoke Unity batch mode.
