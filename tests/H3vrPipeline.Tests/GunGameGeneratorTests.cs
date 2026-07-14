@@ -3,7 +3,6 @@ using System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using Xunit;
-using Xunit.Sdk;
 
 namespace H3vrPipeline.Tests;
 
@@ -78,7 +77,7 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("$vrReceipt =", publishFunction, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void GunGame_metadata_exporter_builds_for_the_runtime()
     {
         _ = LoadBuiltMetadataExporter();
@@ -197,7 +196,7 @@ public sealed class GunGameGeneratorTests
             $"Offline fallback does not match the shared runtime profile builder:{Environment.NewLine}{standardOutput}{standardError}");
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_rules_load_shared_blacklists_without_System_Web_extensions()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -223,7 +222,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "AllowedMagazine", "Magazine", false) })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_metadata_entry_tracks_physical_mount_types_for_verified_optics()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -251,7 +250,7 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("HasUgcModule(template)", pluginSource, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_emits_origin_split_count_progression_runtime_pools()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -311,7 +310,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(1, ReadInt(moddedMixedGroups["-55001"].Single(), "Value"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_count_progression_and_inverse_difficulty_spawn_weights()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -359,7 +358,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(grouped["H_BreadCrabZombie_Standard"].Single(), "Value"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Mount_resolution_preserves_exact_mounts_maps_the_temporary_rmr_alias_and_rejects_unknown_numeric_mounts()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -379,7 +378,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)unknown!.GetType().GetProperty("IsResolved")!.GetValue(unknown)!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Optic_mount_policy_is_the_shared_sighting_mount_taxonomy()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -402,7 +401,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)requiresTopSightingOrientation.Invoke(null, new object[] { "Russian" })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Optic_classifier_excludes_magnifier_object_ids_case_insensitively()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -425,7 +424,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(string.Empty, classifyFromMetadata.Invoke(null, new object[] { "Attachment", "None" }));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -438,7 +437,7 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)shouldWrite.Invoke(null, new object[] { "current", "current", false })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -465,7 +464,7 @@ public sealed class GunGameGeneratorTests
             prepareBody.IndexOf("selector readiness wait started.", StringComparison.Ordinal));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -515,7 +514,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("ModdedPrefabMagazine", ReadString(generatedGun, "MagName"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_pool_persistence_fingerprint_is_stable_and_changes_with_runtime_metadata()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -541,7 +540,7 @@ public sealed class GunGameGeneratorTests
             (int)createStableSeed.Invoke(null, new object[] { changed })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void GunGame_spawn_safety_policy_rejects_wrong_runtime_object_categories()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -595,7 +594,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("return null;", source, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -621,7 +620,7 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)isReady.Invoke(gate, new object[] { 100f, complete })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void GunGame_scene_identity_matches_only_the_GunGame_Atlas_identifier()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -634,7 +633,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isMatch.Invoke(null, new object[] { string.Empty })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_families_partition_vanilla_and_modded_outputs()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -650,7 +649,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isModded.Invoke(null, new object[] { "01_Vanilla_Rot" })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_families_recognize_only_their_own_runtime_pool_files()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -668,7 +667,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Unknown_RW_Rot.json" })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Atlas_menu_scene_resolver_reads_the_Atlas_menu_definition_shape()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -684,7 +683,7 @@ public sealed class GunGameGeneratorTests
         Assert.Null(getSceneInfo.Invoke(null, new object[] { new AtlasMenuScreenFixture() }));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Atlas_menu_scene_resolver_identifies_only_the_GunGame_selection()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -696,7 +695,7 @@ public sealed class GunGameGeneratorTests
         Assert.False((bool)isGunGameSelection.Invoke(null, new object[] { new AtlasMenuScreenFixture() })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_status_messages_are_concise_and_cover_pool_generation()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -770,7 +769,7 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("WatchForGunGamePoolLoader", source, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_selector_tracker_handles_one_live_selector_instance_at_a_time()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -787,7 +786,7 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)observe.Invoke(tracker, new[] { secondSelector })!);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_selector_locator_reads_the_Kodeman_singleton_before_scanning_the_scene()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -806,7 +805,7 @@ public sealed class GunGameGeneratorTests
         }
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_item_role_reclassifies_mislabeled_firearm_metadata_from_prefab_components()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -822,7 +821,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Unknown", attachment);
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Enemy_weight_policy_preserves_the_current_operator_tier_weights()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -839,7 +838,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal((1, 1), (ReadInt(apex, "Value"), ReadInt(apex, "Multiplicity")));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_selects_only_exact_mount_verified_optics()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -914,7 +913,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Y_PicatinnyScope", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "PicatinnyRifle"), "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_a_picatinny_scope_for_a_pistol_without_a_dedicated_reflex_mount()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -948,7 +947,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyScope", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_prefers_a_picatinny_reflex_for_close_range_firearms()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -987,7 +986,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyReflex", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1043,7 +1042,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyVariableScope", ReadString(guns["Rifle"], "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1087,7 +1086,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyReflex", ReadString(guns["PistolCarbine"], "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1141,7 +1140,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("ModdedReflex", ReadString(moddedGun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1180,7 +1179,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(0, ReadInt(moddedGun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_skips_firearms_without_gungame_round_display_data()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1210,7 +1209,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(new[] { "SafeGun" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_ignores_unrecognized_non_optic_mounts()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1243,7 +1242,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(string.Empty, ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1315,7 +1314,7 @@ public sealed class GunGameGeneratorTests
         Assert.All(requiredGuards, guard => Assert.Contains(guard, policy, StringComparison.Ordinal));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1353,7 +1352,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Z_HandleMountScope", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_a_verified_bespoke_scope_when_its_prefab_mount_metadata_is_missing()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1397,7 +1396,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("ScopePython", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_an_adapter_when_a_special_top_rail_exposes_picatinny()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1442,7 +1441,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("PicatinnyVariableScope", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1484,7 +1483,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Z_RussianSideRailScope", ReadString(gun, "Extra"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_a_loose_round_only_after_no_higher_priority_feed_exists()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1510,7 +1509,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_shells_for_a_shell_only_shotgun()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1541,7 +1540,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_shells_for_a_breach_loaded_shotgun_before_speedloaders()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1574,7 +1573,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_allows_only_graviton_to_be_feedless()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1626,7 +1625,7 @@ public sealed class GunGameGeneratorTests
         Assert.Empty(ReadObjects(feedless, "MagNames"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_skips_explicitly_blacklisted_slingshot()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1656,7 +1655,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(new[] { "SafeFirearm" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_resolves_feeds_in_magazine_clip_speedloader_cartridge_order()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1701,7 +1700,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Cartridge84", ReadString(guns["CartridgeLast"], "MagName"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1730,7 +1729,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_shells_for_an_internal_magazine_pump_shotgun()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1769,7 +1768,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(pump, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_uses_shells_for_non_box_shotguns_in_both_profile_families()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1811,7 +1810,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(moddedGun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_keeps_a_revolver_shotguns_direct_speedloader()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1844,7 +1843,7 @@ public sealed class GunGameGeneratorTests
         Assert.Equal(2, ReadInt(gun, "CategoryID"));
     }
 
-    [Fact]
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -2235,19 +2234,7 @@ public sealed class GunGameGeneratorTests
 
     private static Assembly LoadBuiltMetadataExporter()
     {
-        RequireMetadataExporterRuntimeTests();
         return RuntimeMetadataExporter.Value;
-    }
-
-    private static void RequireMetadataExporterRuntimeTests()
-    {
-        if (!string.Equals(
-                Environment.GetEnvironmentVariable("H3VR_METADATA_EXPORTER_TESTS"),
-                "1",
-                StringComparison.Ordinal))
-        {
-            throw SkipException.ForSkip("Requires the authoritative Windows H3VR build environment.");
-        }
     }
 
     private static Assembly BuildMetadataExporter()
@@ -2435,6 +2422,21 @@ public sealed class GunGameGeneratorTests
         public void Dispose()
         {
             Directory.Delete(Path, recursive: true);
+        }
+    }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class WindowsH3vrFactAttribute : FactAttribute
+{
+    public WindowsH3vrFactAttribute()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("H3VR_METADATA_EXPORTER_TESTS"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            Skip = "Requires the authoritative Windows H3VR build environment.";
         }
     }
 }
