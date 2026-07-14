@@ -42,6 +42,14 @@ public sealed class BubbleLevelPipelineTests
     }
 
     [Fact]
+    public void Unity_wrapper_reads_an_indented_MeatKit_profile_version()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("(?m)^\\s*Version:\\s*(?<version>\\S+)\\s*$", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_paths_stay_private_environment_configuration()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json")));
