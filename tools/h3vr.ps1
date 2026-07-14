@@ -118,7 +118,7 @@ function Get-ProjectVersion {
         }
 
         $profileContent = Get-Content -LiteralPath $profilePath -Raw
-        $versionMatch = [regex]::Match($profileContent, '(?m)^Version:\s*(?<version>\S+)\s*$')
+        $versionMatch = [regex]::Match($profileContent, '(?m)^\s*Version:\s*(?<version>\S+)\s*$')
         if (-not $versionMatch.Success) {
             throw "No Version field found in Unity build profile: $profilePath"
         }
