@@ -227,6 +227,11 @@ exact build method, then validate and deploy the generated package. Use
 `-ReuseExistingUnityPackage` only for an already validated package when no
 Unity source changed; never use it as normal post-edit build behavior.
 
+Unity 5.6 may compile changed scripts then exit before `-executeMethod` runs.
+For every `unity` descriptor, delete the expected source ZIP before build,
+require its configured success-log marker, and retry batch mode once when the
+first invocation only imports scripts. A pre-existing ZIP is never build proof.
+
 For a custom magazine, also read `references/custom-magazines.md`. It covers
 the magazine-specific reference prefab, visible rounds, feed/capacity settings,
 Object ID/Item Spawner ID, bundle inclusion, and VR reload validation.

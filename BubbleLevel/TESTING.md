@@ -8,6 +8,7 @@
 | Sensitivity calibration | `HLin Mods > BubbleLevel > Calibrate rail prefab for sniper sensitivity` | 1° and 4° assertions pass. |
 | Candidate art preview | `HLin Mods > BubbleLevel > Visual review > Render CC0 candidate previews` | Two preview PNGs; production material signatures unchanged. |
 | Package | `HLin Mods > BubbleLevel > Build BubbleLevel package` | Exact profile builds expected ZIP and MeatKit reports completion. |
+| Fresh batch build | `h3vr.ps1 -Action Build -Mod BubbleLevel` | Wrapper deletes prior ZIP, sees MeatKit completion marker, retries once only after script import. |
 
 ## H3VR acceptance
 
