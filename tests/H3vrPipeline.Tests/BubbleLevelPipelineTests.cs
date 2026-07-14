@@ -60,6 +60,7 @@ public sealed class BubbleLevelPipelineTests
         Assert.Contains("$attempt -le 2", pipeline, StringComparison.Ordinal);
         Assert.Contains("unityBuildSuccessMarker", pipeline, StringComparison.Ordinal);
         Assert.Contains("Remove-Item -LiteralPath $packagePath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("if ((Test-Path -LiteralPath $logPath) -and", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
