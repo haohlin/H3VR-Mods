@@ -401,7 +401,7 @@ function Invoke-UnityBuild {
             throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
         }
 
-        if (Test-Path -LiteralPath $logPath -and
+        if ((Test-Path -LiteralPath $logPath) -and
             (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet)) {
             $buildCompleted = $true
             break
