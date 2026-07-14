@@ -302,7 +302,7 @@ The command requires both `-Publish` and `-VrApproved`, a package built from the
 
 When a macOS agent needs to transfer a small change, stage it outside the repository and use SHA-verified transfer with an atomic replacement on Windows. The local `h3vr-remote` helper supports `run`, `fetch`, and `push`; it is a local convenience tool, not repository source.
 
-GitHub Actions runs `.github/workflows/verify.yml` for the pipeline tests and package checks. It cannot perform live source validation because the proprietary game DLLs are intentionally absent, and it must never deploy, read credentials, or publish. Windows preflight and `Verify` remain required before a real release.
+GitHub Actions runs `.github/workflows/verify.yml` for portable data and pipeline tests only. It cannot restore game-linked packages, perform live source validation, build release packages, deploy, read credentials, or publish. Windows `Test`, `Build`, `Package`, preflight, and `Verify` remain required before a real release.
 
 ## Completion Checklist
 

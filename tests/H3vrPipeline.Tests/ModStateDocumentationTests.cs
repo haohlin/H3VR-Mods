@@ -47,6 +47,16 @@ public sealed class ModStateDocumentationTests
         }
     }
 
+    [Fact]
+    public void Public_workflow_uses_only_portable_checks()
+    {
+        var workflow = File.ReadAllText(Path.Combine(RepositoryRoot, ".github", "workflows", "verify.yml"));
+
+        Assert.Contains("Verify H3VR Portable Checks", workflow, StringComparison.Ordinal);
+        Assert.Contains("dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("-Action Package", workflow, StringComparison.Ordinal);
+    }
+
     private static void RequireFiles(string directory, params string[] fileNames)
     {
         foreach (var fileName in fileNames)

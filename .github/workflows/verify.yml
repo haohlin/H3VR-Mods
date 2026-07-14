@@ -1,4 +1,4 @@
-name: Verify H3VR Packages
+name: Verify H3VR Portable Checks
 
 on:
   pull_request:
@@ -27,34 +27,3 @@ jobs:
           dotnet run --project GunGameProgressions/OfflineProfileGenerator/OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions/ObjectData.json --output-dir GunGameProgressions --verify
       - name: Run unit tests
         run: dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj
-      - name: Build and package ThePing
-        shell: pwsh
-        run: ./tools/h3vr.ps1 -Action Package -Mod ThePing
-      - name: Generate and package GunGame progressions
-        shell: pwsh
-        run: ./tools/h3vr.ps1 -Action Package -Mod GunGameProgressions
-      - name: Verify packaged GunGame offline baseline
-        shell: pwsh
-        run: |
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $package = Get-ChildItem build/artifacts/GunGameProgressions -Recurse -Filter '*.zip' | Select-Object -First 1
-          if ($null -eq $package) { throw 'GunGame package was not created.' }
-          $archive = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
-          try {
-            $names = @($archive.Entries | ForEach-Object { $_.FullName })
-            foreach ($required in @(
-              'ObjectData.json',
-              'GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json',
-              'GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json'
-            )) {
-              if ($required -notin $names) { throw "GunGame package is missing $required" }
-            }
-          }
-          finally {
-            $archive.Dispose()
-          }
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: h3vr-packages
-          path: build/artifacts/
