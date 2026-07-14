@@ -50,6 +50,16 @@ public sealed class BubbleLevelPipelineTests
     }
 
     [Fact]
+    public void Unity_wrapper_retries_after_script_compilation_and_requires_a_fresh_MeatKit_build()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("$attempt -le 2", pipeline, StringComparison.Ordinal);
+        Assert.Contains("MeatKit package built from exact profile", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Remove-Item -LiteralPath $packagePath", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_paths_stay_private_environment_configuration()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json")));
