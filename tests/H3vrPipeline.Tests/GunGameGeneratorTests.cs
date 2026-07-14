@@ -81,7 +81,7 @@ public sealed class GunGameGeneratorTests
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release --no-restore",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release",
             WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -2246,7 +2246,7 @@ public sealed class GunGameGeneratorTests
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release --no-restore",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release",
             WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
