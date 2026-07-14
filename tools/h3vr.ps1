@@ -372,28 +372,48 @@ function Invoke-UnityBuild {
     }
 
     $version = Get-ProjectVersion $ModConfig
+    $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
+    if (Test-Path -LiteralPath $packagePath) {
+        Remove-Item -LiteralPath $packagePath -Force
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ModConfig.unityBuildSuccessMarker)) {
+        throw "Unity mod $Mod is missing unityBuildSuccessMarker."
+    }
+
     $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
     Ensure-Directory $logDirectory
     $logPath = Join-Path $logDirectory ("$Mod-$version-build.log")
-    Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+    $buildCompleted = $false
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+        Write-Host "Building $Mod with Unity batch mode (attempt $attempt/2)."
+        $arguments = @(
+            '-batchmode',
+            '-nographics',
+            '-quit',
+            '-projectPath', ('"{0}"' -f $projectRoot),
+            '-executeMethod', $ModConfig.unityBuildMethod,
+            '-logFile', ('"{0}"' -f $logPath)
+        )
+        $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+        }
 
-    Write-Host "Building $Mod with Unity batch mode."
-    $arguments = @(
-        '-batchmode',
-        '-nographics',
-        '-quit',
-        '-projectPath', ('"{0}"' -f $projectRoot),
-        '-executeMethod', $ModConfig.unityBuildMethod,
-        '-logFile', ('"{0}"' -f $logPath)
-    )
-    $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+        if (Test-Path -LiteralPath $logPath -and
+            (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet)) {
+            $buildCompleted = $true
+            break
+        }
+
+        if ($attempt -eq 1) {
+            Write-Warning "Unity recompiled scripts before executing $($ModConfig.unityBuildMethod); retrying once."
+        }
     }
 
-    $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
-    if (-not (Test-Path -LiteralPath $packagePath)) {
-        throw "Unity build completed without expected package: $packagePath"
+    if (-not $buildCompleted -or -not (Test-Path -LiteralPath $packagePath)) {
+        throw "Unity did not complete $($ModConfig.unityBuildMethod) with expected package: $packagePath"
     }
 
     return $packagePath

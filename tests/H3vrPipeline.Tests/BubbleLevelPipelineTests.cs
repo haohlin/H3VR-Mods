@@ -27,6 +27,9 @@ public sealed class BubbleLevelPipelineTests
         Assert.Equal(
             "HLin_Mods.BubbleLevelSet.Editor.BubbleLevelRuntimeTests.BuildBubbleLevelPackage",
             bubbleLevel.GetProperty("unityBuildMethod").GetString());
+        Assert.Equal(
+            "[BubbleLevelRuntime] MeatKit package built from exact profile:",
+            bubbleLevel.GetProperty("unityBuildSuccessMarker").GetString());
     }
 
     [Fact]
@@ -55,7 +58,7 @@ public sealed class BubbleLevelPipelineTests
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
 
         Assert.Contains("$attempt -le 2", pipeline, StringComparison.Ordinal);
-        Assert.Contains("MeatKit package built from exact profile", pipeline, StringComparison.Ordinal);
+        Assert.Contains("unityBuildSuccessMarker", pipeline, StringComparison.Ordinal);
         Assert.Contains("Remove-Item -LiteralPath $packagePath", pipeline, StringComparison.Ordinal);
     }
 

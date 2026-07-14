@@ -76,6 +76,7 @@
       "versionProfileRelativePath": "Assets\\Projects\\BubbleLevel\\BuildProfile-BubbleLevel.asset",
       "packageRelativePath": "AssetBundles\\BubbleLevelSet\\{version}\\HLin_Mods-BubbleLevelSet-{version}.zip",
       "unityBuildMethod": "HLin_Mods.BubbleLevelSet.Editor.BubbleLevelRuntimeTests.BuildBubbleLevelPackage",
+      "unityBuildSuccessMarker": "[BubbleLevelRuntime] MeatKit package built from exact profile:",
       "patchTargets": []
     },
     "Teleport": {
