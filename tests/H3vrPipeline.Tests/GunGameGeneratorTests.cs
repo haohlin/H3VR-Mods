@@ -2246,7 +2246,7 @@ public sealed class GunGameGeneratorTests
                 "1",
                 StringComparison.Ordinal))
         {
-            throw new SkipException();
+            throw SkipException.ForSkip("Requires the authoritative Windows H3VR build environment.");
         }
     }
 
