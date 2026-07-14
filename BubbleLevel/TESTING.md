@@ -27,3 +27,9 @@ Record package version/hash, deployment receipt, BepInEx log result, and VR
 outcome in `STATUS.md`. Unity editor checks do not prove H3VR runtime behavior.
 Use `-ReuseExistingUnityPackage` only to deploy a previously validated package;
 normal `Build`, `Package`, and `Deploy` invoke Unity batch mode.
+
+## Release evidence
+
+`2.0.3` was freshly packaged through MeatKit, published to Thunderstore, and
+confirmed in H3VR by the user. The reverse/180° rail gravity response is the
+verified release-critical regression case.

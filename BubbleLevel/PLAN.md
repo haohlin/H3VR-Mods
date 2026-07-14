@@ -5,7 +5,8 @@
 | `[x]` | Version current MeatKit-Lite BubbleLevel project in `H3VR-unity-projects`. | In-place `Assets/Projects` Git root tracks scripts, assets, build profile, tests, and `.meta`; caches/bundles excluded. |
 | `[x]` | Run licensed Unity checks, including 180° rail mount. | 1° movement `0.104174`; 4° saturates; limits/damping/nested/reverse-mount tests pass. |
 | `[x]` | Add repeatable Unity/MeatKit build and deploy integration. | Exact profile package validated; deploy receipt created without manual file copy. |
-| `[>]` | Run real H3VR test. | Rail, offset rail, 30 mm mounts, nested chain, inversion, and settle behavior pass in-game. |
+| `[x]` | Validate release-critical H3VR behavior. | User confirmed deployed `2.0.3` works in-game, including corrected reverse/180° rail behavior. |
+| `[ ]` | Expand post-release H3VR regression coverage. | Offset rail, 30 mm mounts, nested chain, inversion, and settle behavior recorded when practical. |
 | `[ ]` | Decide material candidate. | Explicit approval/rejection; approved path has applied-proof render. |
 
 ## Deferred
