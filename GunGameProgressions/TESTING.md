@@ -1,0 +1,22 @@
+# GunGame Progressions Testing
+
+## Automated
+
+| Check | Command | Pass evidence |
+| --- | --- | --- |
+| Full pipeline | `tools/h3vr.ps1 -Action Test` | All pipeline and profile tests pass. |
+| API targets | `tools/h3vr.ps1 -Action Verify -Mod GunGameProgressions` | External GunGame spawn targets resolve. |
+| Package | `tools/h3vr.ps1 -Action Build -Mod GunGameProgressions`, then `Package` | Receipt has expected version, payload, hash. |
+
+## H3VR acceptance
+
+| Case | Expected result |
+| --- | --- |
+| Startup | Vanilla pools available; game stays responsive. |
+| Many mods loading | Modded work remains background; no main-thread freeze. |
+| Selector reload | Saved/generated Modded pair appears with Vanilla pair. |
+| Invalid generated object | Bad loadout skips; progression continues without crash. |
+| Disable mod content | Confirmed empty refresh removes stale IDs. |
+
+Record deployed version, BepInEx status lines, selected pool counts, and VR
+result in `STATUS.md` after each runtime task.

@@ -27,6 +27,22 @@ Windows is the source of truth. Do not create an authoritative checkout or store
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
 
+## Cross-session mod state
+
+Chat memory is only a convenience; tracked mod records are source of truth for
+working state. Every active mod must keep `DESIGN.md`, `STATUS.md`, `PLAN.md`,
+and `TESTING.md` in its source root. Start at [MOD_STATE_INDEX.md](../../../MOD_STATE_INDEX.md),
+then read all four records for the affected mod before editing.
+
+`STATUS.md` contains verified facts and evidence, never guesses. `PLAN.md`
+contains one active next item and acceptance conditions. `TESTING.md` contains
+repeatable checks plus required VR cases. Update affected records whenever work
+changes design, evidence, blockers, priority, or next step; commit them with
+source and tests. Create files from `docs/mod-development` templates before
+starting a new active mod. For Unity work, the real project assets and matching
+`.meta` files must be Git-versioned; untracked editor-only work is not progress
+that another session can safely continue.
+
 ## Unity Reference — Only When Needed
 
 Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
@@ -62,8 +78,8 @@ this route.
 #### GunGame Progressions
 
 Before changing `GunGameProgressions`, read its
-`DESIGN.md`, `GENERATION_POLICY.md`, `BRANDING.md`, package README, and focused
-tests. `DESIGN.md` owns lifecycle, integration, persistence, and backlog;
+`DESIGN.md`, `STATUS.md`, `PLAN.md`, `TESTING.md`, `GENERATION_POLICY.md`,
+`BRANDING.md`, package README, and focused tests. `DESIGN.md` owns lifecycle, integration, persistence, and backlog;
 `GENERATION_POLICY.md` owns shared loadout compatibility and regression cases;
 `BRANDING.md` owns approved listing copy. Keep the implementation aligned with
 all three; do not duplicate a compatibility rule in a separate Vanilla or

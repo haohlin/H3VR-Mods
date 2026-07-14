@@ -43,6 +43,18 @@ export H3VR_WINDOWS_REPOSITORY='<private-windows-checkout-path>'
 
 Do not treat a macOS build as an H3VR compatibility check.
 
+## Cross-session mod state
+
+Tracked mod records, not chat history, preserve working state. Every active
+mod must contain `DESIGN.md`, `STATUS.md`, `PLAN.md`, and `TESTING.md`. Start
+at `MOD_STATE_INDEX.md`, read the affected mod records before editing, then
+inspect real Windows Git/build/runtime evidence. Update records with verified
+results, blockers, and next item after every task; commit them with source and
+tests. Create records from `docs/mod-development` templates before new active
+mod work. Unity source/assets and matching `.meta` files must be versioned in
+the authoritative Unity repository; untracked Unity workspace changes are not
+handoff-safe progress.
+
 ## Start Every Task
 
 1. Confirm SSH and inspect the Windows working tree. Never reset or overwrite
@@ -118,7 +130,8 @@ runtime behavior.
 ### GunGame Progressions reference set
 
 Before modifying `GunGameProgressions`, read its `DESIGN.md`,
-`GENERATION_POLICY.md`, `BRANDING.md`, player README, and focused tests.
+`STATUS.md`, `PLAN.md`, `TESTING.md`, `GENERATION_POLICY.md`, `BRANDING.md`,
+player README, and focused tests.
 Lifecycle/integration decisions belong in the design document; shared
 weapon/feed/optic rules and every reported negative case belong in the policy.
 Keep Vanilla, Modded, and offline Vanilla generation on the one shared resolver.
