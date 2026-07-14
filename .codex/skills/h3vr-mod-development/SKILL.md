@@ -59,6 +59,16 @@ package, deploy, and log review. The human supplies product intent and gives
 explicit authorization before any public release; Unity GUI work is not part of
 this route.
 
+#### GunGame Progressions
+
+Before changing `GunGameProgressions`, read its
+`DESIGN.md`, `GENERATION_POLICY.md`, `BRANDING.md`, package README, and focused
+tests. `DESIGN.md` owns lifecycle, integration, persistence, and backlog;
+`GENERATION_POLICY.md` owns shared loadout compatibility and regression cases;
+`BRANDING.md` owns approved listing copy. Keep the implementation aligned with
+all three; do not duplicate a compatibility rule in a separate Vanilla or
+Modded generator path.
+
 ### Unity/MeatKit route — human in the loop
 
 Use this route for authored Unity content. The goal is to minimize manual work,

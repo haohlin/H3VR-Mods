@@ -115,6 +115,14 @@ Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 Compilation proves managed references only. BepInEx logs and a VR test prove
 runtime behavior.
 
+### GunGame Progressions reference set
+
+Before modifying `GunGameProgressions`, read its `DESIGN.md`,
+`GENERATION_POLICY.md`, `BRANDING.md`, player README, and focused tests.
+Lifecycle/integration decisions belong in the design document; shared
+weapon/feed/optic rules and every reported negative case belong in the policy.
+Keep Vanilla, Modded, and offline Vanilla generation on the one shared resolver.
+
 ## Unity and MeatKit
 
 For Unity content, close the editor before pull, branch-switch, or merge work.

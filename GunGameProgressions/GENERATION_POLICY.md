@@ -1,5 +1,9 @@
 # GunGame profile-generation policy
 
+For the runtime lifecycle, pool architecture, persistence contract, and known
+limitations, see [DESIGN.md](DESIGN.md). This document owns compatibility rules
+and their regression tests.
+
 This policy applies identically to **Vanilla** and **Modded** runtime pools.
 They both call `RuntimeProfileBuilder`; neither pool may have a separate feed or optic rule.
 
