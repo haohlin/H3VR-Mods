@@ -3,11 +3,14 @@ using System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using Xunit;
+using Xunit.Sdk;
 
 namespace H3vrPipeline.Tests;
 
 public sealed class GunGameGeneratorTests
 {
+    private static readonly Lazy<Assembly> RuntimeMetadataExporter = new(BuildMetadataExporter);
+
     [Fact]
     public void GunGame_package_includes_the_independent_runtime_metadata_exporter()
     {
@@ -78,25 +81,14 @@ public sealed class GunGameGeneratorTests
     [Fact]
     public void GunGame_metadata_exporter_builds_for_the_runtime()
     {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release",
-            WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
+        _ = LoadBuiltMetadataExporter();
+    }
 
-        using var process = Process.Start(startInfo);
-        Assert.NotNull(process);
-        var standardOutput = process!.StandardOutput.ReadToEnd();
-        var standardError = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        Assert.True(
-            process.ExitCode == 0,
-            $"Metadata exporter build failed with exit code {process.ExitCode}:{Environment.NewLine}{standardOutput}{standardError}");
+    [Fact]
+    public void GunGame_windows_pipeline_enables_runtime_metadata_exporter_tests()
+    {
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+        Assert.Contains("$env:H3VR_METADATA_EXPORTER_TESTS = '1'", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2242,6 +2234,23 @@ public sealed class GunGameGeneratorTests
     }
 
     private static Assembly LoadBuiltMetadataExporter()
+    {
+        RequireMetadataExporterRuntimeTests();
+        return RuntimeMetadataExporter.Value;
+    }
+
+    private static void RequireMetadataExporterRuntimeTests()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable("H3VR_METADATA_EXPORTER_TESTS"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            throw new SkipException("Requires the authoritative Windows H3VR build environment.");
+        }
+    }
+
+    private static Assembly BuildMetadataExporter()
     {
         var startInfo = new ProcessStartInfo
         {

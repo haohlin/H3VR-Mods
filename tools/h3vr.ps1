@@ -551,7 +551,19 @@ function Invoke-Build {
 }
 
 function Invoke-Test {
-    Invoke-CheckedNative { & dotnet test (Join-Path $RepoRoot 'tests\H3vrPipeline.Tests\H3vrPipeline.Tests.csproj') }
+    $previousRuntimeTestFlag = $env:H3VR_METADATA_EXPORTER_TESTS
+    try {
+        $env:H3VR_METADATA_EXPORTER_TESTS = '1'
+        Invoke-CheckedNative { & dotnet test (Join-Path $RepoRoot 'tests\H3vrPipeline.Tests\H3vrPipeline.Tests.csproj') }
+    }
+    finally {
+        if ($null -eq $previousRuntimeTestFlag) {
+            Remove-Item Env:H3VR_METADATA_EXPORTER_TESTS -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:H3VR_METADATA_EXPORTER_TESTS = $previousRuntimeTestFlag
+        }
+    }
 }
 
 function Copy-PackageMetadata {

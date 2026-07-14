@@ -4,7 +4,8 @@
 
 | Check | Command | Pass evidence |
 | --- | --- | --- |
-| Full pipeline | `tools/h3vr.ps1 -Action Test` | All pipeline and profile tests pass. |
+| Public CI | GitHub Actions `Verify H3VR Packages` | Portable data/package tests pass; no H3VR-only assemblies required. |
+| Full Windows pipeline | `tools/h3vr.ps1 -Action Test` | All pipeline and runtime profile tests pass. Wrapper enables exporter tests only here. |
 | API targets | `tools/h3vr.ps1 -Action Verify -Mod GunGameProgressions` | External GunGame spawn targets resolve. |
 | Package | `tools/h3vr.ps1 -Action Build -Mod GunGameProgressions`, then `Package` | Receipt has expected version, payload, hash. |
 
