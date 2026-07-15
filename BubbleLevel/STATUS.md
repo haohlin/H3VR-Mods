@@ -22,3 +22,14 @@ State: `released`
 ## Next
 
 Monitor release feedback. Material variants remain optional until visual approval.
+
+## Session handoff
+
+1. Start from this folder and its four tracked records; chat history is not required.
+2. `2.0.3` is current public runtime/package release. The later documentation
+   update is source-only; do not rebuild, deploy, or publish it by itself.
+3. For any new runtime/content change, use Windows as build/runtime authority,
+   run Unity `RunAll`, wrapper `Test`/`Build`/`Package`, then deploy and record
+   the VR result here.
+4. First candidate work: material approval or expanded VR coverage for offset
+   rail, 30 mm mounts, nested chain, inversion, and settle behavior.

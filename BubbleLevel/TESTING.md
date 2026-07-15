@@ -38,3 +38,10 @@ Documentation follow-up changed Unity-source Markdown only: `README.md` and
 `CHANGELOG.md`. Build profile version, package title, approved short
 description, item assets, and published `2.0.3` ZIP were not changed; no Unity
 or MeatKit rebuild is required for that source-documentation update.
+
+## Handoff boundary
+
+`2.0.3` is last runtime-verified package. A future session must not treat the
+source-only documentation commit as build or VR evidence. New runtime/content
+work starts with Windows preflight and repeats the automated and VR checks
+listed above.
