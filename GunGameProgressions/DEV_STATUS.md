@@ -26,7 +26,8 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report; Windows runtime/log reproduction still required. |
 | Selector lifecycle risk | `PrepareModdedProfilesForSelector` polls without a timeout, cancellation, selector/scene-liveness check, or `finally` cleanup. Its cloned loading row and reflected component list are destroyed only after polling ends. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
 | Lifecycle mismatch | Background Modded refresh stops after `120s`; selector preparation has no equivalent limit. | Confirmed by source inspection; P0 fix required. |
-| Runtime blocker | Windows H3VR build/runtime environment unavailable at task close | Documentation only; no code, package, deployment, or VR claim. |
+| Windows runtime attempt | Windows host was network-reachable on `2026-07-15`, but SSH rejected available key and password authentication before a shell opened. | No game process, BepInEx log, profiler, build, deployment, or VR evidence collected. |
+| Root-cause candidate | Selector-side `PrepareModdedProfilesForSelector` was introduced with the non-blocking selector flow. Its `do … while (true)` has no timeout, cancellation, selector/scene liveness check, or `finally`; every new selector starts a routine and creates a cloned loading row first. | High-confidence source cause for periodic polling, retained UI/component references, and accumulating work after selector/scene replacement. Runtime proof remains blocked on authenticated Windows access. |
 
 ### Next
 
