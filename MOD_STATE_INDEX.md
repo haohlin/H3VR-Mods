@@ -6,16 +6,16 @@ and agents. Chat history is never source of truth.
 ## Session rule
 
 ```text
-start: read index + mod DESIGN/STATUS/PLAN/TESTING + inspect Windows state
-work:  update PLAN when scope changes; add test before behavior change
-finish: update STATUS evidence + PLAN next step + commit source and docs together
+start: read index + mod DESIGN/DEV_STATUS + inspect Windows state
+work:  update DEV_STATUS Plan section when scope changes; add test before behavior change
+finish: update DEV_STATUS Status evidence + Plan next step + commit source and docs together
 ```
 
-Create four files from [templates](docs/mod-development/README.md) before work
-starts on any new active mod. Do not create status files for dormant folders
+Create two files from [templates](docs/mod-development/README.md) before work
+starts on any new active mod. Do not create handoff records for dormant folders
 without verified state.
 
 | Active mod | State | Required records |
 | --- | --- | --- |
-| [BubbleLevel](BubbleLevel/STATUS.md) | Active Unity/MeatKit migration | [design](BubbleLevel/DESIGN.md), [plan](BubbleLevel/PLAN.md), [testing](BubbleLevel/TESTING.md) |
-| [GunGameProgressions](GunGameProgressions/STATUS.md) | Released; compatibility follow-up | [design](GunGameProgressions/DESIGN.md), [plan](GunGameProgressions/PLAN.md), [testing](GunGameProgressions/TESTING.md) |
+| [BubbleLevel](BubbleLevel/DEV_STATUS.md) | Released; optional material/regression follow-up | [design](BubbleLevel/DESIGN.md), [development status](BubbleLevel/DEV_STATUS.md) |
+| [GunGameProgressions](GunGameProgressions/DEV_STATUS.md) | Released; compatibility follow-up | [design](GunGameProgressions/DESIGN.md), [development status](GunGameProgressions/DEV_STATUS.md) |

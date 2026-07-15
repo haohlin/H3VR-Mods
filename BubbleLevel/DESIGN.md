@@ -43,14 +43,5 @@ render before build.
 Current production Unity project is versioned in `H3VR-unity-projects`, whose
 Git root is the in-place `Assets/Projects` folder. It tracks project assets and
 matching `.meta` files. Generated bundles, `Library`, and `.vs` stay untracked.
-This repository records pipeline and handoff docs only.
-
-## Session handoff
-
-| Item | Current fact |
-| --- | --- |
-| Public runtime release | `BubbleLevelSet` `2.0.3`; user confirmed reverse/180° rail fix in H3VR. |
-| Latest source-only change | Unity `main` commit `2cadad8`: expanded `README.md` and added `CHANGELOG.md`. |
-| Package boundary | Source documentation did **not** change the build profile, item assets, deployed package, or Thunderstore release. Do not create `2.0.4` unless a new runtime/content release is requested. |
-| Proven behavior | 1° travel `0.104174`; 4° saturates; reverse-rail world-motion dot `1.000000`; limits, damping, nesting, and inversion checks passed. |
-| Next runtime work | Optional material approval or wider post-release VR regression. No known release-blocking physics bug. |
+This repository records pipeline and handoff docs only. Current verified state,
+plan, and test evidence live in `DEV_STATUS.md`.

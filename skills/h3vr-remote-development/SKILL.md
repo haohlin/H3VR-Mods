@@ -46,23 +46,26 @@ Do not treat a macOS build as an H3VR compatibility check.
 ## Cross-session mod state
 
 Tracked mod records, not chat history, preserve working state. Every active
-mod must contain `DESIGN.md`, `STATUS.md`, `PLAN.md`, and `TESTING.md`. Start
-at `MOD_STATE_INDEX.md`, read the affected mod records before editing, then
-inspect real Windows Git/build/runtime evidence. Update records with verified
-results, blockers, and next item after every task; commit them with source and
-tests. Create records from `docs/mod-development` templates before new active
-mod work. Unity source/assets and matching `.meta` files must be versioned in
-the authoritative Unity repository; untracked Unity workspace changes are not
-handoff-safe progress.
+mod must contain `DESIGN.md` and `DEV_STATUS.md`. Start at
+`MOD_STATE_INDEX.md`, read both affected-mod records before editing, then
+inspect real Windows Git/build/runtime evidence. `DEV_STATUS.md` has three
+sections: `Status` holds verified facts/evidence/blockers; `Plan` holds the
+active next item and acceptance condition; `Testing` holds repeatable checks
+and manual acceptance. Update it with verified results, blockers, and next item
+after every task; commit it with source and tests. Create records from
+`docs/mod-development` templates before new active mod work. Unity
+source/assets and matching `.meta` files must be versioned in the authoritative
+Unity repository; untracked Unity workspace changes are not handoff-safe
+progress.
 
 ## Mandatory handoff records
 
 Before source inspection, debugging, planning, editing, or testing a mod, read
-its `DESIGN.md`, `STATUS.md`, `PLAN.md`, and `TESTING.md` after
-`MOD_STATE_INDEX.md`.
+its `DESIGN.md` and `DEV_STATUS.md` after `MOD_STATE_INDEX.md`.
 
-Close every mod task by updating affected records to current verified state:
-release/version boundary, evidence, blocker, next action, and test limits.
+Close every mod task by updating affected `DEV_STATUS.md` sections to current
+verified state: release/version boundary, evidence, blocker, next action, and
+test limits.
 Commit and push those handoff records to GitHub with the task. Handoff records
 are maintainer documentation only: never add them to Thunderstore payloads, and
 never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
@@ -141,9 +144,8 @@ runtime behavior.
 
 ### GunGame Progressions reference set
 
-Before modifying `GunGameProgressions`, read its `DESIGN.md`,
-`STATUS.md`, `PLAN.md`, `TESTING.md`, `GENERATION_POLICY.md`, `BRANDING.md`,
-player README, and focused tests.
+Before modifying `GunGameProgressions`, read its `DESIGN.md`, `DEV_STATUS.md`,
+`GENERATION_POLICY.md`, `BRANDING.md`, player README, and focused tests.
 Lifecycle/integration decisions belong in the design document; shared
 weapon/feed/optic rules and every reported negative case belong in the policy.
 Keep Vanilla, Modded, and offline Vanilla generation on the one shared resolver.

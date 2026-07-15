@@ -10,15 +10,16 @@ public sealed class ModStateDocumentationTests
         RequireFiles(
             "BubbleLevel",
             "DESIGN.md",
-            "STATUS.md",
-            "PLAN.md",
-            "TESTING.md");
+            "DEV_STATUS.md");
         RequireFiles(
             "GunGameProgressions",
             "DESIGN.md",
-            "STATUS.md",
-            "PLAN.md",
-            "TESTING.md");
+            "DEV_STATUS.md");
+
+        RequireDevelopmentStatusSections("BubbleLevel");
+        RequireDevelopmentStatusSections("GunGameProgressions");
+        AssertNoLegacyStateFiles("BubbleLevel");
+        AssertNoLegacyStateFiles("GunGameProgressions");
     }
 
     [Fact]
@@ -28,9 +29,7 @@ public sealed class ModStateDocumentationTests
             "docs/mod-development",
             "README.md",
             "MOD_DESIGN_TEMPLATE.md",
-            "MOD_STATUS_TEMPLATE.md",
-            "MOD_PLAN_TEMPLATE.md",
-            "MOD_TESTING_TEMPLATE.md");
+            "MOD_DEV_STATUS_TEMPLATE.md");
         Assert.True(File.Exists(Path.Combine(RepositoryRoot, "MOD_STATE_INDEX.md")));
 
         foreach (var relativePath in new[]
@@ -41,9 +40,7 @@ public sealed class ModStateDocumentationTests
         {
             var content = File.ReadAllText(Path.Combine(RepositoryRoot, relativePath));
             Assert.Contains("Cross-session mod state", content, StringComparison.Ordinal);
-            Assert.Contains("STATUS.md", content, StringComparison.Ordinal);
-            Assert.Contains("PLAN.md", content, StringComparison.Ordinal);
-            Assert.Contains("TESTING.md", content, StringComparison.Ordinal);
+            Assert.Contains("DEV_STATUS.md", content, StringComparison.Ordinal);
         }
     }
 
@@ -64,6 +61,24 @@ public sealed class ModStateDocumentationTests
             Assert.True(
                 File.Exists(Path.Combine(RepositoryRoot, directory, fileName)),
                 "Missing cross-session state file: " + Path.Combine(directory, fileName));
+        }
+    }
+
+    private static void RequireDevelopmentStatusSections(string directory)
+    {
+        var content = File.ReadAllText(Path.Combine(RepositoryRoot, directory, "DEV_STATUS.md"));
+        Assert.Contains("## Status", content, StringComparison.Ordinal);
+        Assert.Contains("## Plan", content, StringComparison.Ordinal);
+        Assert.Contains("## Testing", content, StringComparison.Ordinal);
+    }
+
+    private static void AssertNoLegacyStateFiles(string directory)
+    {
+        foreach (var fileName in new[] { "STATUS.md", "PLAN.md", "TESTING.md" })
+        {
+            Assert.False(
+                File.Exists(Path.Combine(RepositoryRoot, directory, fileName)),
+                "Legacy split state file must not return: " + Path.Combine(directory, fileName));
         }
     }
 
