@@ -59,14 +59,17 @@ created only at runtime and are never published in a package.
 | Loader reports complete | Capture Modded metadata immediately. |
 | No usable loader-complete signal | Capture after five seconds of registry quiet. |
 | GunGame selector opens | Keep Vanilla usable, restore any saved Modded pair, and show a best-effort loading row. |
+| Selector preparation | Keep at most one preparation routine for a live selector. Stop it when its selector is replaced/destroyed, its scene unloads, or its bounded wait ends; always destroy its temporary loading row. |
 | New complete Modded pair | Persist it, then insert it into the live selector when its reflected UI API accepts it. |
 | GunGame closes | Request another background refresh for late-loading mods. |
-| Wait limit reached | Stop that non-blocking refresh attempt after 120 seconds; a later selector/session event retries. |
+| Wait limit reached | Stop each non-blocking refresh or selector attempt after its bounded wait; a later selector/session event retries. |
 
 The small loading row is intentionally non-interactive and disposable. It is
 reflection-based UI enhancement, not a reason to block play: if it cannot be
-created, logs and the persisted-pool path still work. Reloading GunGame is the
-reliable player fallback when a freshly inserted choice is not visible.
+created, logs and the persisted-pool path still work. Its owning routine must
+clean it up on every exit path and must not continue polling a dead selector.
+Reloading GunGame is the reliable player fallback when a freshly inserted
+choice is not visible.
 
 ## Persistence and replacement
 
@@ -160,6 +163,10 @@ Capture yields after a two-millisecond frame budget. Building/writing happens
 in a background job; readiness polls once per second. The design goal is a
 responsive game, not a fixed artificial loading delay.
 
+Readiness logging is event-based: attempt start, ready, timeout/cancel, and
+completion. Never emit an exception or status log on every poll; repeated log
+formatting and disk writes turn a transient loader problem into a stutter.
+
 ## Source and release assets
 
 | Artifact | Role |
@@ -190,6 +197,7 @@ playtest report
 | Priority | Item | Definition of done |
 | --- | --- | --- |
 | P0 | Enforce “strictly larger or confirmed empty” Modded replacement. | Smaller complete candidate cannot replace a larger saved pair; regression test proves it. |
+| P0 | Bound selector preparation lifetime. | One live selector routine at most; scene/selector replacement and timeout cancel it; temporary row is destroyed on every exit; low-mod idle/reload test shows stable memory and no periodic stutter. |
 | P1 | Validate the temporary selector loading row in VR after GunGame UI/API changes. | Player sees concise status without blocking choices. |
 | P1 | Improve compatibility evidence for incomplete mod metadata. | General prefab/catalog reconciliation improves coverage without per-weapon hard-codes. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |

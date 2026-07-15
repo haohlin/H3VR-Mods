@@ -41,6 +41,8 @@ public sealed class ModStateDocumentationTests
             var content = File.ReadAllText(Path.Combine(RepositoryRoot, relativePath));
             Assert.Contains("Cross-session mod state", content, StringComparison.Ordinal);
             Assert.Contains("DEV_STATUS.md", content, StringComparison.Ordinal);
+            Assert.Contains("git pull --ff-only", content, StringComparison.Ordinal);
+            Assert.Contains("tracked", content, StringComparison.OrdinalIgnoreCase);
         }
     }
 

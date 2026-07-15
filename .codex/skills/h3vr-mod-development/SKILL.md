@@ -151,14 +151,26 @@ git rev-list --left-right --count HEAD...origin/main
    No merge base means unrelated histories, not an ordinary branch conflict.
    Preserve the Windows head on a recovery branch and stop for a user decision;
    never reset, force-push, or auto-merge across that boundary.
-3. Work on a feature branch, not `main`. Keep each intentional change focused and commit only the relevant files.
-4. Run the pipeline preflight from the repository root:
+3. Before review or edits, preserve untracked user files and check whether the
+   **tracked** local checkout is clean:
+
+```powershell
+git diff --quiet
+git diff --cached --quiet
+```
+
+   If both commands succeed, run `git pull --ff-only` after the topology check
+   so the local branch receives remote updates. If tracked changes exist, do
+   not pull, merge, reset, or overwrite them; report the divergence first.
+   Untracked files alone never authorize cleanup.
+4. Work on a feature branch, not `main`. Keep each intentional change focused and commit only the relevant files.
+5. Run the pipeline preflight from the repository root:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File "$env:H3VR_WINDOWS_REPOSITORY\tools\h3vr.ps1" -Action Preflight
 ```
 
-5. Check whether the decompiled cache still matches the live DLLs:
+6. Check whether the decompiled cache still matches the live DLLs:
 
 ```powershell
 .\tools\h3vr.ps1 -Action SourceStatus

@@ -6,7 +6,7 @@ and agents. Chat history is never source of truth.
 ## Session rule
 
 ```text
-start: read index + mod DESIGN/DEV_STATUS + inspect Windows state
+start: read index + mod DESIGN/DEV_STATUS; preserve untracked files; if tracked local tree is clean, fetch, prove ancestry, then `git pull --ff-only`; inspect Windows state
 work:  update DEV_STATUS Plan section when scope changes; add test before behavior change
 finish: update DEV_STATUS Status evidence + Plan next step + commit source and docs together
 ```

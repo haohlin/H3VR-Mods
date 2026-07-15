@@ -95,10 +95,21 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
    reset, or merge them automatically. The user must choose the canonical
    history or explicitly approve a deliberate integration.
 
-3. Synchronize through Git deliberately. Before review or edits, update the
-   local checkout with `git pull --ff-only`. Before a Windows build, ensure the
-   intended commit is present in the configured Windows checkout. Keep commits
-   scoped; do not erase another developer's work with broad copies.
+3. Synchronize through Git deliberately. Before review or edits, preserve
+   untracked user files and check whether the **tracked** local worktree is
+   clean:
+
+   ```bash
+   git diff --quiet && git diff --cached --quiet
+   ```
+
+   If it is clean, run `git pull --ff-only` after the topology check so the
+   local branch receives any remote update. If tracked changes exist, do not
+   pull, merge, reset, or overwrite them; report the divergence first.
+   Untracked files alone never authorize cleanup. Before a Windows build,
+   ensure the intended commit is present in the configured Windows checkout.
+   Keep commits scoped; do not erase another developer's work with broad
+   copies.
 
 4. Read the affected mod, package source, `build/mods.json`, relevant tests, and
    `tools/h3vr.ps1` before implementation. Reuse existing local patterns.
