@@ -55,6 +55,18 @@ mod work. Unity source/assets and matching `.meta` files must be versioned in
 the authoritative Unity repository; untracked Unity workspace changes are not
 handoff-safe progress.
 
+## Mandatory handoff records
+
+Before source inspection, debugging, planning, editing, or testing a mod, read
+its `DESIGN.md`, `STATUS.md`, `PLAN.md`, and `TESTING.md` after
+`MOD_STATE_INDEX.md`.
+
+Close every mod task by updating affected records to current verified state:
+release/version boundary, evidence, blocker, next action, and test limits.
+Commit and push those handoff records to GitHub with the task. Handoff records
+are maintainer documentation only: never add them to Thunderstore payloads, and
+never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
+
 ## Start Every Task
 
 1. Confirm SSH and inspect the Windows working tree. Never reset or overwrite

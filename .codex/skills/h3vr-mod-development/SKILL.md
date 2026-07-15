@@ -43,6 +43,18 @@ starting a new active mod. For Unity work, the real project assets and matching
 `.meta` files must be Git-versioned; untracked editor-only work is not progress
 that another session can safely continue.
 
+## Mandatory handoff records
+
+Before source inspection, debugging, planning, editing, or testing a mod, read
+its `DESIGN.md`, `STATUS.md`, `PLAN.md`, and `TESTING.md` after
+`MOD_STATE_INDEX.md`.
+
+Close every mod task by updating affected records to current verified state:
+release/version boundary, evidence, blocker, next action, and test limits.
+Commit and push those handoff records to GitHub with the task. Handoff records
+are maintainer documentation only: never add them to Thunderstore payloads, and
+never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
+
 ## Unity Reference — Only When Needed
 
 Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
