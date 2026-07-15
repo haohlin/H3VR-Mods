@@ -103,7 +103,7 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 | Mod loader is complete | Capture Modded metadata immediately. |
 | Loader has no complete signal | Wait for five seconds with no registry-count change, then capture. |
 | Selector opens while Modded profiles are pending | Keep Vanilla choices usable and display a concise Modded-loading status. |
-| Complete Modded replacement | Build the candidate off the play path. Replace the saved pair only after both generated Modded pools contain eligible weapons. |
+| Complete Modded replacement | Build candidate off play path. Replace saved pair only when both generated Modded pools contain eligible weapons **and** candidate count is strictly greater than saved count. Equal/smaller or unproven saved count keeps saved pair. |
 | Confirmed empty Modded snapshot | Remove the saved Modded pair. This prevents disabled mods from leaving stale object IDs behind. |
 | Partial capture, capture failure, or build failure | Keep the previous saved Modded pair unchanged and request a later background refresh. |
 | Generated ID is missing, has the wrong category, or throws while spawning | Clear the bad buffer, skip that loadout, and promote to the next weapon on the following frame. Do not crash or freeze the session. |

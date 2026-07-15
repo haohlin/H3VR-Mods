@@ -99,6 +99,17 @@ README's “same or fewer” wording is the target rule, not the current verifie
 implementation. Fix `RuntimePoolPersistence` and add a focused regression test
 before claiming this requirement is met.
 
+### Verified root cause — 2026-07-15
+
+The Modded receipt already records `eligibleWeaponsPerPool`, but
+`ShouldPromoteModdedCandidate` receives only candidate pool count and candidate
+weapon count. It never reads or compares the saved count. Therefore any full,
+non-empty candidate can replace a larger saved pair after fingerprint change.
+
+Resume with one count-aware persistence gate. Preserve an existing pair when
+its count is unknown or candidate count is equal/smaller. Permit first complete
+pair, strictly larger replacement, and confirmed-empty removal only.
+
 ## Compatibility and runtime safety
 
 One `RuntimeProfileBuilder` serves runtime Vanilla, runtime Modded, and the
