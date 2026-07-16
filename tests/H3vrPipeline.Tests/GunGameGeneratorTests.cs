@@ -671,6 +671,13 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[5]);
         Assert.Equal("GunGame Progressions: spawn safety unavailable.", lifecycle[6]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
+
+        var scanCompleted = Assert.IsAssignableFrom<MethodInfo>(messages.GetMethod(
+            "ModdedScanCompleted",
+            BindingFlags.Public | BindingFlags.Static));
+        var scanMessage = Assert.IsType<string>(scanCompleted.Invoke(null, new object[] { 123L, 1435 })!);
+        Assert.Equal("GunGame Progressions: modded scan 123ms; 1435 entries.", scanMessage);
+        Assert.True(scanMessage.Length <= 60);
     }
 
     [Fact]
@@ -690,7 +697,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_schedules_nonblocking_five_and_ten_minute_startup_modded_rescans()
+    public void Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans()
     {
         var source = File.ReadAllText(PluginSourcePath);
         var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
@@ -698,10 +705,12 @@ public sealed class GunGameGeneratorTests
 
         Assert.True(startMethod >= 0 && destroyMethod > startMethod);
         var startBody = source.Substring(startMethod, destroyMethod - startMethod);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
         Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
         Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
         Assert.Contains("private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)", source, StringComparison.Ordinal);
         Assert.Contains("new WaitForSecondsRealtime(delaySeconds)", source, StringComparison.Ordinal);
+        Assert.Contains("startup 1-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 5-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 10-minute rescan requested.", source, StringComparison.Ordinal);
     }
@@ -1302,7 +1311,7 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes",
             "Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness",
             "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path",
-            "Runtime_schedules_nonblocking_five_and_ten_minute_startup_modded_rescans",
+            "Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
             "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
         };

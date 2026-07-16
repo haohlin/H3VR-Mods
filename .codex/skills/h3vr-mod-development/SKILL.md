@@ -304,6 +304,22 @@ For a clean test session, archive then clear logs with:
 
 The VR tester launches the r2modman Default profile, exercises the change in H3VR, and records the outcome and notes in the generated receipt. A VR `PASS` is recommended release evidence, but it is not a publish gate. After the tester reports completion, inspect `LogOutput.log` through `TailLogs` or `Logs` for plugin-load failures, BepInEx errors, Harmony exceptions, missing dependencies, and runtime exceptions.
 
+### Authorized remote Modded-profile launch
+
+Normally the human starts H3VR. With explicit user authorization, Codex may
+validate the installed r2modman profile by clearing logs, deriving the current
+Doorstop launch arguments from the profile's private `.doorstop_version`, then
+starting Steam through a short-lived Task Scheduler entry in the active
+interactive console session. SSH service-session launches are invalid because
+they do not own the desktop.
+
+Verify the interactive H3VR process and BepInEx profile preloader in the log,
+then inspect the target plugin/version and generated runtime data. Stop H3VR
+and remove the temporary task immediately after testing. Derive every profile
+path, active user, session ID, and task name locally; never commit or report
+those private values. This automates runtime/log validation only, not visual or
+subjective VR acceptance.
+
 ## Publish to Thunderstore
 
 Publishing is deliberate and always requires explicit user authorization. It is not a CI step.

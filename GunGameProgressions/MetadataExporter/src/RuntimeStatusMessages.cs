@@ -11,4 +11,9 @@ public static class RuntimeStatusMessages
     public const string PoolHookUnavailable = "GunGame Progressions: scene hook unavailable; packaged pools will be used.";
     public const string SpawnSafetyUnavailable = "GunGame Progressions: spawn safety unavailable.";
     public const string PoolLoadFailed = "GunGame Progressions: could not start the GunGame scene.";
+
+    public static string ModdedScanCompleted(long totalMilliseconds, int capturedEntryCount)
+    {
+        return "GunGame Progressions: modded scan " + totalMilliseconds + "ms; " + capturedEntryCount + " entries.";
+    }
 }

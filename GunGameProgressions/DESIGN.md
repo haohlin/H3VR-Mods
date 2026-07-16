@@ -53,12 +53,12 @@ created only at runtime and are never published in a package.
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at five and ten real-time minutes. |
+| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
 | GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded pair once, request fresh background snapshot. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. |
-| Five and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
+| One, five, and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
@@ -137,12 +137,16 @@ letting a bad loadout derail a session.
 | `pools ready` | A Modded candidate was written. |
 | `no modded pools available` | No compatible active Modded firearms were found. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
+| `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Building/writing happens
 in a background job. Each request has one status read and one catalog snapshot;
-it never waits for a global loader completion signal or polls registry. Design
-goal is responsive game, not a fixed artificial loading delay.
+it never waits for a global loader completion signal or polls registry. Startup
+does one immediate snapshot plus one-, five-, and ten-minute rescans. The
+event log records each completed scan's wall-clock duration for live
+measurement. Design goal is responsive game, not a fixed artificial loading
+delay.
 
 ### Prefab-materialization boundary
 

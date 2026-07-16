@@ -4,6 +4,8 @@ All notable changes to GunGame Progressions are documented here.
 
 ## 1.4.0
 
+- Add one-minute Modded rescan for earlier late-loader coverage; five- and ten-minute rescans remain.
+- Log each completed Modded scan's duration and catalog entry count for lightweight runtime measurement.
 - Restore catalog-proven firearms that omit optional identity tags, while still excluding malformed firearm entries.
 - Use direct compatible feeds or exact magazine/clip interfaces for Modded pools; never assign a mod firearm a loose cartridge from shared caliber alone.
 - Keep scope selection catalog-only: direct attachments and exact physical mount types only; no runtime prefab loading.

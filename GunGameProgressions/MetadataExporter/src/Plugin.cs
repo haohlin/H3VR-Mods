@@ -51,6 +51,7 @@ public sealed class Plugin : BaseUnityPlugin
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();
+        StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested."));
         StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested."));
         StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested."));
     }
@@ -399,6 +400,9 @@ public sealed class Plugin : BaseUnityPlugin
             " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
             "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
             "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
+        Logger.LogInfo(RuntimeStatusMessages.ModdedScanCompleted(
+            totalTimer.ElapsedMilliseconds,
+            metadataCapture.Entries.Count));
         if (complete != null)
         {
             complete(report);

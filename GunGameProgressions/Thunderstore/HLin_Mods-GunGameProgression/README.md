@@ -34,7 +34,7 @@ The packaged Vanilla profiles are available immediately. Runtime generation then
 | When | What happens |
 | --- | --- |
 | H3VR starts | Vanilla metadata and profiles refresh as soon as the object registry is available. |
-| Five and ten minutes after H3VR starts | Background Modded rescans check for content that registered late. |
+| One, five, and ten minutes after H3VR starts | Background Modded rescans check for content that registered late. |
 | First GunGame map | Vanilla choices remain available; any saved Modded pair is restored and fresh Modded generation continues in the background. |
 | Later GunGame maps | They open normally; reload to show a newly saved Modded pair. |
 | GunGame map closes | Another background refresh runs, so content that finished loading during the session can be included. |

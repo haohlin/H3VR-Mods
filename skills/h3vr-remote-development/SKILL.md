@@ -197,6 +197,33 @@ After the user tests in VR, inspect logs without launching the game yourself:
 ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action TailLogs"
 ```
 
+### Authorized remote Modded-profile launch
+
+Normally the user starts H3VR. When the user explicitly asks Codex to launch
+the installed Modded profile, use this repeatable path instead of a normal game
+or Steam launch:
+
+1. Stop any previous H3VR process and archive logs through the wrapper.
+2. Read the active r2modman profile root from private configuration. Confirm its
+   BepInEx preloader and inspect `.doorstop_version`.
+3. Derive the official r2modman Doorstop arguments from that version: v3/default
+   uses the legacy enable/target names; v4 uses its enabled/target-assembly
+   names. Never copy loader files or manually overlay plugins.
+4. Launch Steam with those arguments through a temporary Task Scheduler task in
+   the active interactive console session (`TASK_LOGON_INTERACTIVE_TOKEN`).
+   Resolve the current interactive user/session dynamically. SSH service
+   session launches do not own the desktop and must not be used for this.
+5. Verify that H3VR runs in the interactive session and that `LogOutput.log`
+   names the profile preloader plus the target plugin/version. Then inspect
+   pool files and concise plugin timing/status lines.
+6. When testing ends, stop H3VR and delete the temporary scheduled task. Keep
+   profile paths, session IDs, user names, task names, and launch arguments
+   private; none belong in source, docs, or public logs.
+
+This is a runtime-validation procedure, not an unattended VR substitute. Use
+it only with explicit authorization; visual/feel acceptance remains human VR
+work.
+
 ## Release to Thunderstore
 
 Publish only with explicit user authorization. Bump the version only at release
