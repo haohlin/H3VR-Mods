@@ -453,15 +453,6 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)shouldPromote.Invoke(null, new object[] { 2, 24 })!);
         Assert.True((bool)shouldPromote.Invoke(null, new object[] { 0, 0 })!);
 
-        var source = File.ReadAllText(PluginSourcePath);
-        var prepareStart = source.IndexOf("private IEnumerator PrepareModdedProfilesForSelector", StringComparison.Ordinal);
-        var prepareEnd = source.IndexOf("private void Trace", prepareStart, StringComparison.Ordinal);
-        Assert.True(prepareStart >= 0 && prepareEnd > prepareStart);
-        var prepareBody = source.Substring(prepareStart, prepareEnd - prepareStart);
-        Assert.Contains("AddPersistedModdedPoolChoices(weaponPoolLoader)", prepareBody, StringComparison.Ordinal);
-        Assert.True(
-            prepareBody.IndexOf("AddPersistedModdedPoolChoices(weaponPoolLoader)", StringComparison.Ordinal) <
-            prepareBody.IndexOf("selector readiness wait started.", StringComparison.Ordinal));
     }
 
     [WindowsH3vrFact]
@@ -595,14 +586,13 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet()
+    public void Modded_profile_readiness_captures_complete_or_stable_mod_content()
     {
         var assembly = LoadBuiltMetadataExporter();
         var gateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ModdedProfileReadinessGate"));
         var stateType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.ExternalContentLoadState"));
         var observe = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("Observe", BindingFlags.Public | BindingFlags.Instance));
         var isReady = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("IsReady", BindingFlags.Public | BindingFlags.Instance));
-        var secondsUntilQuiet = Assert.IsAssignableFrom<MethodInfo>(gateType.GetMethod("SecondsUntilQuiet", BindingFlags.Public | BindingFlags.Instance));
         var unavailable = Enum.Parse(stateType, "Unavailable");
         var loading = Enum.Parse(stateType, "Loading");
         var complete = Enum.Parse(stateType, "Complete");
@@ -610,13 +600,18 @@ public sealed class GunGameGeneratorTests
 
         observe.Invoke(gate, new object[] { 0f, 10, unavailable });
         Assert.False((bool)isReady.Invoke(gate, new object[] { 4.9f, unavailable })!);
-        Assert.Equal(1, (int)secondsUntilQuiet.Invoke(gate, new object[] { 4.1f, unavailable })!);
         Assert.True((bool)isReady.Invoke(gate, new object[] { 5f, unavailable })!);
 
-        observe.Invoke(gate, new object[] { 5f, 11, unavailable });
-        Assert.False((bool)isReady.Invoke(gate, new object[] { 9.9f, unavailable })!);
-        Assert.True((bool)isReady.Invoke(gate, new object[] { 10f, unavailable })!);
-        Assert.False((bool)isReady.Invoke(gate, new object[] { 100f, loading })!);
+        var loadingGate = Activator.CreateInstance(gateType)!;
+        observe.Invoke(loadingGate, new object[] { 0f, 10, loading });
+        Assert.False((bool)isReady.Invoke(loadingGate, new object[] { 29.9f, loading })!);
+        Assert.True((bool)isReady.Invoke(loadingGate, new object[] { 30f, loading })!);
+
+        var changedLoadingGate = Activator.CreateInstance(gateType)!;
+        observe.Invoke(changedLoadingGate, new object[] { 0f, 10, loading });
+        observe.Invoke(changedLoadingGate, new object[] { 29f, 11, loading });
+        Assert.False((bool)isReady.Invoke(changedLoadingGate, new object[] { 58.9f, loading })!);
+        Assert.True((bool)isReady.Invoke(changedLoadingGate, new object[] { 59f, loading })!);
         Assert.True((bool)isReady.Invoke(gate, new object[] { 100f, complete })!);
     }
 
@@ -707,7 +702,6 @@ public sealed class GunGameGeneratorTests
                 "Preparing",
                 "PoolsReady",
                 "NoModdedPools",
-                "ProfileUiUpdateFailed",
                 "FallbackPools",
                 "SpawnSafetyUnavailable",
             }
@@ -719,9 +713,8 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("GunGame Progressions: preparing pools.", lifecycle[2]);
         Assert.Equal("GunGame Progressions: pools ready.", lifecycle[3]);
         Assert.Equal("GunGame Progressions: no modded pools available.", lifecycle[4]);
-        Assert.Equal("GunGame Progressions: could not add modded pools.", lifecycle[5]);
-        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[6]);
-        Assert.Equal("GunGame Progressions: spawn safety unavailable.", lifecycle[7]);
+        Assert.Equal("GunGame Progressions: using packaged fallback pools.", lifecycle[5]);
+        Assert.Equal("GunGame Progressions: spawn safety unavailable.", lifecycle[6]);
         Assert.All(lifecycle, message => Assert.True(message.Length <= 60));
     }
 
@@ -742,7 +735,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector()
+    public void Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path()
     {
         var source = File.ReadAllText(PluginSourcePath);
 
@@ -752,21 +745,38 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("RemoveEventHandler", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
-        Assert.Contains("PrepareModdedProfilesForSelector", source, StringComparison.Ordinal);
-        Assert.Contains("CreateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
-        Assert.Contains("AddGeneratedPoolChoices", source, StringComparison.Ordinal);
-        Assert.Contains("Waiting for mod content", source, StringComparison.Ordinal);
+        Assert.Contains("RestorePersistedModdedProfilesForSelector", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
         Assert.Contains("ModdedProfileReadinessGate", source, StringComparison.Ordinal);
-        Assert.Contains("OtherLoader.LoaderStatus", source, StringComparison.Ordinal);
+        Assert.Contains("OtherLoaderStatusProbe", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrepareModdedProfilesForSelector", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("UpdateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddGeneratedPoolChoices", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Waiting for mod content", source, StringComparison.Ordinal);
         Assert.DoesNotContain("MainMenuScreenLoadScenePrefix", source, StringComparison.Ordinal);
         Assert.DoesNotContain("FirstGunGameModWarmupSeconds", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
         Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
         Assert.DoesNotContain("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
         Assert.DoesNotContain("WatchForGunGamePoolLoader", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_uses_a_cached_otherloader_readiness_probe()
+    {
+        var probePath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "OtherLoaderStatusProbe.cs");
+        Assert.True(File.Exists(probePath));
+
+        var pluginSource = File.ReadAllText(PluginSourcePath);
+        var probeSource = File.ReadAllText(probePath);
+        Assert.DoesNotContain("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("Could not read OtherLoader load status", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("private bool initialized", probeSource, StringComparison.Ordinal);
+        Assert.Contains("private bool failureLogged", probeSource, StringComparison.Ordinal);
+        Assert.Contains("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", probeSource, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
@@ -1304,8 +1314,9 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_ignores_unrecognized_non_optic_mounts",
             "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",
             "Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles",
-            "Modded_profile_readiness_waits_for_loader_completion_or_five_seconds_of_registry_quiet",
-            "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_load_into_the_active_selector",
+            "Modded_profile_readiness_captures_complete_or_stable_mod_content",
+            "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path",
+            "Runtime_uses_a_cached_otherloader_readiness_probe",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
             "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
         };

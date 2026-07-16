@@ -5,8 +5,8 @@ stay together here.
 
 ## Status
 
-Last verified: `2026-07-15`
-State: `released; active follow-up`
+Last verified: `2026-07-16`
+State: `source change pending Windows verification`
 
 ### Handoff convention
 
@@ -24,24 +24,25 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | P0 root cause | Modded receipt records saved weapon count, but promotion gate ignores it | Confirmed by source inspection; no fix yet. |
 | Critical gap | Smaller or equal complete candidate can still replace larger saved pair | Not fixed; P0. |
 | Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report; Windows runtime/log reproduction still required. |
-| Selector lifecycle risk | `PrepareModdedProfilesForSelector` polls without a timeout, cancellation, selector/scene-liveness check, or `finally` cleanup. Its cloned loading row and reflected component list are destroyed only after polling ends. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
-| Lifecycle mismatch | Background Modded refresh stops after `120s`; selector preparation has no equivalent limit. | Confirmed by source inspection; P0 fix required. |
-| Windows runtime attempt | Windows host was network-reachable on `2026-07-15`, but SSH rejected available key and password authentication before a shell opened. | No game process, BepInEx log, profiler, build, deployment, or VR evidence collected. |
-| Root-cause candidate | Selector-side `PrepareModdedProfilesForSelector` was introduced with the non-blocking selector flow. Its `do … while (true)` has no timeout, cancellation, selector/scene liveness check, or `finally`; every new selector starts a routine and creates a cloned loading row first. | High-confidence source cause for periodic polling, retained UI/component references, and accumulating work after selector/scene replacement. Runtime proof remains blocked on authenticated Windows access. |
+| Root cause | Selector-side `PrepareModdedProfilesForSelector` was an unbounded `do … while (true)` poll. Each selector created a cloned loading row and reflected component list; neither selector replacement nor scene unload cancelled it. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
+| Source change | Selector now restores persisted profiles once, then returns. It has no loading row, live-insertion, poll, capture, or build path. | Implemented locally on `fix/gungame-background-refresh`; Windows pipeline pending. |
+| Background bound | One coordinator caches OtherLoader reflection per attempt; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Implemented locally; Windows automated/runtime verification pending. |
+| Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Implemented locally; Windows verification pending. |
+| Windows access | Private SSH alias reaches Windows. A unique pipeline checkout was found clean on `main`; its environment variable is not configured, so commands locate that checkout transiently without committing path data. | Windows Test/Verify/Build has not run yet. |
 
 ### Next
 
-P0: reproduce low-mod stutter/RAM growth with a fresh log, then bound and clean
-up selector preparation before the existing count-aware persistence work.
+P0: run Windows `Test`, `Verify`, and `Build` for the bounded coordinator
+change. Then reproduce low-mod idle/reload stability with BepInEx logs and
+memory observation before the existing count-aware persistence work.
 
 ## Plan
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[ ]` | Bound selector preparation lifetime and cleanup. | At most one live selector routine; selector replacement, scene unload, and bounded timeout stop it; loading row is always destroyed; repeated polling errors are rate-limited; focused lifecycle test passes. |
+| `[ ]` | Verify bounded background Modded coordination. | Selector owns only persisted restore; no selector UI clone/poll/capture/build path remains; cached readiness reflection and 30-second stable limit pass Windows tests; low-mod idle/reload has no periodic stutter or monotonic memory growth. |
 | `[ ]` | Enforce count-aware Modded replacement. | Missing pair accepts first complete candidate; smaller/equal candidate keeps saved pair; strictly larger candidate replaces it; confirmed-empty still removes stale pair; focused test passes. |
 | `[x]` | Consolidate handoff state. | `DEV_STATUS.md` holds Status, Plan, and Testing; legacy split files removed. |
-| `[ ]` | Re-validate selector loading row in VR. | Concise status appears without blocking Vanilla choices. |
 | `[ ]` | Improve general incomplete-metadata reconciliation. | Better valid mod coverage without weapon-specific hard-codes. |
 
 ### Deferred
@@ -52,9 +53,9 @@ up selector preparation before the existing count-aware persistence work.
 
 ### Current blocker
 
-Windows H3VR build/runtime environment was unavailable on 2026-07-15. Keep
-this task at documentation and test-design stage until Windows returns; do not
-claim a source fix, package, deployment, or VR result.
+No Windows Test/Verify/Build or H3VR runtime evidence yet for this source
+branch. Do not claim package, deployment, or VR validation until those commands
+run against the unique remote checkout.
 
 ## Testing
 
@@ -74,7 +75,7 @@ claim a source fix, package, deployment, or VR result.
 | Startup | Vanilla pools available; game stays responsive. |
 | Many mods loading | Modded work remains background; no main-thread freeze. |
 | Low-mod idle/reload stability | Dependencies-only and one-simple-gun-mod installs run idle for ten minutes, then enter/exit/reload GunGame repeatedly; no once-per-second hitch, monotonic memory growth, or crash. |
-| Selector lifecycle | Instrument active selector routines and temporary loading rows; count returns to zero after selector replacement/unload and never grows across reloads. |
+| Selector lifecycle | Selector restores saved pair once and returns; no temporary loading rows or selector-owned polling coroutines exist across reloads. |
 | Selector reload | Saved/generated Modded pair appears with Vanilla pair. |
 | Invalid generated object | Bad loadout skips; progression continues without crash. |
 | Disable mod content | Confirmed empty refresh removes stale IDs. |

@@ -1,5 +1,3 @@
-using System;
-
 namespace HLin.GunGameProgressions;
 
 public enum ExternalContentLoadState
@@ -12,6 +10,7 @@ public enum ExternalContentLoadState
 public sealed class ModdedProfileReadinessGate
 {
     private const float QuietSeconds = 5f;
+    private const float LoadingStableSeconds = 30f;
 
     private bool hasObservedRegistry;
     private int lastRegistryCount;
@@ -34,23 +33,14 @@ public sealed class ModdedProfileReadinessGate
             return true;
         }
 
-        return externalLoadState == ExternalContentLoadState.Unavailable &&
-            hasObservedRegistry &&
-            now - lastRegistryChangeTime >= QuietSeconds;
-    }
-
-    public int SecondsUntilQuiet(float now, ExternalContentLoadState externalLoadState)
-    {
-        if (externalLoadState == ExternalContentLoadState.Complete)
+        if (!hasObservedRegistry)
         {
-            return 0;
+            return false;
         }
 
-        if (externalLoadState == ExternalContentLoadState.Loading || !hasObservedRegistry)
-        {
-            return (int)QuietSeconds;
-        }
-
-        return Math.Max(0, (int)Math.Ceiling(QuietSeconds - (now - lastRegistryChangeTime)));
+        var stableSeconds = now - lastRegistryChangeTime;
+        return externalLoadState == ExternalContentLoadState.Loading
+            ? stableSeconds >= LoadingStableSeconds
+            : externalLoadState == ExternalContentLoadState.Unavailable && stableSeconds >= QuietSeconds;
     }
 }

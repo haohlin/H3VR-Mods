@@ -34,13 +34,13 @@ The packaged Vanilla profiles are available immediately. Runtime generation then
 | When | What happens |
 | --- | --- |
 | H3VR starts | Vanilla metadata and profiles refresh as soon as the object registry is available. |
-| First GunGame map | Vanilla choices remain available; Modded generation continues in the background. |
-| Later GunGame maps | They open normally; a background refresh starts. |
+| First GunGame map | Vanilla choices remain available; any saved Modded pair is restored and fresh Modded generation continues in the background. |
+| Later GunGame maps | They open normally; reload to show a newly saved Modded pair. |
 | GunGame map closes | Another background refresh runs, so content that finished loading during the session can be included. |
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
 | A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
 
-The loader waits only for a confirmed completion signal or five seconds of registry quiet; it never blocks the main game thread. If Modded pools are not ready yet, use a Vanilla choice and the selector will gain Modded choices after a later refresh.
+The loader waits only for a confirmed completion signal, five seconds of registry quiet, or a 30-second stable loading state; it never blocks the main game thread. If Modded pools are not ready yet, use a Vanilla choice, then reload GunGame after the background refresh finishes.
 
 ## Enemy Pacing
 
