@@ -749,6 +749,15 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("startup 10-minute rescan requested.", source, StringComparison.Ordinal);
     }
 
+    [WindowsH3vrFact]
+    public void Runtime_polls_modded_readiness_no_more_than_every_ten_seconds()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+
+        Assert.Contains("private const float ModdedRefreshPollSeconds = 10f;", source, StringComparison.Ordinal);
+        Assert.Contains("new WaitForSeconds(ModdedRefreshPollSeconds)", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path()
     {
