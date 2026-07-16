@@ -29,12 +29,14 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Background bound | One coordinator caches OtherLoader reflection per attempt; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Windows source and focused lifecycle tests pass; runtime behavior untested. |
 | Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Windows build/test pass; runtime log validation pending. |
 | Windows pipeline | `Preflight`, `Test`, `Verify -Mod GunGameProgressions`, and `Build -Mod GunGameProgressions` ran on `2026-07-16`. | Passed: source current; `81/81` tests; GunGame target verification; tracked fallback/profile build verification. |
+| Late-content rescan | Plugin schedules one `WaitForSecondsRealtime(600f)` request after startup. It uses the same background candidate/persistence path; it never edits an active selector. | Windows red/green test complete; `82/82` tests, Verify, Build, Package, and Deploy passed. Runtime observation active. |
+| Deployed test package | GunGame Progressions `1.3.9` test package includes the ten-minute rescan change. | Deployed while H3VR was stopped on `2026-07-16`; no public release or version bump. |
 
 ### Next
 
-P0: deploy the tested DLL only when H3VR is stopped, then reproduce low-mod
-idle/reload stability with BepInEx logs and memory observation before the
-existing count-aware persistence work.
+P0: observe startup, first Modded refresh, ten-minute rescan, and GunGame
+reload with timestamped BepInEx logs and H3VR memory samples. Then assess
+low-mod idle/reload stability before existing count-aware persistence work.
 
 ## Plan
 
@@ -75,6 +77,7 @@ deployed and the low-mod idle/reload regression is observed.
 | Startup | Vanilla pools available; game stays responsive. |
 | Many mods loading | Modded work remains background; no main-thread freeze. |
 | Low-mod idle/reload stability | Dependencies-only and one-simple-gun-mod installs run idle for ten minutes, then enter/exit/reload GunGame repeatedly; no once-per-second hitch, monotonic memory growth, or crash. |
+| Late-content rescan | Ten real-time minutes after plugin start, log one rescan request; candidate generation remains background-only and a subsequent GunGame reload exposes any new persisted pair. |
 | Selector lifecycle | Selector restores saved pair once and returns; no temporary loading rows or selector-owned polling coroutines exist across reloads. |
 | Selector reload | Saved/generated Modded pair appears with Vanilla pair. |
 | Invalid generated object | Bad loadout skips; progression continues without crash. |
