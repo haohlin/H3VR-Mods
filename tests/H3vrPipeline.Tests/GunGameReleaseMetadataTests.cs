@@ -23,7 +23,7 @@ public sealed class GunGameReleaseMetadataTests
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(packageRoot, "manifest.json")));
         var root = manifest.RootElement;
 
-        Assert.Equal("1.3.9", root.GetProperty("version_number").GetString());
+        Assert.Equal("1.4.0", root.GetProperty("version_number").GetString());
         Assert.Equal(
             ModdedProfileRefreshNotice + " " + CanonicalShortDescription,
             root.GetProperty("description").GetString());
@@ -45,14 +45,14 @@ public sealed class GunGameReleaseMetadataTests
         Assert.Contains("versioned vanilla metadata snapshot", readme);
 
         var changelog = File.ReadAllText(Path.Combine(packageRoot, "CHANGELOG.md"));
-        Assert.Contains("## 1.3.9", changelog);
+        Assert.Contains("## 1.4.0", changelog);
 
         var exporterProject = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(),
             "GunGameProgressions",
             "MetadataExporter",
             "GunGameProgressionsMetadataExporter.csproj"));
-        Assert.Contains("<Version>1.3.9</Version>", exporterProject);
+        Assert.Contains("<Version>1.4.0</Version>", exporterProject);
 
         var exporterSource = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(),
@@ -60,7 +60,7 @@ public sealed class GunGameReleaseMetadataTests
             "MetadataExporter",
             "src",
             "Plugin.cs"));
-        Assert.Contains("GunGame Progressions Metadata Exporter\", \"1.3.9\"", exporterSource);
+        Assert.Contains("GunGame Progressions Metadata Exporter\", \"1.4.0\"", exporterSource);
     }
 
     private static string FindRepositoryRoot()

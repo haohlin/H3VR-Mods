@@ -12,7 +12,7 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "12";
+    private const string GenerationPolicyVersion = "13";
     private const int ExpectedModdedPoolCount = 2;
 
     public static string CreateFingerprint(
@@ -79,13 +79,46 @@ public static class RuntimePoolPersistence
             !string.Equals(storedFingerprint, candidateFingerprint, StringComparison.Ordinal);
     }
 
-    // A Modded capture replaces the saved profiles only after both generated
-    // profiles are complete. A confirmed empty snapshot is also promotable: it
-    // removes stale profiles when the user disables all compatible mod weapons.
-    public static bool ShouldPromoteModdedCandidate(int candidatePoolCount, int eligibleWeaponsPerPool)
+    // A Modded capture can create the first complete pair immediately, even
+    // while another loader still reports Loading. Later captures may replace
+    // that pair only when they contain strictly more eligible weapons. An empty
+    // snapshot clears saved profiles only after the loader confirms completion.
+    public static bool ShouldPromoteModdedCandidate(
+        int candidatePoolCount,
+        int eligibleWeaponsPerPool,
+        int? persistedEligibleWeaponsPerPool,
+        bool hasPersistedPair,
+        bool confirmedEmptySnapshot)
     {
-        return candidatePoolCount == 0 ||
-            (candidatePoolCount == ExpectedModdedPoolCount && eligibleWeaponsPerPool > 0);
+        if (candidatePoolCount == 0)
+        {
+            return hasPersistedPair && confirmedEmptySnapshot;
+        }
+
+        if (candidatePoolCount != ExpectedModdedPoolCount || eligibleWeaponsPerPool <= 0)
+        {
+            return false;
+        }
+
+        if (!hasPersistedPair)
+        {
+            return true;
+        }
+
+        return persistedEligibleWeaponsPerPool.HasValue &&
+            eligibleWeaponsPerPool > persistedEligibleWeaponsPerPool.Value;
+    }
+
+    public static bool HasCompleteModdedPoolFiles(string packagePath)
+    {
+        if (string.IsNullOrEmpty(packagePath) || !Directory.Exists(packagePath))
+        {
+            return false;
+        }
+
+        return Directory.GetFiles(packagePath, "GunGameWeaponPool_Runtime_*.json")
+            .Select(Path.GetFileName)
+            .Count(RuntimeProfileFamily.IsModdedPoolFile) == ExpectedModdedPoolCount;
     }
 
     public static string ReadFingerprint(string receiptPath)
@@ -117,6 +150,54 @@ public static class RuntimePoolPersistence
 
         var valueEnd = receipt.IndexOf('"', valueStart + 1);
         return valueEnd < 0 ? null : receipt.Substring(valueStart + 1, valueEnd - valueStart - 1);
+    }
+
+    public static int? ReadEligibleWeaponsPerPool(string receiptPath)
+    {
+        if (string.IsNullOrEmpty(receiptPath) || !File.Exists(receiptPath))
+        {
+            return null;
+        }
+
+        var receipt = File.ReadAllText(receiptPath);
+        const string marker = "\"eligibleWeaponsPerPool\"";
+        var markerIndex = receipt.IndexOf(marker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+        {
+            return null;
+        }
+
+        var separatorIndex = receipt.IndexOf(':', markerIndex);
+        if (separatorIndex < 0)
+        {
+            return null;
+        }
+
+        var valueStart = separatorIndex + 1;
+        while (valueStart < receipt.Length && char.IsWhiteSpace(receipt[valueStart]))
+        {
+            valueStart++;
+        }
+
+        var valueEnd = valueStart;
+        while (valueEnd < receipt.Length && char.IsDigit(receipt[valueEnd]))
+        {
+            valueEnd++;
+        }
+
+        if (valueStart == valueEnd)
+        {
+            return null;
+        }
+
+        int result;
+        return int.TryParse(
+            receipt.Substring(valueStart, valueEnd - valueStart),
+            NumberStyles.None,
+            CultureInfo.InvariantCulture,
+            out result)
+            ? result
+            : (int?)null;
     }
 
     public static bool HasExpectedPoolFiles(

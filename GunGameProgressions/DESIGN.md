@@ -21,10 +21,10 @@ The approved store wording lives in [BRANDING.md](BRANDING.md).
 ```text
 H3VR registry ──> catalog capture ──> shared builder ──> Runtime 01 + 03
       │
-      └─> mod-content readiness ──> catalog capture ──> shared builder ──> Runtime 02 + 04
-                                      │                                │
-                                      │                                └─> atomic persisted pair
-                                      └─> no registry-wide prefab loading
+      └─> Modded refresh request ──> immediate catalog snapshot ──> shared builder ──> Runtime 02 + 04
+                                             │                                  │
+                                             │                                  └─> atomic persisted pair
+                                             └─> no registry-wide prefab loading
 
 GunGame WeaponPoolLoader event ──> restore saved Modded choices
                                 └─> request background refresh if needed
@@ -54,15 +54,13 @@ created only at runtime and are never published in a package.
 | Moment | Required behavior |
 | --- | --- |
 | Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at five and ten real-time minutes. |
-| Registry changes | Observe it without blocking the main thread. |
-| Loader reports complete | Capture Modded metadata immediately. |
-| No usable loader-complete signal | Capture after five seconds of registry quiet. |
-| Loader stays `Loading` or is unavailable | Take one final readiness check at five seconds. Capture only if stable; otherwise stop this attempt. |
-| GunGame selector opens | Keep Vanilla usable and restore any saved Modded pair once. It owns no polling, UI clone, capture, or build work. |
-| New complete Modded pair | Persist it atomically for the next selector load. Reloading GunGame shows it. |
+| Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
+| Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
+| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded pair once, request fresh background snapshot. |
+| New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. |
 | Five and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
-| Registry never appears | Stop that background attempt after five seconds; a later selector/session event retries. |
+| Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
 There is no Modded loading row or live-insertion path. This removes selector
 UI ownership and prevents selector reloads from retaining polling coroutines or
@@ -88,28 +86,12 @@ version. Changes therefore trigger a rebuild, while partial or failed captures
 leave the last complete pair intact. A confirmed empty compatible-mod snapshot
 removes the saved Modded pair so disabled IDs cannot survive indefinitely.
 
-### Open correctness gap — do not treat as solved
+### Replacement rule
 
-The agreed product rule is: **do not replace a saved complete Modded pair with
-a smaller fresh candidate; replace only when the candidate has more eligible
-weapons, except that a confirmed empty snapshot removes stale pools.**
-
-Current code does **not** enforce this count comparison. It accepts any
-complete non-empty two-pool candidate whose fingerprint changed. The public
-README's “same or fewer” wording is the target rule, not the current verified
-implementation. Fix `RuntimePoolPersistence` and add a focused regression test
-before claiming this requirement is met.
-
-### Verified root cause — 2026-07-15
-
-The Modded receipt already records `eligibleWeaponsPerPool`, but
-`ShouldPromoteModdedCandidate` receives only candidate pool count and candidate
-weapon count. It never reads or compares the saved count. Therefore any full,
-non-empty candidate can replace a larger saved pair after fingerprint change.
-
-Resume with one count-aware persistence gate. Preserve an existing pair when
-its count is unknown or candidate count is equal/smaller. Permit first complete
-pair, strictly larger replacement, and confirmed-empty removal only.
+First complete non-empty pair writes immediately. Later Modded candidates
+replace a saved pair only when eligible weapon count is strictly larger. Equal,
+smaller, malformed, and unknown-count candidates retain saved pair. Only an
+explicit loader-complete empty snapshot removes stale pools.
 
 ## Compatibility and runtime safety
 
@@ -118,7 +100,7 @@ offline Vanilla fallback. Runtime capture uses the lightweight `FVRObject`
 catalog only, then follows the shared feed and optic policy.
 
 ```text
-catalog-identified firearm + verified compatible feed + optional compatible optic
+catalog-proven firearm + verified compatible feed + optional compatible optic
     -> progression entry
 anything unproven / malformed
     -> skip it safely
@@ -154,14 +136,13 @@ letting a bad loadout derail a session.
 | `preparing pools` | A Modded background attempt is waiting/capturing. |
 | `pools ready` | A Modded candidate was written. |
 | `no modded pools available` | No compatible active Modded firearms were found. |
-| `modded refresh stopped; content was not ready within 5 seconds.` | This bounded attempt ended; a later selector or session exit retries. |
+| `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Building/writing happens
-in a background job. A readiness attempt takes at most five real-time seconds:
-one immediate probe and one final probe after five seconds. It never polls
-longer or waits for a global loader completion signal. The design goal is a
-responsive game, not a fixed artificial loading delay.
+in a background job. Each request has one status read and one catalog snapshot;
+it never waits for a global loader completion signal or polls registry. Design
+goal is responsive game, not a fixed artificial loading delay.
 
 ### Prefab-materialization boundary
 
@@ -172,9 +153,9 @@ compatibility lists provide all required pool metadata. Missing or conflicting
 metadata means skip the item. GunGame alone materializes the selected loadout
 at normal gameplay spawn time; spawn-safety skips any resulting failure.
 
-Readiness logging is event-based: attempt start, ready, timeout/cancel, and
-completion. Never emit an exception or status log on every poll; repeated log
-formatting and disk writes turn a transient loader problem into a stutter.
+Logging is event-based: request, capture, write, or retained candidate. Never
+emit an exception or status log in a poll loop; repeated formatting and disk
+writes turn a transient loader problem into a stutter.
 
 ## Source and release assets
 
@@ -205,8 +186,7 @@ playtest report
 
 | Priority | Item | Definition of done |
 | --- | --- | --- |
-| P0 | Enforce “strictly larger or confirmed empty” Modded replacement. | Smaller complete candidate cannot replace a larger saved pair; regression test proves it. |
-| P0 | Validate bounded background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
-| P0 | Remove runtime prefab materialization from capture. | Capture has no `GetGameObject*` call; Windows A/B evidence shows GunGame capture does not cause large persistent startup memory growth. |
-| P1 | Improve catalog metadata coverage. | Better valid-mod coverage from lightweight catalog fields without per-weapon hard-codes or prefab inspection. |
+| P0 | Validate background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
+| P0 | Verify catalog-only release candidate. | Windows runtime restores golden vanilla weapons and includes catalog-proven Modded firearms without prefab materialization. |
+| P1 | Improve author metadata coverage. | Provide optional external manifest format for mods whose catalog exposes neither a feed nor sight mount. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |

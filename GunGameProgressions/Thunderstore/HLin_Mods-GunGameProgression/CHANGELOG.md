@@ -2,6 +2,13 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.4.0
+
+- Restore catalog-proven firearms that omit optional identity tags, while still excluding malformed firearm entries.
+- Use direct compatible feeds or exact magazine/clip interfaces for Modded pools; never assign a mod firearm a loose cartridge from shared caliber alone.
+- Keep scope selection catalog-only: direct attachments and exact physical mount types only; no runtime prefab loading.
+- Generate every available Modded snapshot in the background and retain saved profiles until a strictly larger compatible pair is ready.
+
 ## 1.3.9
 
 - Restore the original package-card summary after the Modded-profile refresh note.

@@ -14,17 +14,13 @@ using UnityEngine;
 
 namespace HLin.GunGameProgressions;
 
-[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.3.9")]
+[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.4.0")]
 [BepInDependency("Kodeman.GunGame", BepInDependency.DependencyFlags.HardDependency)]
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
-    // A readiness attempt probes now and exactly once again at this deadline.
-    // It must never keep the game in an open-ended registry poll.
-    private const float ModdedRefreshAttemptSeconds = 5f;
-
     private static Plugin instance;
     private readonly GunGameSelectorInstanceTracker selectorTracker = new GunGameSelectorInstanceTracker();
     private List<RuntimeMetadataEntry> vanillaMetadata;
@@ -183,13 +179,15 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var loader = instance.FindGunGamePoolLoader();
-        if (!instance.selectorTracker.Observe(loader))
+        if (instance.selectorTracker.Observe(loader))
         {
-            return;
+            instance.Trace("live selector ready event received.");
+            instance.RestorePersistedModdedProfilesForSelector(loader);
         }
 
-        instance.Trace("live selector ready event received.");
-        instance.RestorePersistedModdedProfilesForSelector(loader);
+        // A loader can fire more than once for the same selector when its map
+        // reloads. Restore only once, but always request a fresh catalog
+        // snapshot so late-loaded content can promote a larger saved pair.
         instance.RequestModdedRefresh();
     }
 
@@ -266,7 +264,8 @@ public sealed class Plugin : BaseUnityPlugin
             packagePath,
             vanillaMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
-            RuntimeGenerationPhase.Vanilla);
+            RuntimeGenerationPhase.Vanilla,
+            false);
         job.Start();
         while (!job.IsCompleted)
         {
@@ -309,52 +308,40 @@ public sealed class Plugin : BaseUnityPlugin
 
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
-        var readinessGate = new ModdedProfileReadinessGate();
-        var readinessDeadline = Time.realtimeSinceStartup + ModdedRefreshAttemptSeconds;
-        var externalLoadProbe = new OtherLoaderStatusProbe();
-        Action<string> logOtherLoaderDebug = Logger.LogDebug;
-        do
+        Dictionary<string, FVRObject> objects;
+        if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
-            var now = Time.realtimeSinceStartup;
-            var externalLoadState = externalLoadProbe.Read(logOtherLoaderDebug);
-            Dictionary<string, FVRObject> objects;
-            if (TryGetObjectData(out objects) && objects.Count > 0)
-            {
-                readinessGate.Observe(now, objects.Count, externalLoadState);
-                if (readinessGate.IsReady(now, externalLoadState))
-                {
-                    RuntimeMetadataCapture metadataCapture = null;
-                    Trace("modded capture started.");
-                    yield return StartCoroutine(CaptureRuntimeMetadata(
-                        objects,
-                        item => item.IsModContent,
-                        capture => metadataCapture = capture));
-                    if (metadataCapture != null)
-                    {
-                        Trace("modded capture complete: " + metadataCapture.Entries.Count + " entries.");
-                        yield return StartCoroutine(GenerateModdedPoolCandidate(metadataCapture, totalTimer));
-                    }
-
-                    yield break;
-                }
-            }
-
-            if (now >= readinessDeadline)
-            {
-                Trace("modded refresh stopped; content was not ready within 5 seconds.");
-                yield break;
-            }
-
-            // Wait only to the single final probe. This avoids a second full
-            // interval when frame timing wakes the coroutine slightly early.
-            yield return new WaitForSeconds(Mathf.Max(0f, readinessDeadline - now));
+            Trace("modded capture skipped; object registry unavailable.");
+            yield break;
         }
-        while (true);
+
+        // Loader state is only evidence for safe empty-pool cleanup. It never
+        // vetoes a usable current snapshot: available mod weapons can be
+        // generated now, then a later trigger can promote a larger pair.
+        var externalLoadState = new OtherLoaderStatusProbe().Read(Logger.LogDebug);
+        RuntimeMetadataCapture metadataCapture = null;
+        Trace("modded capture started.");
+        yield return StartCoroutine(CaptureRuntimeMetadata(
+            objects,
+            item => item.IsModContent,
+            capture => metadataCapture = capture));
+        if (metadataCapture == null)
+        {
+            Trace("modded capture failed.");
+            yield break;
+        }
+
+        Trace("modded capture complete: " + metadataCapture.Entries.Count + " entries.");
+        yield return StartCoroutine(GenerateModdedPoolCandidate(
+            metadataCapture,
+            totalTimer,
+            externalLoadState == ExternalContentLoadState.Complete));
     }
 
     private IEnumerator GenerateModdedPoolCandidate(
         RuntimeMetadataCapture metadataCapture,
         Stopwatch totalTimer,
+        bool confirmedEmptySnapshot,
         Action<RuntimeGenerationReport> complete = null)
     {
         RuntimeEnemyCapture enemyCapture = null;
@@ -371,7 +358,8 @@ public sealed class Plugin : BaseUnityPlugin
             packagePath,
             combinedMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
-            RuntimeGenerationPhase.Modded);
+            RuntimeGenerationPhase.Modded,
+            confirmedEmptySnapshot);
         job.Start();
         while (!job.IsCompleted)
         {
@@ -390,7 +378,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
-        if (report.PoolCount == 0)
+        if (report.PoolCount == 0 && report.WasWritten)
         {
             Logger.LogInfo(RuntimeStatusMessages.NoModdedPools);
         }
@@ -398,9 +386,13 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogInfo(RuntimeStatusMessages.PoolsReady);
         }
+        else if (report.PoolCount == 0)
+        {
+            Logger.LogDebug("GunGame Modded snapshot was empty but not confirmed complete; saved profiles were retained.");
+        }
         else
         {
-            Logger.LogDebug("GunGame modded pools already match active content.");
+            Logger.LogDebug("GunGame Modded candidate did not exceed the saved profile count.");
         }
         Logger.LogDebug(
             "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
@@ -614,7 +606,10 @@ public sealed class Plugin : BaseUnityPlugin
                 PhysicalMountTypes = CatalogPhysicalMountTypes(item, declaredCategory),
                 ProvidedMountTypes = new List<string>(),
                 IsGunGameRoundDisplaySupported = declaredCategory != "Firearm" || HasGunGameRoundDisplayData(roundType),
-                IsVerifiedFirearmPrefab = declaredCategory != "Firearm" || HasCatalogFirearmIdentity(item),
+                // Legacy property name retained for serialized runtime metadata.
+                // It now means the lightweight catalog proves this is a usable
+                // firearm; capture must never resolve the prefab to find out.
+                IsVerifiedFirearmPrefab = declaredCategory != "Firearm" || HasCatalogFirearmProof(item),
             };
             entries.Add(capturedEntry);
 
@@ -668,6 +663,48 @@ public sealed class Plugin : BaseUnityPlugin
         return item != null &&
             item.TagFirearmSize.ToString() != "None" &&
             item.TagFirearmRoundPower.ToString() != "None";
+    }
+
+    private static bool HasCatalogFirearmProof(FVRObject item)
+    {
+        if (HasCatalogFirearmIdentity(item))
+        {
+            return true;
+        }
+
+        if (item == null)
+        {
+            return false;
+        }
+
+        // These lists and exact interfaces are FVRObject metadata, not a
+        // prefab scan. They prove a real feed path even when a mod omits the
+        // optional firearm size/round-power tags (for example G28 variants).
+        if (HasDeclaredCompatibleFeed(item) ||
+            (int)item.MagazineType != 0 ||
+            (int)item.ClipType != 0)
+        {
+            return true;
+        }
+
+        // H3VR's self-contained gravity gun is intentionally feedless. Do
+        // not extend this exception to arbitrary mod entries labelled as a
+        // firearm: malformed rails and bows must stay out of a progression.
+        return string.Equals(item.ItemID, "GravitonBeamer", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasDeclaredCompatibleFeed(FVRObject item)
+    {
+        return HasObjectId(item.CompatibleMagazines) ||
+            HasObjectId(item.CompatibleClips) ||
+            HasObjectId(item.CompatibleSpeedLoaders) ||
+            HasObjectId(item.CompatibleSingleRounds);
+    }
+
+    private static bool HasObjectId(IEnumerable<FVRObject> objects)
+    {
+        return objects != null && objects.Any(candidate =>
+            candidate != null && !string.IsNullOrEmpty(candidate.ItemID));
     }
 
     private static string CatalogOpticKind(FVRObject item, string category)
@@ -1149,7 +1186,8 @@ public sealed class Plugin : BaseUnityPlugin
         string packagePath,
         List<RuntimeMetadataEntry> entries,
         List<RuntimeEnemyEntry> enemyEntries,
-        RuntimeGenerationPhase phase)
+        RuntimeGenerationPhase phase,
+        bool confirmedEmptySnapshot)
     {
         var rules = ProfileRules.Load(packagePath);
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
@@ -1171,11 +1209,19 @@ public sealed class Plugin : BaseUnityPlugin
             FirearmsWithoutOptics = result.FirearmsWithoutOptics,
         };
         var eligibleWeaponsPerPool = phasePools.Count == 0 ? 0 : phasePools[0].Guns.Count;
+        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
+        var receiptPath = Path.Combine(runtimePoolsPath, "runtime-generation-" + phaseName + "-receipt.json");
         if (phase == RuntimeGenerationPhase.Modded &&
-            !RuntimePoolPersistence.ShouldPromoteModdedCandidate(phasePools.Count, eligibleWeaponsPerPool))
+            !RuntimePoolPersistence.ShouldPromoteModdedCandidate(
+                phasePools.Count,
+                eligibleWeaponsPerPool,
+                RuntimePoolPersistence.ReadEligibleWeaponsPerPool(receiptPath),
+                RuntimePoolPersistence.HasCompleteModdedPoolFiles(packagePath),
+                confirmedEmptySnapshot))
         {
-            // A partial candidate must never erase the last known-good modded
-            // pools. The next quiet/complete loader pass can promote a full set.
+            // Preserve a complete saved pair until a larger current snapshot
+            // arrives. An empty snapshot can clear it only after a loader
+            // explicitly confirms that content loading is complete.
             return new RuntimeGenerationReport(
                 profileEntries.Count,
                 profileEntries.Count(entry => entry.IsModContent),
@@ -1197,8 +1243,6 @@ public sealed class Plugin : BaseUnityPlugin
         Func<string, bool> isOwnedByPhase = phase == RuntimeGenerationPhase.Vanilla
             ? RuntimeProfileFamily.IsVanillaPoolFile
             : RuntimeProfileFamily.IsModdedPoolFile;
-        var runtimePoolsPath = Path.Combine(packagePath, "RuntimePools");
-        var receiptPath = Path.Combine(runtimePoolsPath, "runtime-generation-" + phaseName + "-receipt.json");
         var storedFingerprint = RuntimePoolPersistence.ReadFingerprint(receiptPath);
         var poolFilesMatch = RuntimePoolPersistence.HasExpectedPoolFiles(packagePath, expectedPoolFiles, isOwnedByPhase);
         var shouldWrite = RuntimePoolPersistence.ShouldWrite(storedFingerprint, contentFingerprint, poolFilesMatch);
@@ -1256,6 +1300,7 @@ public sealed class Plugin : BaseUnityPlugin
         private readonly List<RuntimeMetadataEntry> entries;
         private readonly List<RuntimeEnemyEntry> enemyEntries;
         private readonly RuntimeGenerationPhase phase;
+        private readonly bool confirmedEmptySnapshot;
         private bool isCompleted;
         private Exception error;
         private RuntimeGenerationReport report;
@@ -1264,12 +1309,14 @@ public sealed class Plugin : BaseUnityPlugin
             string packagePath,
             List<RuntimeMetadataEntry> entries,
             List<RuntimeEnemyEntry> enemyEntries,
-            RuntimeGenerationPhase phase)
+            RuntimeGenerationPhase phase,
+            bool confirmedEmptySnapshot)
         {
             this.packagePath = packagePath;
             this.entries = entries;
             this.enemyEntries = enemyEntries;
             this.phase = phase;
+            this.confirmedEmptySnapshot = confirmedEmptySnapshot;
         }
 
         public bool IsCompleted
@@ -1322,7 +1369,7 @@ public sealed class Plugin : BaseUnityPlugin
             Exception failure = null;
             try
             {
-                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries, phase);
+                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries, phase, confirmedEmptySnapshot);
                 generated.ElapsedMilliseconds = timer.ElapsedMilliseconds;
             }
             catch (Exception exception)

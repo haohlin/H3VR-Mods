@@ -31,8 +31,10 @@ public sealed class RuntimeMetadataEntry
     public float OpticMaxMagnification { get; set; }
     public bool IsVariableMagnification { get; set; }
     public bool IsGunGameRoundDisplaySupported { get; set; } = true;
-    // Runtime capture accepts only catalog entries with firearm identity. The
-    // spawn-safety layer validates IDs/categories and isolates spawn failures.
+    // Legacy serialized name. Runtime capture accepts catalog-proven firearms:
+    // identity tags, a declared compatible feed, an exact feed interface, or a
+    // documented vanilla feedless exception. The spawn-safety layer validates
+    // IDs/categories and isolates spawn failures.
     public bool IsVerifiedFirearmPrefab { get; set; } = true;
 }
 
@@ -340,24 +342,30 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm)
     {
+        // Modded catalogs can prove an explicit compatible item or an exact
+        // magazine/clip interface, but a shared RoundType alone cannot prove
+        // that a loose cartridge fits a particular mod firearm. Vanilla's
+        // versioned catalog remains the established compatibility baseline.
+        var allowRoundTypeCartridgeFallback = !firearm.IsModContent;
         if (firearm.FirearmRoundPower == "Shotgun")
         {
-            return GetCompatibleShotgunFeeds(index, firearm);
+            return GetCompatibleShotgunFeeds(index, firearm, allowRoundTypeCartridgeFallback);
         }
 
-        return GetStandardFeeds(index, firearm, true);
+        return GetStandardFeeds(index, firearm, true, allowRoundTypeCartridgeFallback);
     }
 
     private static List<FeedCandidate> GetCompatibleShotgunFeeds(
         RuntimeProfileIndex index,
-        RuntimeMetadataEntry firearm)
+        RuntimeMetadataEntry firearm,
+        bool allowRoundTypeCartridgeFallback)
     {
         if (!IsShellFedShotgun(firearm))
         {
             // A detachable or rotary shotgun may only use a loader the
             // firearm explicitly supports (or a magazine with its exact
             // MagazineType). Do not infer a rotary loader from round type.
-            return GetStandardFeeds(index, firearm, false);
+            return GetStandardFeeds(index, firearm, false, false);
         }
 
         var directSpeedLoaders = GetDirectFeeds(
@@ -369,7 +377,7 @@ public static class RuntimeProfileBuilder
             return directSpeedLoaders;
         }
 
-        var shells = GetCompatibleShells(index, firearm);
+        var shells = GetCompatibleShells(index, firearm, allowRoundTypeCartridgeFallback);
         if (shells.Count > 0)
         {
             return shells;
@@ -383,7 +391,8 @@ public static class RuntimeProfileBuilder
     private static List<FeedCandidate> GetStandardFeeds(
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
-        bool allowCartridges)
+        bool allowCartridges,
+        bool allowRoundTypeCartridgeFallback)
     {
         return FirstAvailableFeeds(
             GetDirectFeeds(firearm.CompatibleMagazines, index.EntriesById, "Magazine"),
@@ -394,7 +403,7 @@ public static class RuntimeProfileBuilder
             allowCartridges
                 ? GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge")
                 : new List<FeedCandidate>(),
-            allowCartridges
+            allowCartridges && allowRoundTypeCartridgeFallback
                 ? index.GetFeeds("Cartridge", firearm.RoundType)
                 : new List<FeedCandidate>());
     }
@@ -443,11 +452,14 @@ public static class RuntimeProfileBuilder
 
     private static List<FeedCandidate> GetCompatibleShells(
         RuntimeProfileIndex index,
-        RuntimeMetadataEntry firearm)
+        RuntimeMetadataEntry firearm,
+        bool allowRoundTypeCartridgeFallback)
     {
         return FirstAvailableFeeds(
             GetDirectFeeds(firearm.CompatibleSingleRounds, index.EntriesById, "Cartridge"),
-            index.GetFeeds("Cartridge", firearm.RoundType));
+            allowRoundTypeCartridgeFallback
+                ? index.GetFeeds("Cartridge", firearm.RoundType)
+                : new List<FeedCandidate>());
     }
 
     private static List<FeedCandidate> GetDirectFeeds(
