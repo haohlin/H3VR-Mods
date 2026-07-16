@@ -21,9 +21,9 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
-    private const float ModdedRefreshNoRegistryTimeoutSeconds = 30f;
-    private const float ModdedRefreshPollSeconds = 10f;
-    private const float PrefabInspectionTimeoutSeconds = 0.25f;
+    // A readiness attempt probes now and exactly once again at this deadline.
+    // It must never keep the game in an open-ended registry poll.
+    private const float ModdedRefreshAttemptSeconds = 5f;
 
     private static Plugin instance;
     private readonly GunGameSelectorInstanceTracker selectorTracker = new GunGameSelectorInstanceTracker();
@@ -310,18 +310,18 @@ public sealed class Plugin : BaseUnityPlugin
         var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
         var readinessGate = new ModdedProfileReadinessGate();
-        var waitStartTime = Time.realtimeSinceStartup;
+        var readinessDeadline = Time.realtimeSinceStartup + ModdedRefreshAttemptSeconds;
         var externalLoadProbe = new OtherLoaderStatusProbe();
         Action<string> logOtherLoaderDebug = Logger.LogDebug;
         do
         {
-            var elapsedSeconds = Time.realtimeSinceStartup - waitStartTime;
+            var now = Time.realtimeSinceStartup;
             var externalLoadState = externalLoadProbe.Read(logOtherLoaderDebug);
             Dictionary<string, FVRObject> objects;
             if (TryGetObjectData(out objects) && objects.Count > 0)
             {
-                readinessGate.Observe(Time.realtimeSinceStartup, objects.Count, externalLoadState);
-                if (readinessGate.IsReady(Time.realtimeSinceStartup, externalLoadState))
+                readinessGate.Observe(now, objects.Count, externalLoadState);
+                if (readinessGate.IsReady(now, externalLoadState))
                 {
                     RuntimeMetadataCapture metadataCapture = null;
                     Trace("modded capture started.");
@@ -339,13 +339,15 @@ public sealed class Plugin : BaseUnityPlugin
                 }
             }
 
-            if (elapsedSeconds >= ModdedRefreshNoRegistryTimeoutSeconds)
+            if (now >= readinessDeadline)
             {
-                Trace("modded refresh stopped; object registry did not become available.");
+                Trace("modded refresh stopped; content was not ready within 5 seconds.");
                 yield break;
             }
 
-            yield return new WaitForSeconds(ModdedRefreshPollSeconds);
+            // Wait only to the single final probe. This avoids a second full
+            // interval when frame timing wakes the coroutine slightly early.
+            yield return new WaitForSeconds(Mathf.Max(0f, readinessDeadline - now));
         }
         while (true);
     }
@@ -583,25 +585,14 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var declaredCategory = item.Category.ToString();
-            var inspection = RuntimePrefabMetadata.Empty();
-            if (ShouldInspectRuntimePrefab(item, declaredCategory))
-            {
-                yield return StartCoroutine(InspectRuntimePrefab(
-                    item,
-                    declaredCategory,
-                    result => inspection = result));
-
-                frameStart = Stopwatch.GetTimestamp();
-            }
-
-            var roundType = inspection.HasRoundType ? inspection.RoundType : (int)item.RoundType;
+            var roundType = (int)item.RoundType;
             var capturedEntry = new RuntimeMetadataEntry
             {
                 ObjectID = item.ItemID,
                 Category = declaredCategory,
                 IsModContent = item.IsModContent,
-                MagazineType = inspection.HasMagazineType ? inspection.MagazineType : (int)item.MagazineType,
-                ClipType = inspection.HasClipType ? inspection.ClipType : (int)item.ClipType,
+                MagazineType = (int)item.MagazineType,
+                ClipType = (int)item.ClipType,
                 RoundType = roundType,
                 CompatibleMagazines = ObjectIds(item.CompatibleMagazines),
                 CompatibleClips = ObjectIds(item.CompatibleClips),
@@ -619,15 +610,13 @@ public sealed class Plugin : BaseUnityPlugin
                     : item.TagFirearmMounts.Select(mount => mount.ToString()).ToList(),
                 AttachmentMount = item.TagAttachmentMount.ToString(),
                 AttachmentFeature = item.TagAttachmentFeature.ToString(),
-                OpticKind = inspection.OpticKind,
-                PhysicalMountTypes = inspection.PhysicalMountTypes,
-                ProvidedMountTypes = inspection.ProvidedMountTypes,
-                OpticMinMagnification = inspection.OpticMinMagnification,
-                OpticMaxMagnification = inspection.OpticMaxMagnification,
-                IsVariableMagnification = inspection.IsVariableMagnification,
+                OpticKind = CatalogOpticKind(item, declaredCategory),
+                PhysicalMountTypes = CatalogPhysicalMountTypes(item, declaredCategory),
+                ProvidedMountTypes = new List<string>(),
                 IsGunGameRoundDisplaySupported = declaredCategory != "Firearm" || HasGunGameRoundDisplayData(roundType),
+                IsVerifiedFirearmPrefab = declaredCategory != "Firearm" || HasCatalogFirearmIdentity(item),
             };
-            entries.Add(RuntimeMetadataReconciler.Apply(capturedEntry, inspection));
+            entries.Add(capturedEntry);
 
             if (HasExceededCaptureBudget(frameStart))
             {
@@ -638,135 +627,6 @@ public sealed class Plugin : BaseUnityPlugin
 
         entries.Sort((left, right) => string.CompareOrdinal(left.ObjectID, right.ObjectID));
         complete(new RuntimeMetadataCapture(entries, timer.ElapsedMilliseconds));
-    }
-
-    private IEnumerator InspectRuntimePrefab(
-        FVRObject item,
-        string declaredCategory,
-        Action<RuntimePrefabMetadata> complete)
-    {
-        var inspection = RuntimePrefabMetadata.Empty();
-        AnvilCallback<GameObject> prefabCallback = null;
-        var callbackCreationFailed = false;
-        try
-        {
-            prefabCallback = item.GetGameObjectAsync();
-        }
-        catch (Exception exception)
-        {
-            Logger.LogDebug("Could not inspect GunGame prefab for " + item.ItemID + ": " + exception.Message);
-            callbackCreationFailed = true;
-        }
-
-        if (callbackCreationFailed)
-        {
-            complete(inspection);
-            yield break;
-        }
-
-        var deadline = Time.realtimeSinceStartup + PrefabInspectionTimeoutSeconds;
-        while (!prefabCallback.IsCompleted && Time.realtimeSinceStartup < deadline)
-        {
-            prefabCallback.Pump();
-            yield return null;
-        }
-
-        if (!prefabCallback.IsCompleted)
-        {
-            Logger.LogDebug("GunGame prefab inspection timed out for " + item.ItemID + ".");
-            complete(inspection);
-            yield break;
-        }
-
-        try
-        {
-            var prefab = prefabCallback.Result;
-            inspection.WasResolved = true;
-            if (declaredCategory == "Attachment")
-            {
-                inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
-                inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
-                PopulateOpticInspection(item, prefab, inspection);
-            }
-            else if (declaredCategory == "Firearm")
-            {
-                var firearm = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArm>(true);
-                inspection.HasFirearmComponent = firearm != null;
-                if (firearm != null)
-                {
-                    inspection.MagazineType = (int)firearm.MagazineType;
-                    inspection.HasMagazineType = true;
-                    inspection.ClipType = (int)firearm.ClipType;
-                    inspection.HasClipType = true;
-                    inspection.RoundType = (int)firearm.RoundType;
-                    inspection.HasRoundType = true;
-                    inspection.PhysicalMountTypes = GetPhysicalMountTypes(prefab, declaredCategory);
-                    inspection.ProvidedMountTypes = GetProvidedMountTypes(prefab, declaredCategory);
-                }
-            }
-            else if (declaredCategory == "Magazine")
-            {
-                var magazine = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmMagazine>(true);
-                if (magazine != null)
-                {
-                    inspection.MagazineType = (int)magazine.MagazineType;
-                    inspection.HasMagazineType = true;
-                    inspection.RoundType = (int)magazine.RoundType;
-                    inspection.HasRoundType = true;
-                }
-            }
-            else if (declaredCategory == "Clip")
-            {
-                var clip = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmClip>(true);
-                if (clip != null)
-                {
-                    inspection.ClipType = (int)clip.ClipType;
-                    inspection.HasClipType = true;
-                    inspection.RoundType = (int)clip.RoundType;
-                    inspection.HasRoundType = true;
-                }
-            }
-            else if (declaredCategory == "SpeedLoader")
-            {
-                var speedloader = prefab == null ? null : prefab.GetComponentInChildren<Speedloader>(true);
-                if (speedloader != null && speedloader.Chambers != null && speedloader.Chambers.Count > 0)
-                {
-                    inspection.RoundType = (int)speedloader.Chambers[0].Type;
-                    inspection.HasRoundType = true;
-                }
-            }
-            else if (declaredCategory == "Cartridge")
-            {
-                var cartridge = prefab == null ? null : prefab.GetComponentInChildren<FVRFireArmRound>(true);
-                if (cartridge != null)
-                {
-                    inspection.RoundType = (int)cartridge.RoundType;
-                    inspection.HasRoundType = true;
-                }
-            }
-        }
-        catch (Exception exception)
-        {
-            // A malformed Anvil asset must not cancel capture of every later
-            // mod item or prevent the two Modded profiles from being written.
-            Logger.LogDebug("Could not inspect GunGame prefab for " + item.ItemID + ": " + exception.Message);
-        }
-
-        complete(inspection);
-    }
-
-    private static bool ShouldInspectRuntimePrefab(FVRObject item, string declaredCategory)
-    {
-        if (declaredCategory == "Firearm" || declaredCategory == "Attachment")
-        {
-            return true;
-        }
-
-        return item != null && item.IsModContent &&
-            (declaredCategory == "Magazine" ||
-                declaredCategory == "Clip" ||
-                declaredCategory == "SpeedLoader" ||
-                declaredCategory == "Cartridge");
     }
 
     private static bool HasGunGameRoundDisplayData(int roundType)
@@ -803,48 +663,39 @@ public sealed class Plugin : BaseUnityPlugin
             .ToList();
     }
 
-    private static List<string> GetPhysicalMountTypes(GameObject prefab, string category)
+    private static bool HasCatalogFirearmIdentity(FVRObject item)
     {
-        if (prefab == null)
-        {
-            return new List<string>();
-        }
-
-        if (category == "Attachment")
-        {
-            return prefab.GetComponentsInChildren<FVRFireArmAttachment>(true)
-                .Where(attachment => attachment != null)
-                .Select(attachment => attachment.Type.ToString())
-                .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(mount => mount, StringComparer.Ordinal)
-                .ToList();
-        }
-
-        if (category == "Firearm")
-        {
-            return prefab.GetComponentsInChildren<FVRFireArmAttachmentMount>(true)
-                .Where(mount => mount != null)
-                .Select(mount => mount.Type.ToString())
-                .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(mount => mount, StringComparer.Ordinal)
-                .ToList();
-        }
-
-        return new List<string>();
+        return item != null &&
+            item.TagFirearmSize.ToString() != "None" &&
+            item.TagFirearmRoundPower.ToString() != "None";
     }
 
-    private static List<string> GetProvidedMountTypes(GameObject prefab, string category)
+    private static string CatalogOpticKind(FVRObject item, string category)
     {
-        if (prefab == null || category != "Attachment")
+        return category == "Attachment"
+            ? PipScopeOpticClassifier.ClassifyFromMetadata(item.ItemID, item.TagAttachmentFeature.ToString())
+            : string.Empty;
+    }
+
+    private static List<string> CatalogPhysicalMountTypes(FVRObject item, string category)
+    {
+        IEnumerable<string> mounts;
+        if (category == "Firearm")
         {
-            return new List<string>();
+            mounts = item.TagFirearmMounts == null
+                ? Enumerable.Empty<string>()
+                : item.TagFirearmMounts.Select(mount => mount.ToString());
+        }
+        else if (category == "Attachment")
+        {
+            mounts = new[] { item.TagAttachmentMount.ToString() };
+        }
+        else
+        {
+            mounts = Enumerable.Empty<string>();
         }
 
-        return prefab.GetComponentsInChildren<FVRFireArmAttachmentMount>(true)
-            .Where(mount => mount != null)
-            .Select(mount => mount.Type.ToString())
+        return mounts
             .Where(mount => !string.IsNullOrEmpty(mount) && mount != "None")
             .Distinct(StringComparer.Ordinal)
             .OrderBy(mount => mount, StringComparer.Ordinal)
@@ -1002,111 +853,6 @@ public sealed class Plugin : BaseUnityPlugin
     {
         var property = value.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
         return property != null && property.PropertyType == typeof(bool) && (bool)property.GetValue(value, null);
-    }
-
-    private static void PopulateOpticInspection(
-        FVRObject item,
-        GameObject prefab,
-        RuntimePrefabMetadata inspection)
-    {
-        if (item.Category.ToString() != "Attachment" || prefab == null)
-        {
-            return;
-        }
-
-        var attachments = prefab.GetComponentsInChildren<FVRFireArmAttachment>(true);
-        inspection.OpticKind = PipScopeOpticClassifier.Classify(
-            item.ItemID,
-            attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.PIPScopeController")),
-            attachments.Any(attachment => HasAttachmentInterface(attachment, "FistVR.ReflexSightController")));
-        if (string.IsNullOrEmpty(inspection.OpticKind))
-        {
-            inspection.OpticKind = PipScopeOpticClassifier.ClassifyFromMetadata(
-                item.ItemID,
-                item.TagAttachmentFeature.ToString());
-        }
-        if (inspection.OpticKind == "Scope")
-        {
-            PopulateScopeMagnification(attachments, inspection);
-        }
-    }
-
-    private static void PopulateScopeMagnification(
-        IEnumerable<FVRFireArmAttachment> attachments,
-        RuntimePrefabMetadata inspection)
-    {
-        var magnifications = new List<float>();
-        foreach (var attachment in attachments ?? Enumerable.Empty<FVRFireArmAttachment>())
-        {
-            var scopeType = FindAttachmentInterfaceType(attachment, "FistVR.PIPScopeController");
-            if (scopeType == null)
-            {
-                continue;
-            }
-
-            try
-            {
-                var valuesField = scopeType.GetField(
-                    "MagnificationValues",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                var values = valuesField == null
-                    ? null
-                    : valuesField.GetValue(attachment.AttachmentInterface) as System.Collections.IEnumerable;
-                if (values == null)
-                {
-                    continue;
-                }
-
-                foreach (var value in values)
-                {
-                    var magnification = Convert.ToSingle(value);
-                    if (magnification > 0f)
-                    {
-                        magnifications.Add(magnification);
-                    }
-                }
-            }
-            catch
-            {
-                // Keep this optional data best-effort. Physical mount and
-                // optic interface validation still determine compatibility.
-            }
-        }
-
-        if (magnifications.Count == 0)
-        {
-            return;
-        }
-
-        inspection.OpticMinMagnification = magnifications.Min();
-        inspection.OpticMaxMagnification = magnifications.Max();
-        inspection.IsVariableMagnification = magnifications
-            .Select(value => Math.Round(value, 3))
-            .Distinct()
-            .Count() > 1;
-    }
-
-    private static bool HasAttachmentInterface(FVRFireArmAttachment attachment, string expectedTypeName)
-    {
-        return FindAttachmentInterfaceType(attachment, expectedTypeName) != null;
-    }
-
-    private static Type FindAttachmentInterfaceType(FVRFireArmAttachment attachment, string expectedTypeName)
-    {
-        if (attachment == null || attachment.AttachmentInterface == null)
-        {
-            return null;
-        }
-
-        for (var type = attachment.AttachmentInterface.GetType(); type != null; type = type.BaseType)
-        {
-            if (string.Equals(type.FullName, expectedTypeName, StringComparison.Ordinal))
-            {
-                return type;
-            }
-        }
-
-        return null;
     }
 
     private static string RuntimePoolFileName(RuntimeWeaponPool pool)

@@ -16,21 +16,21 @@ is packaged beside those two profiles for repeatable offline validation.
 > **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
 > item or attachment. Never guess an object ID from a name or shared caliber.
 
-> **Prefab reconciliation rule:** catalog metadata is the baseline. For a
-> resolved runtime prefab, the real `FVRFireArm`, magazine, clip, speedloader,
-> or cartridge component overrides its catalog feed type. A registry entry
-> declared as a firearm must resolve to an `FVRFireArm`; otherwise it is not a
-> progression weapon. This repairs incomplete mod catalog data without naming
-> individual mods or weapons.
+> **Catalog-only capture rule:** runtime profile capture reads `FVRObject`
+> fields and never materializes a prefab. A firearm must declare firearm
+> identity tags and valid GunGame round-display data; otherwise skip it. Missing
+> or conflicting feed/mount/optic metadata is unsafe and must be skipped rather
+> than repaired by scanning prefabs.
 
 ## Safety gate
 
 | Metadata state | Result |
 | --- | --- |
 | Not a supported firearm | Skip |
-| Resolved firearm entry has no `FVRFireArm` component | Skip |
+| Firearm has no catalog firearm identity or no GunGame round-display data | Skip |
 | No verified compatible feed | Skip |
 | No compatible optic | Spawn the firearm without an optic |
+| Actual GunGame spawn rejects or throws for a generated loadout | Clear it, skip it, and advance safely |
 
 Skipping an ambiguous weapon is intentional. A missing progression entry is safer than a wrong object ID, a malformed loadout, or a game crash.
 
@@ -91,7 +91,15 @@ compatible optics
 
 Candidate gate: the object must be an `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded.
 
-Mount matching uses captured prefab metadata (`PhysicalMountTypes`, direct compatibility, and an adapter's `ProvidedMountTypes`), not firearm or scope name lists. The small hard-coded list in `OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it contains no individual weapon or attachment IDs. Runtime mounting reuses that same taxonomy, checks the exact mount type, and permits rail mounts only when oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail positions are rejected.
+Mount matching uses lightweight catalog metadata (`TagFirearmMounts`,
+`TagAttachmentMount`, and direct compatibility), not firearm or scope name
+lists. Adapter-provided mounts require prefab inspection and are omitted from
+runtime generation. The small hard-coded list in `OpticMountPolicy` is only the
+H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it
+contains no individual weapon or attachment IDs. Runtime mounting reuses that
+same taxonomy, checks the exact mount type, and permits rail mounts only when
+oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail
+positions are rejected.
 
 An M4-style carbine is selected by metadata, never by Object ID: it must be `Carbine` size, use a rifle-caliber round class, and have Picatinny as its only recognized optic route. A direct/bespoke or proprietary route wins before role ranking. Pistol-caliber carbines remain CQC and prefer a reflex sight.
 
@@ -102,7 +110,7 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 | Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools, request a fresh Modded capture, and schedule non-blocking Modded rescans at five and ten real-time minutes. |
 | Mod loader is complete | Capture Modded metadata immediately. |
 | Loader has no complete signal | Wait for five seconds with no registry-count change, then capture. |
-| Loader remains `Loading` while registry count is stable | Capture after 30 seconds; do not poll forever. |
+| Loader remains `Loading` or is unavailable | Take one final readiness check after five seconds. Capture only a stable snapshot; otherwise stop this attempt. |
 | Selector opens while Modded profiles are pending | Restore only the saved complete Modded pair. Keep Vanilla choices usable; no selector-side polling, UI clone, capture, or build work. |
 | Complete Modded replacement | Build candidate off play path. Replace saved pair only when both generated Modded pools contain eligible weapons **and** candidate count is strictly greater than saved count. Equal/smaller or unproven saved count keeps saved pair. |
 | Confirmed empty Modded snapshot | Remove the saved Modded pair. This prevents disabled mods from leaving stale object IDs behind. |
@@ -111,8 +119,8 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 
 The loader signal is authoritative only for the content that exposes it. Its
 reflection metadata is cached once per background attempt and failures log once.
-The five-second quiet fallback and 30-second `Loading` stability limit are
-sampled every ten seconds and remain non-blocking; the five- and ten-minute rescans, later selector entries, and
+Each attempt uses an immediate probe and one final five-second probe; it never
+polls beyond that bound. The five- and ten-minute rescans, later selector entries, and
 GunGame-session exits request another background refresh. Modded files and their fingerprint receipt stay in the
 installed plugin folder across H3VR restarts: the selector restores that last
 complete pair first, then a completed fresh candidate replaces it for a later
@@ -149,7 +157,7 @@ with coverage for the same condition.
 | --- | --- | --- |
 | `Slingshot` | Explicitly blacklist it; it can freeze GunGame when fired. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot` |
 | Firearm with no verified compatible feed | Skip it; never guess a magazine, round, or arrow from its name or model. This covers malformed mod entries such as `CompoundBow`, MCX rail objects mislabeled as firearms, and incomplete G28 variants. The sole exception is the self-contained `GravitonBeamer`, which intentionally uses an empty feed. | `Runtime_profile_builder_allows_only_graviton_to_be_feedless` |
-| Mod firearm or feed has an incomplete catalog type | Reconcile the exact type from its resolved physical prefab, then use the ordinary direct/exact feed rule. A declared firearm with no resolved `FVRFireArm` is excluded. | `Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs` |
+| Mod firearm or feed has incomplete catalog metadata | Skip it; profile capture must not materialize prefabs to repair it. Actual spawn failures also skip and advance safely. | `Runtime_catalog_capture_never_materializes_the_prefab_registry`; `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
 | G28-style magazine-fed firearm receives a loose round | Prefer its direct/exact magazine in both pool families. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |
@@ -166,7 +174,7 @@ with coverage for the same condition.
 | Firearm has no verified sight-capable mount but receives an optic | Emit no optic; do not guess a mount. | `Runtime_profile_builder_ignores_unrecognized_non_optic_mounts` |
 | Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
-| Mods are still loading or loader state is unavailable | Vanilla remains usable; one bounded Modded refresh samples off-selector every ten seconds and captures after completion, quiet fallback, or 30-second stable loading state. Further rescans start five and ten real-time minutes after plugin start. | `Modded_profile_readiness_captures_complete_or_stable_mod_content`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_uses_a_cached_otherloader_readiness_probe`; `Runtime_schedules_nonblocking_five_and_ten_minute_startup_modded_rescans`; `Runtime_polls_modded_readiness_no_more_than_every_ten_seconds` |
+| Mods are still loading or loader state is unavailable | Vanilla remains usable; one bounded Modded refresh probes immediately, then once at five seconds. It captures only complete/stable content and otherwise stops. Further rescans start five and ten real-time minutes after plugin start. | `Modded_profile_readiness_captures_complete_or_stable_mod_content`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_uses_a_cached_otherloader_readiness_probe`; `Runtime_schedules_nonblocking_five_and_ten_minute_startup_modded_rescans`; `Runtime_bounds_modded_readiness_attempt_to_five_seconds` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
 | H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |
 

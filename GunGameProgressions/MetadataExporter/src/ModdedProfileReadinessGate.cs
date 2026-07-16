@@ -10,7 +10,7 @@ public enum ExternalContentLoadState
 public sealed class ModdedProfileReadinessGate
 {
     private const float QuietSeconds = 5f;
-    private const float LoadingStableSeconds = 30f;
+    private const float LoadingStableSeconds = 5f;
 
     private bool hasObservedRegistry;
     private int lastRegistryCount;

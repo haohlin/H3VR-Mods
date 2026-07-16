@@ -6,7 +6,7 @@ stay together here.
 ## Status
 
 Last verified: `2026-07-16`
-State: `deployed; runtime playtest pending`
+State: `catalog-only memory fix pending Windows verification and deployment`
 
 ### Handoff convention
 
@@ -26,26 +26,34 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report from pre-fix selector path; Windows runtime/log reproduction still required. |
 | Root cause | Selector-side `PrepareModdedProfilesForSelector` was an unbounded `do … while (true)` poll. Each selector created a cloned loading row and reflected component list; neither selector replacement nor scene unload cancelled it. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
 | Source change | Selector now restores persisted profiles once, then returns. It has no loading row, live-insertion, poll, capture, or build path. | Windows source and focused lifecycle tests pass. |
-| Background bound | One coordinator caches OtherLoader reflection per attempt and polls every ten seconds; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Windows source and focused lifecycle tests pass; runtime behavior untested. |
+| Background bound | One coordinator caches OtherLoader reflection per attempt and probes immediately, then once at a five-second deadline. It captures ready/stable content or stops. | Source changed locally; Windows test/build/runtime verification pending. |
 | Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Windows build/test pass; runtime log validation pending. |
 | Windows pipeline | `Preflight`, `Test`, `Verify -Mod GunGameProgressions`, `Build`, `Package`, and `Deploy` ran on `2026-07-16`. | Passed: source current; `83/83` tests; GunGame target verification; tracked fallback/profile build verification. |
 | Late-content rescans | Plugin schedules `WaitForSecondsRealtime` requests at five and ten minutes after startup. They use the same background candidate/persistence path and never edit an active selector. | Windows red/green test complete; deployed test build passes `83/83`, Verify, Build, and Package. Runtime observation pending. |
 | Deployed test package | GunGame Progressions `1.3.9` test package includes five/ten-minute rescans and ten-second readiness polling. | Deployed while H3VR was stopped on `2026-07-16`; no public release or version bump. |
+| Candidate coordinator bound | Latest source uses one immediate probe plus one final probe at five seconds. It then captures only ready/stable content or stops. | Source/test/docs changed locally; Windows test, build, package, deploy, and runtime verification are pending. The currently running DLL still uses the earlier ten-second/30-second behavior. |
+| Runtime memory investigation | With a large active mod set, H3VR logged one Modded capture (`1435` entries) and one `pools ready`; no repeated GunGame capture/generation trace followed. Process private memory rose during startup, then held about `60.5 GB` across the following two-minute observation. | Current code is not showing an ongoing ten-second generation loop in this run. |
+| P0 memory root cause | `CaptureRuntimeMetadata` called `GetGameObjectAsync()` for every firearm and attachment, plus each Modded magazine, clip, speedloader, and cartridge. A full catalog pass materialized a very large set of Anvil/OtherLoader prefabs and their bundles. | Enabled/disabled Windows A/B shows roughly `60.5 GB` private versus `19.8 GB` private after registry quiet. This is the high-confidence cause of the persistent RAM spike. |
+| Candidate memory fix | Profile capture now reads only lightweight `FVRObject` metadata. It has no `GetGameObject*` call, skips incomplete catalog entries, and leaves actual object materialization to GunGame spawn. | Source/tests/docs changed locally; Windows test, build, deployment, and enabled A/B verification pending. |
+| Disabled A/B baseline | With GunGame Progressions disabled, the modded H3VR run held `5.70 GB` working / `19.69 GB` private at first sample, `5.73/19.79 GB` after 38 seconds, and `5.70/19.76 GB` after 98 seconds. BepInEx contained zero Progressions lines. | If the profile differed only by this mod, this is strong confirmation that the enabled path creates the large persistent memory residency rather than a periodic leak. |
+| Latest disabled sample | H3VR running without GunGame Progressions: `6.77 GB` working / `22.12 GB` private. | Confirms the current baseline remains far below the enabled capture run; game is still running for the user's baseline observation. |
 
 ### Next
 
-P0: observe startup, first Modded refresh, five/ten-minute rescans, and GunGame
-reload with timestamped BepInEx logs and H3VR memory samples. Then assess
-low-mod idle/reload stability before existing count-aware persistence work.
+P0: Windows-verify and deploy catalog-only capture plus the five-second
+coordinator bound after H3VR closes. Prove with an enabled/disabled Windows A/B
+run that post-loader memory stays bounded.
 
 ## Plan
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
 | `[ ]` | Runtime-verify bounded background Modded coordination. | Windows tests pass; low-mod idle/reload has no periodic stutter, monotonic memory growth, or crash. |
+| `[~]` | Limit a readiness attempt to five seconds. | Windows test/build/package/deploy pass; runtime log proves no attempt waits or polls past one final five-second check. |
+| `[~]` | Remove prefab materialization from capture. | Profile capture has no `GetGameObject*` call; Windows A/B evidence shows no large startup memory residency caused by GunGame Progressions. |
 | `[ ]` | Enforce count-aware Modded replacement. | Missing pair accepts first complete candidate; smaller/equal candidate keeps saved pair; strictly larger candidate replaces it; confirmed-empty still removes stale pair; focused test passes. |
 | `[x]` | Consolidate handoff state. | `DEV_STATUS.md` holds Status, Plan, and Testing; legacy split files removed. |
-| `[ ]` | Improve general incomplete-metadata reconciliation. | Better valid mod coverage without weapon-specific hard-codes. |
+| `[ ]` | Improve catalog metadata coverage. | Better valid mod coverage without weapon-specific hard-codes or prefab inspection. |
 
 ### Deferred
 
@@ -77,6 +85,7 @@ deployed and the low-mod idle/reload regression is observed.
 | Startup | Vanilla pools available; game stays responsive. |
 | Many mods loading | Modded work remains background; no main-thread freeze. |
 | Low-mod idle/reload stability | Dependencies-only and one-simple-gun-mod installs run idle for ten minutes, then enter/exit/reload GunGame repeatedly; no once-per-second hitch, monotonic memory growth, or crash. |
+| Prefab-memory A/B | Same Windows profile starts once with GunGame Progressions disabled, then once enabled. Compare post-loader working/private memory after the registry is quiet; inspect logs to prove one bounded capture and no full-registry prefab materialization. |
 | Late-content rescans | Five and ten real-time minutes after plugin start, log one rescan request each; candidate generation remains background-only and a subsequent GunGame reload exposes any new persisted pair. |
 | Selector lifecycle | Selector restores saved pair once and returns; no temporary loading rows or selector-owned polling coroutines exist across reloads. |
 | Selector reload | Saved/generated Modded pair appears with Vanilla pair. |

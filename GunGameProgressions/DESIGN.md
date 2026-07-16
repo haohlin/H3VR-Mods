@@ -19,12 +19,12 @@ The approved store wording lives in [BRANDING.md](BRANDING.md).
 ## Runtime shape
 
 ```text
-H3VR registry ──> Vanilla capture ──> shared builder ──> Runtime 01 + 03
+H3VR registry ──> catalog capture ──> shared builder ──> Runtime 01 + 03
       │
-      └─> mod-content readiness ──> Modded capture ──> shared builder ──> Runtime 02 + 04
+      └─> mod-content readiness ──> catalog capture ──> shared builder ──> Runtime 02 + 04
                                       │                                │
                                       │                                └─> atomic persisted pair
-                                      └─> prefab reconciliation
+                                      └─> no registry-wide prefab loading
 
 GunGame WeaponPoolLoader event ──> restore saved Modded choices
                                 └─> request background refresh if needed
@@ -57,12 +57,12 @@ created only at runtime and are never published in a package.
 | Registry changes | Observe it without blocking the main thread. |
 | Loader reports complete | Capture Modded metadata immediately. |
 | No usable loader-complete signal | Capture after five seconds of registry quiet. |
-| Loader stays `Loading` but registry stops growing | Capture the stable snapshot after 30 seconds. |
+| Loader stays `Loading` or is unavailable | Take one final readiness check at five seconds. Capture only if stable; otherwise stop this attempt. |
 | GunGame selector opens | Keep Vanilla usable and restore any saved Modded pair once. It owns no polling, UI clone, capture, or build work. |
 | New complete Modded pair | Persist it atomically for the next selector load. Reloading GunGame shows it. |
 | Five and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
-| Registry never appears | Stop that background attempt after 30 seconds; a later selector/session event retries. |
+| Registry never appears | Stop that background attempt after five seconds; a later selector/session event retries. |
 
 There is no Modded loading row or live-insertion path. This removes selector
 UI ownership and prevents selector reloads from retaining polling coroutines or
@@ -114,11 +114,11 @@ pair, strictly larger replacement, and confirmed-empty removal only.
 ## Compatibility and runtime safety
 
 One `RuntimeProfileBuilder` serves runtime Vanilla, runtime Modded, and the
-offline Vanilla fallback. It uses real prefab components to reconcile imperfect
-catalog metadata, then follows the shared feed and optic policy.
+offline Vanilla fallback. Runtime capture uses the lightweight `FVRObject`
+catalog only, then follows the shared feed and optic policy.
 
 ```text
-verified firearm + verified compatible feed + optional verified optic
+catalog-identified firearm + verified compatible feed + optional compatible optic
     -> progression entry
 anything unproven / malformed
     -> skip it safely
@@ -154,13 +154,23 @@ letting a bad loadout derail a session.
 | `preparing pools` | A Modded background attempt is waiting/capturing. |
 | `pools ready` | A Modded candidate was written. |
 | `no modded pools available` | No compatible active Modded firearms were found. |
-| `modded refresh stopped; object registry did not become available` | This bounded attempt ended; a later selector or session exit retries. |
+| `modded refresh stopped; content was not ready within 5 seconds.` | This bounded attempt ended; a later selector or session exit retries. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Building/writing happens
-in a background job; readiness polls every ten seconds. The five- and
-30-second stability thresholds are therefore recognized on the next poll. The
-design goal is a responsive game, not a fixed artificial loading delay.
+in a background job. A readiness attempt takes at most five real-time seconds:
+one immediate probe and one final probe after five seconds. It never polls
+longer or waits for a global loader completion signal. The design goal is a
+responsive game, not a fixed artificial loading delay.
+
+### Prefab-materialization boundary
+
+`FVRObject` catalog metadata is the only profile-capture source. Capture must
+never call `GetGameObject()` or `GetGameObjectAsync()`: either can materialize
+an Anvil/OtherLoader prefab and retain its bundle. Catalog tags and direct
+compatibility lists provide all required pool metadata. Missing or conflicting
+metadata means skip the item. GunGame alone materializes the selected loadout
+at normal gameplay spawn time; spawn-safety skips any resulting failure.
 
 Readiness logging is event-based: attempt start, ready, timeout/cancel, and
 completion. Never emit an exception or status log on every poll; repeated log
@@ -197,5 +207,6 @@ playtest report
 | --- | --- | --- |
 | P0 | Enforce “strictly larger or confirmed empty” Modded replacement. | Smaller complete candidate cannot replace a larger saved pair; regression test proves it. |
 | P0 | Validate bounded background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
-| P1 | Improve compatibility evidence for incomplete mod metadata. | General prefab/catalog reconciliation improves coverage without per-weapon hard-codes. |
+| P0 | Remove runtime prefab materialization from capture. | Capture has no `GetGameObject*` call; Windows A/B evidence shows GunGame capture does not cause large persistent startup memory growth. |
+| P1 | Improve catalog metadata coverage. | Better valid-mod coverage from lightweight catalog fields without per-weapon hard-codes or prefab inspection. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |

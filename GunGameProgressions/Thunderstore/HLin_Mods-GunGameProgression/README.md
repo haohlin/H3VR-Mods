@@ -41,7 +41,7 @@ The packaged Vanilla profiles are available immediately. Runtime generation then
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
 | A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
 
-The loader waits only for a confirmed completion signal, five seconds of registry quiet, or a 30-second stable loading state; it never blocks the main game thread. If Modded pools are not ready yet, use a Vanilla choice, then reload GunGame after the background refresh finishes.
+The loader checks once immediately and once after five seconds. It captures only ready/stable content, then stops; it never blocks the main game thread. If Modded pools are not ready yet, use a Vanilla choice, then reload GunGame after a later background refresh finishes.
 
 ## Enemy Pacing
 

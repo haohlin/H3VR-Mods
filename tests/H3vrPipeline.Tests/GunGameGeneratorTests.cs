@@ -456,53 +456,18 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs()
+    public void Runtime_catalog_capture_never_materializes_the_prefab_registry()
     {
-        var assembly = LoadBuiltMetadataExporter();
-        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
-        var prefabType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePrefabMetadata"));
-        var reconcilerType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataReconciler"));
-        var apply = Assert.IsAssignableFrom<MethodInfo>(reconcilerType.GetMethod("Apply", BindingFlags.Public | BindingFlags.Static));
-        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
-        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
-        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var source = File.ReadAllText(PluginSourcePath);
 
-        var firearm = RuntimeEntry(entryType, "ModdedPrefabGun", "Firearm", true, magazineType: 0);
-        var firearmPrefab = Activator.CreateInstance(prefabType)!;
-        SetRuntimeProperty(prefabType, firearmPrefab, "WasResolved", true);
-        SetRuntimeProperty(prefabType, firearmPrefab, "HasFirearmComponent", true);
-        SetRuntimeProperty(prefabType, firearmPrefab, "HasMagazineType", true);
-        SetRuntimeProperty(prefabType, firearmPrefab, "MagazineType", 4242);
-        apply.Invoke(null, new[] { firearm, firearmPrefab });
-
-        var magazine = RuntimeEntry(entryType, "ModdedPrefabMagazine", "Magazine", true, magazineType: 0);
-        var magazinePrefab = Activator.CreateInstance(prefabType)!;
-        SetRuntimeProperty(prefabType, magazinePrefab, "WasResolved", true);
-        SetRuntimeProperty(prefabType, magazinePrefab, "HasMagazineType", true);
-        SetRuntimeProperty(prefabType, magazinePrefab, "MagazineType", 4242);
-        apply.Invoke(null, new[] { magazine, magazinePrefab });
-
-        var mislabeledRail = RuntimeEntry(entryType, "MislabeledRail", "Firearm", true, magazineType: 4242);
-        var railPrefab = Activator.CreateInstance(prefabType)!;
-        SetRuntimeProperty(prefabType, railPrefab, "WasResolved", true);
-        SetRuntimeProperty(prefabType, railPrefab, "HasFirearmComponent", false);
-        apply.Invoke(null, new[] { mislabeledRail, railPrefab });
-
-        var entries = Array.CreateInstance(entryType, 3);
-        entries.SetValue(firearm, 0);
-        entries.SetValue(magazine, 1);
-        entries.SetValue(mislabeledRail, 2);
-        var enemies = Array.CreateInstance(enemyType, 1);
-        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
-
-        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
-            "Guns");
-
-        var generatedGun = Assert.Single(guns);
-        Assert.Equal("ModdedPrefabGun", ReadString(generatedGun, "GunName"));
-        Assert.Equal("ModdedPrefabMagazine", ReadString(generatedGun, "MagName"));
+        Assert.Contains("CatalogPhysicalMountTypes", source, StringComparison.Ordinal);
+        Assert.Contains("CatalogOpticKind", source, StringComparison.Ordinal);
+        Assert.Contains("HasCatalogFirearmIdentity", source, StringComparison.Ordinal);
+        Assert.Contains("PipScopeOpticClassifier.ClassifyFromMetadata", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObject(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObjectAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RuntimePrefabMetadata", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RuntimeMetadataReconciler", source, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
@@ -604,14 +569,14 @@ public sealed class GunGameGeneratorTests
 
         var loadingGate = Activator.CreateInstance(gateType)!;
         observe.Invoke(loadingGate, new object[] { 0f, 10, loading });
-        Assert.False((bool)isReady.Invoke(loadingGate, new object[] { 29.9f, loading })!);
-        Assert.True((bool)isReady.Invoke(loadingGate, new object[] { 30f, loading })!);
+        Assert.False((bool)isReady.Invoke(loadingGate, new object[] { 4.9f, loading })!);
+        Assert.True((bool)isReady.Invoke(loadingGate, new object[] { 5f, loading })!);
 
         var changedLoadingGate = Activator.CreateInstance(gateType)!;
         observe.Invoke(changedLoadingGate, new object[] { 0f, 10, loading });
-        observe.Invoke(changedLoadingGate, new object[] { 29f, 11, loading });
-        Assert.False((bool)isReady.Invoke(changedLoadingGate, new object[] { 58.9f, loading })!);
-        Assert.True((bool)isReady.Invoke(changedLoadingGate, new object[] { 59f, loading })!);
+        observe.Invoke(changedLoadingGate, new object[] { 4.5f, 11, loading });
+        Assert.False((bool)isReady.Invoke(changedLoadingGate, new object[] { 9.4f, loading })!);
+        Assert.True((bool)isReady.Invoke(changedLoadingGate, new object[] { 9.5f, loading })!);
         Assert.True((bool)isReady.Invoke(gate, new object[] { 100f, complete })!);
     }
 
@@ -752,12 +717,13 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_polls_modded_readiness_no_more_than_every_ten_seconds()
+    public void Runtime_bounds_modded_readiness_attempt_to_five_seconds()
     {
         var source = File.ReadAllText(PluginSourcePath);
 
-        Assert.Contains("private const float ModdedRefreshPollSeconds = 10f;", source, StringComparison.Ordinal);
-        Assert.Contains("new WaitForSeconds(ModdedRefreshPollSeconds)", source, StringComparison.Ordinal);
+        Assert.Contains("private const float ModdedRefreshAttemptSeconds = 5f;", source, StringComparison.Ordinal);
+        Assert.Contains("var readinessDeadline = Time.realtimeSinceStartup + ModdedRefreshAttemptSeconds;", source, StringComparison.Ordinal);
+        Assert.Contains("new WaitForSeconds(Mathf.Max(0f, readinessDeadline - now))", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1323,7 +1289,7 @@ public sealed class GunGameGeneratorTests
         {
             "Runtime_profile_builder_skips_explicitly_blacklisted_slingshot",
             "Runtime_profile_builder_allows_only_graviton_to_be_feedless",
-            "Runtime_prefab_metadata_recovers_modded_magazine_types_and_rejects_non_firearm_prefabs",
+            "Runtime_catalog_capture_never_materializes_the_prefab_registry",
             "Runtime_profile_builder_skips_firearms_without_gungame_round_display_data",
             "Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type",
@@ -1344,7 +1310,7 @@ public sealed class GunGameGeneratorTests
             "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path",
             "Runtime_uses_a_cached_otherloader_readiness_probe",
             "Runtime_schedules_nonblocking_five_and_ten_minute_startup_modded_rescans",
-            "Runtime_polls_modded_readiness_no_more_than_every_ten_seconds",
+            "Runtime_bounds_modded_readiness_attempt_to_five_seconds",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
             "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
         };
