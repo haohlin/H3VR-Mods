@@ -734,6 +734,21 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
     }
 
+    [WindowsH3vrFact]
+    public void Runtime_schedules_one_nonblocking_ten_minute_startup_modded_rescan()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+        var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
+
+        Assert.True(startMethod >= 0 && destroyMethod > startMethod);
+        var startBody = source.Substring(startMethod, destroyMethod - startMethod);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan());", startBody, StringComparison.Ordinal);
+        Assert.Contains("private IEnumerator RequestStartupModdedRescan()", source, StringComparison.Ordinal);
+        Assert.Contains("new WaitForSecondsRealtime(600f)", source, StringComparison.Ordinal);
+        Assert.Contains("startup 10-minute rescan requested.", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path()
     {
