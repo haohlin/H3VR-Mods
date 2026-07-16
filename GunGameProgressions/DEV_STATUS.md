@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-16`
 
-State: `1.4.0 candidate prepared locally; Windows pipeline and VR check pending`
+State: `1.4.0 candidate deployed for Windows runtime/VR validation; publication pending`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -18,15 +18,16 @@ State: `1.4.0 candidate prepared locally; Windows pipeline and VR check pending`
 | Vanilla count root cause | Five golden weapons were rejected by catalog identity gate; one newer valid firearm was present, yielding net `657`. | Installed-vs-golden diff. |
 | Modded count root cause | Valid G28 variants declare direct magazines and Picatinny but omit optional identity tags, so same gate rejects them. | Installed runtime catalog inspection. |
 | Memory boundary | Capture reads `FVRObject` catalog only. No `GetGameObject*` call is allowed. | Source test; previous Windows A/B eliminated large prefab residency path. |
-| Candidate generator | Catalog proof now accepts identity tags, direct compatible feed, exact nonzero magazine/clip interface, or `GravitonBeamer`; Modded cartridge fallback needs direct compatibility. | Local source + focused tests added; not Windows-run. |
-| Candidate persistence | First Modded pair writes; later pair replaces only when strictly larger; confirmed loader-complete empty snapshot removes stale files. | Local source + focused test added; not Windows-run. |
+| Candidate generator | Catalog proof now accepts identity tags, direct compatible feed, exact nonzero magazine/clip interface, or `GravitonBeamer`; Modded cartridge fallback needs direct compatibility. | Windows test suite: `83/83` passed. |
+| Candidate persistence | First Modded pair writes; later pair replaces only when strictly larger; confirmed loader-complete empty snapshot removes stale files. | Windows test suite: `83/83` passed. |
+| Candidate package | `1.4.0` built and deployed. | Windows `Verify`, `Build`, `Package`, and `Deploy` passed. |
 
 ## Plan
 
 | State | Next item | Acceptance |
 | --- | --- | --- |
-| In progress | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, and `Package`. | All Windows checks pass. |
-| Pending | Deploy candidate; start H3VR and inspect generated files/logs. | Vanilla includes every golden `661` ID (current registry may add newer firearms); Modded count is at least prior `47` or larger. |
+| Complete | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, `Package`, and `Deploy`. | All checks passed; Windows test suite `83/83`. |
+| In progress | Start H3VR and inspect generated files/logs. | Vanilla includes every golden `661` ID (current registry may add newer firearms); Modded count is at least prior `47` or larger. |
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
 | Pending | Merge release source to `main`; publish Thunderstore `1.4.0`. | Package/manifest/changelog/version agree; Thunderstore exact version URL resolves. |
 
