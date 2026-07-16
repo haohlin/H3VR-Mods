@@ -53,14 +53,14 @@ created only at runtime and are never published in a package.
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule one non-blocking Modded rescan ten real-time minutes later. |
+| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at five and ten real-time minutes. |
 | Registry changes | Observe it without blocking the main thread. |
 | Loader reports complete | Capture Modded metadata immediately. |
 | No usable loader-complete signal | Capture after five seconds of registry quiet. |
 | Loader stays `Loading` but registry stops growing | Capture the stable snapshot after 30 seconds. |
 | GunGame selector opens | Keep Vanilla usable and restore any saved Modded pair once. It owns no polling, UI clone, capture, or build work. |
 | New complete Modded pair | Persist it atomically for the next selector load. Reloading GunGame shows it. |
-| Ten minutes after plugin start | Request one additional background rescan for late-loading content. A complete candidate follows ordinary persistence replacement rules. |
+| Five and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry never appears | Stop that background attempt after 30 seconds; a later selector/session event retries. |
 
@@ -158,8 +158,9 @@ letting a bad loadout derail a session.
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Building/writing happens
-in a background job; readiness polls once per second. The design goal is a
-responsive game, not a fixed artificial loading delay.
+in a background job; readiness polls every ten seconds. The five- and
+30-second stability thresholds are therefore recognized on the next poll. The
+design goal is a responsive game, not a fixed artificial loading delay.
 
 Readiness logging is event-based: attempt start, ready, timeout/cancel, and
 completion. Never emit an exception or status log on every poll; repeated log

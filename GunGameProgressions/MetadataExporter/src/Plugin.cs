@@ -22,7 +22,7 @@ public sealed class Plugin : BaseUnityPlugin
     private const long CaptureFrameBudgetMilliseconds = 2;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
     private const float ModdedRefreshNoRegistryTimeoutSeconds = 30f;
-    private const float ModdedRefreshPollSeconds = 1f;
+    private const float ModdedRefreshPollSeconds = 10f;
     private const float PrefabInspectionTimeoutSeconds = 0.25f;
 
     private static Plugin instance;
@@ -55,7 +55,8 @@ public sealed class Plugin : BaseUnityPlugin
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();
-        StartCoroutine(RequestStartupModdedRescan());
+        StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested."));
+        StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested."));
     }
 
     private void OnDestroy()
@@ -229,10 +230,10 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator RequestStartupModdedRescan()
+    private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)
     {
-        yield return new WaitForSecondsRealtime(600f);
-        Trace("startup 10-minute rescan requested.");
+        yield return new WaitForSecondsRealtime(delaySeconds);
+        Trace(traceMessage);
         RequestModdedRefresh();
     }
 
