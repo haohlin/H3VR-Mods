@@ -25,22 +25,22 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Critical gap | Smaller or equal complete candidate can still replace larger saved pair | Not fixed; P0. |
 | Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report; Windows runtime/log reproduction still required. |
 | Root cause | Selector-side `PrepareModdedProfilesForSelector` was an unbounded `do … while (true)` poll. Each selector created a cloned loading row and reflected component list; neither selector replacement nor scene unload cancelled it. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
-| Source change | Selector now restores persisted profiles once, then returns. It has no loading row, live-insertion, poll, capture, or build path. | Implemented locally on `fix/gungame-background-refresh`; Windows pipeline pending. |
-| Background bound | One coordinator caches OtherLoader reflection per attempt; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Implemented locally; Windows automated/runtime verification pending. |
-| Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Implemented locally; Windows verification pending. |
-| Windows access | Private SSH alias reaches Windows. A unique pipeline checkout was found clean on `main`; its environment variable is not configured, so commands locate that checkout transiently without committing path data. | Windows Test/Verify/Build has not run yet. |
+| Source change | Selector now restores persisted profiles once, then returns. It has no loading row, live-insertion, poll, capture, or build path. | Windows source and focused lifecycle tests pass. |
+| Background bound | One coordinator caches OtherLoader reflection per attempt; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Windows source and focused lifecycle tests pass; runtime behavior untested. |
+| Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Windows build/test pass; runtime log validation pending. |
+| Windows pipeline | `Preflight`, `Test`, `Verify -Mod GunGameProgressions`, and `Build -Mod GunGameProgressions` ran on `2026-07-16`. | Passed: source current; `81/81` tests; GunGame target verification; tracked fallback/profile build verification. |
 
 ### Next
 
-P0: run Windows `Test`, `Verify`, and `Build` for the bounded coordinator
-change. Then reproduce low-mod idle/reload stability with BepInEx logs and
-memory observation before the existing count-aware persistence work.
+P0: deploy the tested DLL only when H3VR is stopped, then reproduce low-mod
+idle/reload stability with BepInEx logs and memory observation before the
+existing count-aware persistence work.
 
 ## Plan
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[ ]` | Verify bounded background Modded coordination. | Selector owns only persisted restore; no selector UI clone/poll/capture/build path remains; cached readiness reflection and 30-second stable limit pass Windows tests; low-mod idle/reload has no periodic stutter or monotonic memory growth. |
+| `[ ]` | Runtime-verify bounded background Modded coordination. | Windows tests pass; low-mod idle/reload has no periodic stutter, monotonic memory growth, or crash. |
 | `[ ]` | Enforce count-aware Modded replacement. | Missing pair accepts first complete candidate; smaller/equal candidate keeps saved pair; strictly larger candidate replaces it; confirmed-empty still removes stale pair; focused test passes. |
 | `[x]` | Consolidate handoff state. | `DEV_STATUS.md` holds Status, Plan, and Testing; legacy split files removed. |
 | `[ ]` | Improve general incomplete-metadata reconciliation. | Better valid mod coverage without weapon-specific hard-codes. |
@@ -53,9 +53,9 @@ memory observation before the existing count-aware persistence work.
 
 ### Current blocker
 
-No Windows Test/Verify/Build or H3VR runtime evidence yet for this source
-branch. Do not claim package, deployment, or VR validation until those commands
-run against the unique remote checkout.
+Windows source verification passed. H3VR runtime evidence is still absent:
+do not claim package, deployment, or VR validation until the tested DLL is
+deployed and the low-mod idle/reload regression is observed.
 
 ## Testing
 
