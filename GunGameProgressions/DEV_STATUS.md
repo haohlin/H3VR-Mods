@@ -6,7 +6,7 @@ stay together here.
 ## Status
 
 Last verified: `2026-07-16`
-State: `source change pending Windows verification`
+State: `deployed; runtime playtest pending`
 
 ### Handoff convention
 
@@ -23,18 +23,18 @@ It replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Persistence | Last complete Modded pair restores across restart | Implemented; see design. |
 | P0 root cause | Modded receipt records saved weapon count, but promotion gate ignores it | Confirmed by source inspection; no fix yet. |
 | Critical gap | Smaller or equal complete candidate can still replace larger saved pair | Not fixed; P0. |
-| Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report; Windows runtime/log reproduction still required. |
+| Stability report | With only dependencies or one simple gun mod, player reports roughly once-per-second stutter, rising RAM, then crash. | Field report from pre-fix selector path; Windows runtime/log reproduction still required. |
 | Root cause | Selector-side `PrepareModdedProfilesForSelector` was an unbounded `do … while (true)` poll. Each selector created a cloned loading row and reflected component list; neither selector replacement nor scene unload cancelled it. | Confirmed by source inspection; high-confidence retained-object and periodic-work path. |
 | Source change | Selector now restores persisted profiles once, then returns. It has no loading row, live-insertion, poll, capture, or build path. | Windows source and focused lifecycle tests pass. |
-| Background bound | One coordinator caches OtherLoader reflection per attempt; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Windows source and focused lifecycle tests pass; runtime behavior untested. |
+| Background bound | One coordinator caches OtherLoader reflection per attempt and polls every ten seconds; it captures at loader completion, five seconds registry quiet when unavailable, or 30 seconds stable while `Loading`. Missing registry stops after 30 seconds. | Windows source and focused lifecycle tests pass; runtime behavior untested. |
 | Logging bound | OtherLoader reflection failures log once per attempt; object-registry exception logs once per plugin run. | Windows build/test pass; runtime log validation pending. |
-| Windows pipeline | `Preflight`, `Test`, `Verify -Mod GunGameProgressions`, and `Build -Mod GunGameProgressions` ran on `2026-07-16`. | Passed: source current; `81/81` tests; GunGame target verification; tracked fallback/profile build verification. |
-| Late-content rescan | Plugin schedules one `WaitForSecondsRealtime(600f)` request after startup. It uses the same background candidate/persistence path; it never edits an active selector. | Windows red/green test complete; `82/82` tests, Verify, Build, Package, and Deploy passed. Runtime observation active. |
-| Deployed test package | GunGame Progressions `1.3.9` test package includes the ten-minute rescan change. | Deployed while H3VR was stopped on `2026-07-16`; no public release or version bump. |
+| Windows pipeline | `Preflight`, `Test`, `Verify -Mod GunGameProgressions`, `Build`, `Package`, and `Deploy` ran on `2026-07-16`. | Passed: source current; `83/83` tests; GunGame target verification; tracked fallback/profile build verification. |
+| Late-content rescans | Plugin schedules `WaitForSecondsRealtime` requests at five and ten minutes after startup. They use the same background candidate/persistence path and never edit an active selector. | Windows red/green test complete; deployed test build passes `83/83`, Verify, Build, and Package. Runtime observation pending. |
+| Deployed test package | GunGame Progressions `1.3.9` test package includes five/ten-minute rescans and ten-second readiness polling. | Deployed while H3VR was stopped on `2026-07-16`; no public release or version bump. |
 
 ### Next
 
-P0: observe startup, first Modded refresh, ten-minute rescan, and GunGame
+P0: observe startup, first Modded refresh, five/ten-minute rescans, and GunGame
 reload with timestamped BepInEx logs and H3VR memory samples. Then assess
 low-mod idle/reload stability before existing count-aware persistence work.
 
@@ -77,7 +77,7 @@ deployed and the low-mod idle/reload regression is observed.
 | Startup | Vanilla pools available; game stays responsive. |
 | Many mods loading | Modded work remains background; no main-thread freeze. |
 | Low-mod idle/reload stability | Dependencies-only and one-simple-gun-mod installs run idle for ten minutes, then enter/exit/reload GunGame repeatedly; no once-per-second hitch, monotonic memory growth, or crash. |
-| Late-content rescan | Ten real-time minutes after plugin start, log one rescan request; candidate generation remains background-only and a subsequent GunGame reload exposes any new persisted pair. |
+| Late-content rescans | Five and ten real-time minutes after plugin start, log one rescan request each; candidate generation remains background-only and a subsequent GunGame reload exposes any new persisted pair. |
 | Selector lifecycle | Selector restores saved pair once and returns; no temporary loading rows or selector-owned polling coroutines exist across reloads. |
 | Selector reload | Saved/generated Modded pair appears with Vanilla pair. |
 | Invalid generated object | Bad loadout skips; progression continues without crash. |
