@@ -209,10 +209,14 @@ or Steam launch:
 3. Derive the official r2modman Doorstop arguments from that version: v3/default
    uses the legacy enable/target names; v4 uses its enabled/target-assembly
    names. Never copy loader files or manually overlay plugins.
-4. Launch Steam with those arguments through a temporary Task Scheduler task in
-   the active interactive console session (`TASK_LOGON_INTERACTIVE_TOKEN`).
-   Resolve the current interactive user/session dynamically. SSH service
-   session launches do not own the desktop and must not be used for this.
+4. Launch the Steam game URI with those arguments through a temporary Task
+   Scheduler task in the active interactive console session
+   (`TASK_LOGON_INTERACTIVE_TOKEN`). Resolve the current interactive
+   user/session dynamically. The URI keeps the profile Doorstop arguments and
+   reliably forwards them to an already-running Steam client. A direct
+   `Steam.exe -applaunch` task may return success without creating `h3vr.exe`;
+   do not treat its task result as launch proof. SSH service session launches
+   do not own the desktop and must not be used for this.
 5. Verify that H3VR runs in the interactive session and that `LogOutput.log`
    names the profile preloader plus the target plugin/version. Then inspect
    pool files and concise plugin timing/status lines.

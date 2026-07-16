@@ -309,9 +309,11 @@ The VR tester launches the r2modman Default profile, exercises the change in H3V
 Normally the human starts H3VR. With explicit user authorization, Codex may
 validate the installed r2modman profile by clearing logs, deriving the current
 Doorstop launch arguments from the profile's private `.doorstop_version`, then
-starting Steam through a short-lived Task Scheduler entry in the active
-interactive console session. SSH service-session launches are invalid because
-they do not own the desktop.
+starting the Steam game URI through a short-lived Task Scheduler entry in the
+active interactive console session. This reliably delivers the profile
+arguments to an already-running Steam client; a direct `Steam.exe -applaunch`
+task can return success without creating `h3vr.exe`. SSH service-session
+launches are invalid because they do not own the desktop.
 
 Verify the interactive H3VR process and BepInEx profile preloader in the log,
 then inspect the target plugin/version and generated runtime data. Stop H3VR

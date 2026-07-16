@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-16`
 
-State: `1.4.0 built and deployed; one-minute runtime validation blocked by an unrelated Modded-profile preloader failure; publication pending`
+State: `1.4.0 runtime validated in the real Modded profile; release ready`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -25,16 +25,18 @@ State: `1.4.0 built and deployed; one-minute runtime validation blocked by an un
 | Real Modded-profile run | H3VR loaded the intended profile and this plugin with its dependencies; no exporter exception occurred. | BepInEx live log. |
 | Live profile result | Runtime Vanilla contains `662` firearms: every golden `661` plus one newer valid firearm. Runtime Modded contains `54`; G28 variants use direct magazines and catalog scopes. | Generated-pool and catalog inspection. |
 | Live memory result | No runaway growth during the catalog-only candidate run; loader memory settled after loading. | Windows process observation. |
-| Latest one-minute runtime attempt | The authorized interactive launch reached the intended Modded profile's BepInEx preloader, then stopped while an unrelated MonoMod/Deli chain patched `Assembly-CSharp`; this plugin never loaded. | BepInEx log: external preloader failure before GunGame Progressions entry. |
+| Launch transport | A direct `Steam.exe -applaunch` Task Scheduler action can return success without creating `h3vr.exe`. Steam game URI with the same r2modman Doorstop profile arguments launches the interactive game process reliably. | Windows interactive-session launch comparison. |
+| One-minute runtime result | Initial Modded scan: `867 ms`, `2` entries while loaders registered. Scheduled one-minute scan: `1,053 ms`, `1,435` entries and saved pools. | Real Modded-profile BepInEx log. |
+| External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
 
 ## Plan
 
 | State | Next item | Acceptance |
 | --- | --- | --- |
 | Complete | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, `Package`, and `Deploy`. | All checks passed; Windows test suite `83/83`. |
-| Blocked | Validate one-minute rescan and timing log in a profile that reaches the plugin chainloader. | Real Modded H3VR log records the one-minute scan; capture remains frame-budgeted and profiles remain valid. |
+| Complete | Validate one-minute rescan and timing log in the real Modded profile. | Initial and one-minute scan logs recorded; capture remains frame-budgeted and profiles are valid. |
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
-| Pending | Merge release source to `main`; publish Thunderstore `1.4.0`. | Unblocked runtime timing validation; package/manifest/changelog/version agree; Thunderstore exact version URL resolves. |
+| In progress | Merge release source to `main`; publish Thunderstore `1.4.0`. | Package/manifest/changelog/version agree; Thunderstore exact version URL resolves. |
 
 ## Testing
 
@@ -44,7 +46,7 @@ State: `1.4.0 built and deployed; one-minute runtime validation blocked by an un
 | Focused/full pipeline | `h3vr.ps1 -Action Test` | Golden count, catalog proof, cartridge-negative, persistence, and existing regressions pass. |
 | Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Kodeman targets resolve. |
 | Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | `1.4.0` package with no player Modded pool. |
-| One-minute runtime generation | Deploy, launch the Modded profile, inspect BepInEx log. | `startup 1-minute rescan requested` and `modded scan <time>ms` appear after the plugin loads. Current profile is blocked before plugin loading by external preloader failure. |
+| One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
