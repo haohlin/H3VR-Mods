@@ -53,13 +53,14 @@ created only at runtime and are never published in a package.
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin start | Start Vanilla capture; separately request a Modded refresh. |
+| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule one non-blocking Modded rescan ten real-time minutes later. |
 | Registry changes | Observe it without blocking the main thread. |
 | Loader reports complete | Capture Modded metadata immediately. |
 | No usable loader-complete signal | Capture after five seconds of registry quiet. |
 | Loader stays `Loading` but registry stops growing | Capture the stable snapshot after 30 seconds. |
 | GunGame selector opens | Keep Vanilla usable and restore any saved Modded pair once. It owns no polling, UI clone, capture, or build work. |
 | New complete Modded pair | Persist it atomically for the next selector load. Reloading GunGame shows it. |
+| Ten minutes after plugin start | Request one additional background rescan for late-loading content. A complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry never appears | Stop that background attempt after 30 seconds; a later selector/session event retries. |
 

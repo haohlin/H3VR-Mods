@@ -1332,6 +1332,7 @@ public sealed class GunGameGeneratorTests
             "Modded_profile_readiness_captures_complete_or_stable_mod_content",
             "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path",
             "Runtime_uses_a_cached_otherloader_readiness_probe",
+            "Runtime_schedules_one_nonblocking_ten_minute_startup_modded_rescan",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
             "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
         };

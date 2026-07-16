@@ -99,7 +99,7 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 
 | Situation | Required behavior |
 | --- | --- |
-| Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools and request a fresh Modded capture in the background. |
+| Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools, request a fresh Modded capture, and schedule one non-blocking Modded rescan ten real-time minutes later. |
 | Mod loader is complete | Capture Modded metadata immediately. |
 | Loader has no complete signal | Wait for five seconds with no registry-count change, then capture. |
 | Loader remains `Loading` while registry count is stable | Capture after 30 seconds; do not poll forever. |
@@ -112,8 +112,8 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 The loader signal is authoritative only for the content that exposes it. Its
 reflection metadata is cached once per background attempt and failures log once.
 The five-second quiet fallback and 30-second `Loading` stability limit are
-non-blocking; later selector entries and GunGame-session exits request another
-background refresh. Modded files and their fingerprint receipt stay in the
+non-blocking; the one-shot ten-minute rescan, later selector entries, and
+GunGame-session exits request another background refresh. Modded files and their fingerprint receipt stay in the
 installed plugin folder across H3VR restarts: the selector restores that last
 complete pair first, then a completed fresh candidate replaces it for a later
 selector load.
@@ -166,7 +166,7 @@ with coverage for the same condition.
 | Firearm has no verified sight-capable mount but receives an optic | Emit no optic; do not guess a mount. | `Runtime_profile_builder_ignores_unrecognized_non_optic_mounts` |
 | Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
-| Mods are still loading or loader state is unavailable | Vanilla remains usable; one bounded Modded refresh waits off-selector and captures after completion, quiet fallback, or 30-second stable loading state. | `Modded_profile_readiness_captures_complete_or_stable_mod_content`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_uses_a_cached_otherloader_readiness_probe` |
+| Mods are still loading or loader state is unavailable | Vanilla remains usable; one bounded Modded refresh waits off-selector and captures after completion, quiet fallback, or 30-second stable loading state. One further rescan starts ten real-time minutes after plugin start. | `Modded_profile_readiness_captures_complete_or_stable_mod_content`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_uses_a_cached_otherloader_readiness_probe`; `Runtime_schedules_one_nonblocking_ten_minute_startup_modded_rescan` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
 | H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |
 

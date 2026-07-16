@@ -55,6 +55,7 @@ public sealed class Plugin : BaseUnityPlugin
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();
+        StartCoroutine(RequestStartupModdedRescan());
     }
 
     private void OnDestroy()
@@ -226,6 +227,13 @@ public sealed class Plugin : BaseUnityPlugin
         {
             StartCoroutine(RefreshModdedPoolsInBackground());
         }
+    }
+
+    private IEnumerator RequestStartupModdedRescan()
+    {
+        yield return new WaitForSecondsRealtime(600f);
+        Trace("startup 10-minute rescan requested.");
+        RequestModdedRefresh();
     }
 
     private IEnumerator GenerateVanillaPoolsAtStartup()
