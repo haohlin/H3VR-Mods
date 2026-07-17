@@ -18,5 +18,4 @@ without verified state.
 | Active mod | State | Required records |
 | --- | --- | --- |
 | [BubbleLevel](BubbleLevel/DEV_STATUS.md) | Released; optional material/regression follow-up | [design](BubbleLevel/DESIGN.md), [development status](BubbleLevel/DEV_STATUS.md) |
-| [NightForcePlus](NightForcePlus/DEV_STATUS.md) | Active; shared bubble-controller migration | [design](NightForcePlus/DESIGN.md), [development status](NightForcePlus/DEV_STATUS.md) |
 | [GunGameProgressions](GunGameProgressions/DEV_STATUS.md) | Released; compatibility follow-up | [design](GunGameProgressions/DESIGN.md), [development status](GunGameProgressions/DEV_STATUS.md) |
