@@ -17,19 +17,14 @@ world gravity
 
 | Part | Controller | Rule |
 | --- | --- | --- |
-| Rail/attachment level | `BubbleLevel` | Wrapper over shared gravity motion; keeps BubbleLevel calibration. |
+| Rail/attachment level | `BubbleLevel` | Thin wrapper over shared gravity controller; keeps BubbleLevel calibration. |
 | Integrated 30 mm mounts | `BubbleLevelMount` | Separate pivot/rotation controller; test separately. |
-| NightForce integrated scope level | `BubbleLevelScope` | Uses the same shared gravity-motion source; scope calibration stays independent. |
+| NightForce integrated scope level | `BubbleLevelScope` | Thin wrapper over same shared gravity controller; scope calibration stays independent. |
 
-`GravityBubbleLevelController.cs` owns `GravityBubbleLevelMotion`: one shared
-gravity projection, spring/drag, settle, and hard-stop source. MeatKit exports
-prefab scripts only from their owning package, so each package compiles this
-source while retaining its own component type. Wrapper classes retain their
-existing Unity component identities and serialized field names.
-
-BubbleLevelSet is self-contained (apart from OtherLoader). NightForcePlus
-depends on BubbleLevelSet for the Black mount by object ID; it ships neither
-BubbleLevelSet component types nor mount content.
+`GravityBubbleLevelController.cs` owns shared gravity projection, spring/drag,
+settle, and hard-stop behavior. Wrapper classes retain their existing Unity
+component identities and serialized field names so prefab script GUIDs do not
+change during the migration.
 
 ## Behavior contract
 

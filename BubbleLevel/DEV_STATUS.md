@@ -6,7 +6,7 @@ stay together here.
 ## Status
 
 Last verified: `2026-07-17`
-State: `2.0.4 candidate validated; 2.0.3 remains last public release`
+State: `active; 2.0.3 remains last runtime-verified release`
 
 ### Handoff convention
 
@@ -19,9 +19,8 @@ replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | --- | --- | --- |
 | Unity source | In-place `Assets/Projects` Git root in `H3VR-unity-projects`; matching origin `main` commit | Versioned. |
 | Controller | Current gravity/damping controller, prefabs, `.meta`, test tools, build profile | Versioned in Unity repository. |
-| Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`. Both packages compile this one source because MeatKit requires prefab scripts in their owning package. NightForce `1.0.5` uses BubbleLevelSet `2.0.4` only for the Black mount by object ID. | Windows Unity/package validation passed. |
+| Shared controller migration | Unity source commit `e9fc5b9` prepares BubbleLevelSet `2.0.4`: it owns `GravityBubbleLevelController` for rail and NightForce scope behavior. NightForce `1.0.5` declares `BubbleLevelSet-2.0.4` as an external dependency rather than embedding its types. Wrapper script GUIDs and serialized field names remain unchanged. | Source changed; Windows Unity/runtime validation pending. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; preflight reports generated source current. | Passed. |
-| Candidate package | BubbleLevelSet `2.0.4` runtime suite passed, MeatKit package and archive validation passed, manifest contains only OtherLoader. SHA-256 `62247C23F4EB929612A17910AEDB69976671A307F73D7CCC50DCF8B03A7C7861`. | Passed. |
 | Unity runtime checks | Licensed Unity batch `RunAll` passed on 2026-07-14 | Passed. |
 | Sensitivity | Center `-0.008400`; 1° `0.095774` = `0.104174` travel; 4° reaches stop | Passed. |
 | 180° rail | Local positions `0.095774` / `-0.107402`; world movement dot `1.000000` | Passed. |
@@ -56,7 +55,7 @@ Monitor release feedback. Material variants remain optional until visual approva
 | `[x]` | Document BubbleLevelSet usage and release history. | Unity source `README.md` provides contents, behavior, use, and compatibility; `CHANGELOG.md` provides full version history without changing packaged `2.0.3`. |
 | `[x]` | Keep `2.0.3` handoff ready. | `DESIGN.md` and `DEV_STATUS.md` state current release, source-only documentation boundary, verified behavior, and first resume action. |
 | `[x]` | Consolidate handoff state. | `DEV_STATUS.md` holds Status, Plan, and Testing; legacy split files removed. |
-| `[x]` | Validate shared BubbleLevel/NightForce motion/package migration. | Windows Unity runtime suites, MeatKit packages, archive layout, manifests, and DLL metadata pass. No H3VR test requested. |
+| `[>]` | Validate shared BubbleLevel/NightForce gravity-controller migration. | Windows Unity BubbleLevel `2.0.4` and NightForce `1.0.5` runtime tests, MeatKit package-boundary checks, and H3VR regression cases pass; `2.0.3` remains last runtime-verified release until then. |
 | `[ ]` | Expand post-release H3VR regression coverage. | Offset rail, 30 mm mounts, nested chain, inversion, and settle behavior recorded when practical. |
 | `[ ]` | Decide material candidate. | Explicit approval/rejection; approved path has applied-proof render. |
 
@@ -106,9 +105,11 @@ Documentation follow-up changed Unity-source Markdown only: `README.md` and
 description, item assets, and published `2.0.3` ZIP were unchanged; no Unity or
 MeatKit rebuild is required for that source-documentation update.
 
-Candidate `2.0.4` passed the Windows BubbleLevel runtime suite and MeatKit
-package validation. This is package evidence, not in-game evidence; the user
-explicitly did not request deployment or H3VR testing.
+Shared controller source was added after `2.0.3`: local structural checks and
+diff whitespace checks pass, but no local .NET/Unity compiler or private Windows
+configuration is available. The new NightForce runtime test and existing
+BubbleLevel runtime test must both run before treating it as package or VR
+evidence.
 
 `2.0.3` is last runtime-verified package. A future session must not treat the
 source-only documentation commit as build or VR evidence.
