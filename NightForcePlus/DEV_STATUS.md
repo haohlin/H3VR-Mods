@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-17`
-State: `1.0.5 candidate deployed; release unrequested`
+State: `1.0.5 candidate validated; release unrequested`
 
 ### Verified now
 
@@ -18,7 +18,6 @@ State: `1.0.5 candidate deployed; release unrequested`
 | Package boundary | NightForce `1.0.5` manifest requires `HLin_Mods-BubbleLevelSet-2.0.4`; its DLL contains shared-motion metadata but no BubbleLevelSet component or mount types. | Package inspection passed. |
 | Unity runtime test | `NightForcePlusRuntimeTests` checks references, one-degree response, reverse mounting, limits, source boundary, and exact profile build. | Passed in Windows batch mode. |
 | Package candidate | MeatKit package and archive validation passed. SHA-256 `B5ABFF605116697FD64BCAED276A5FD98BDC36988A5771CDD0463E44C61CAF7C`. | Passed. |
-| Candidate deployment | Validated `1.0.5` package deployed after BubbleLevelSet `2.0.4`; installed manifest confirms the BubbleLevelSet dependency. | Awaiting user H3VR test. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
 | Windows Unity source | Editor closed; feature branch checked out. Generated `BubbleLevel/CHANGELOG.md.meta` is untracked and preserved. | Tracked source unchanged by tests. |
 
@@ -34,7 +33,7 @@ State: `1.0.5 candidate deployed; release unrequested`
 | --- | --- | --- |
 | `[x]` | Migrate scope controller to shared motion source and add source/runtime tests. | One source governs both packages while MeatKit-safe component types remain package-local. |
 | `[x]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper tests, packages, manifests, and DLL metadata pass. |
-| `[>]` | Perform H3VR acceptance. | Candidate is installed; user will test scope bubble, Black mount, controls, and logs when available. |
+| `[-]` | Perform H3VR VR acceptance. | Not requested by user; no deployment occurred. |
 | `[ ]` | Version and publish only with explicit authorization. | Package/version/docs/dependency alignment verified; BubbleLevel releases first; the published commits are merged to `main`. |
 
 ### Deferred
@@ -67,5 +66,5 @@ State: `1.0.5 candidate deployed; release unrequested`
 - [x] Current Windows source and managed DLL status checked.
 - [x] Automated checks pass.
 - [x] Package payload/version verified.
-- [x] Deployment receipt created.
-- [>] BepInEx log and VR interaction await user test.
+- [-] Deployment receipt and BepInEx log not requested.
+- [-] VR interaction not requested.

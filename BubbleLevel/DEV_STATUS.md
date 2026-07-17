@@ -6,7 +6,7 @@ stay together here.
 ## Status
 
 Last verified: `2026-07-17`
-State: `2.0.4 candidate deployed; 2.0.3 remains last public release`
+State: `2.0.4 candidate validated; 2.0.3 remains last public release`
 
 ### Handoff convention
 
@@ -22,7 +22,6 @@ replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`. Both packages compile this one source because MeatKit requires prefab scripts in their owning package. NightForce `1.0.5` uses BubbleLevelSet `2.0.4` only for the Black mount by object ID. | Windows Unity/package validation passed. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; preflight reports generated source current. | Passed. |
 | Candidate package | BubbleLevelSet `2.0.4` runtime suite passed, MeatKit package and archive validation passed, manifest contains only OtherLoader. SHA-256 `62247C23F4EB929612A17910AEDB69976671A307F73D7CCC50DCF8B03A7C7861`. | Passed. |
-| Candidate deployment | Validated `2.0.4` package deployed through the wrapper with a receipt; installation manifest confirms `2.0.4` and OtherLoader dependency. | Awaiting user H3VR test. |
 | Unity runtime checks | Licensed Unity batch `RunAll` passed on 2026-07-14 | Passed. |
 | Sensitivity | Center `-0.008400`; 1° `0.095774` = `0.104174` travel; 4° reaches stop | Passed. |
 | 180° rail | Local positions `0.095774` / `-0.107402`; world movement dot `1.000000` | Passed. |
@@ -41,8 +40,8 @@ Monitor release feedback. Material variants remain optional until visual approva
 
 1. `2.0.3` is current public runtime/package release. Later documentation is
    source-only; do not rebuild, deploy, or publish it by itself.
-2. Candidate `2.0.4` is installed for user H3VR testing. Record BepInEx log
-   and manual outcome before any release decision.
+2. New runtime/content work starts on Windows: Unity `RunAll`, wrapper
+   `Test`/`Build`/`Package`, deployment, then recorded VR result.
 3. First candidate work: material approval or expanded VR coverage for offset
    rail, 30 mm mounts, nested chain, inversion, and settle behavior.
 
@@ -108,8 +107,8 @@ description, item assets, and published `2.0.3` ZIP were unchanged; no Unity or
 MeatKit rebuild is required for that source-documentation update.
 
 Candidate `2.0.4` passed the Windows BubbleLevel runtime suite and MeatKit
-package validation, then deployed from that validated package. In-game behavior
-remains awaiting the user's manual test.
+package validation. This is package evidence, not in-game evidence; the user
+explicitly did not request deployment or H3VR testing.
 
 `2.0.3` is last runtime-verified package. A future session must not treat the
 source-only documentation commit as build or VR evidence.
