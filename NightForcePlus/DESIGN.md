@@ -39,9 +39,7 @@ existing component classes, serialized field names, and prefab script GUIDs.
 | --- | --- | --- |
 | Shared abstract base in BubbleLevel source | One physics implementation; two Unity component identities remain stable. | 2026-07-17 |
 | Keep thin component wrappers | Changing script GUIDs or prefab component types risks missing-script migration. | 2026-07-17 |
-| External BubbleLevel package boundary | NightForce declares BubbleLevelSet as a dependency and includes only its own namespace; it must not embed BubbleLevelSet types. | 2026-07-17 |
-| Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
-| No package version bump or publish now | Release versioning waits for verified package, dependency, and H3VR work. | 2026-07-17 |
+| No package version bump or publish now | Windows build/runtime configuration is unavailable; release versioning waits for verified package work. | 2026-07-17 |
 
 ## Known limits / backlog
 

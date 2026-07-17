@@ -15,18 +15,17 @@ State: `active`
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Build item packages BubbleLevel Black mount and its spawn/object entries. | Verified. |
 | Shared source plan | Existing wrapper component classes/field names remain; common gravity implementation lives in BubbleLevel source. | Approved. |
-| Shared controller source | Unity source commit `13dcaca` owns `GravityBubbleLevelController` in BubbleLevel; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
-| Package boundary | NightForce profile declares BubbleLevelSet as a dependency but includes only `HLin_Mods.BubbleLevelScope`; shared controller types are supplied by BubbleLevelSet. | Static source check added; package inspection pending. |
+| Shared controller source | Unity source commit `13517f6` adds `GravityBubbleLevelController`; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
 | Unity runtime test | `NightForcePlusRuntimeTests` added for references, one-degree response, reverse mounting, travel limits, and exact MeatKit profile build. | Added; unrun. |
 | Package | Profile is `NightForcePlus` `1.0.5`; README changelog ends at `1.0.4`. | Release metadata reconciliation pending. |
 | Local pipeline | `git diff --check` passes in both repositories. `dotnet`, `csc`, and `mcs` are unavailable. | Partial static evidence only. |
-| Windows pipeline | Private wrapper preflight succeeds; both Windows worktrees are clean on `main`. Unity is currently open, so switching source branches or starting batch mode would be unsafe. | Waiting for Unity to close. |
+| Windows pipeline | No private Windows configuration is available on this machine. | Blocked. |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| Unity editor active | Close Unity before switching the Windows Unity worktree to the feature branch and starting batch tests. | Maintainer environment |
+| Windows validation unavailable | Private Windows environment configuration, then Unity/MeatKit and wrapper commands. | Maintainer environment |
 | New dependency release not created | Versioned BubbleLevelSet release containing shared base before NightForce package update. | Maintainer release decision |
 
 ## Plan
@@ -36,7 +35,7 @@ State: `active`
 | `[x]` | Migrate scope controller to shared gravity base and add source/runtime tests. | Shared source and wrapper inheritance are present; source checks and `.meta` identities are recorded. |
 | `[>]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper test/build/package, and package contents pass. |
 | `[ ]` | Perform H3VR VR acceptance. | Scope bubble, Black mount, reticles, zoom, turrets, and 180-degree mounting work without log errors. |
-| `[ ]` | Version and publish only with explicit authorization. | Package/version/docs/dependency alignment verified; BubbleLevel releases first; the published commits are merged to `main`. |
+| `[ ]` | Version and publish only with explicit authorization. | Package/version/docs/dependency alignment verified; Thunderstore action explicitly approved. |
 
 ### Deferred
 
