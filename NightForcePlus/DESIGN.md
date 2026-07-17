@@ -43,12 +43,11 @@ names, and prefab script GUIDs.
 | Keep thin component wrappers | Changing script GUIDs or prefab component types risks missing-script migration. | 2026-07-17 |
 | External BubbleLevel package boundary | NightForce declares BubbleLevelSet for the Black mount by object ID; it includes no BubbleLevelSet component types or mount content. | 2026-07-17 |
 | Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
-| Release packaging boundary | User verified both deployed candidates in H3VR and authorized publication. Unity must rebuild release archives with their updated README files before upload. | 2026-07-17 |
+| Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
 
 ## Known limits / backlog
 
 | Priority | Item | Done when |
 | --- | --- | --- |
-| P0 | Unity license recovery | Final source README files are release-ready, but Unity batch mode currently reports an invalid license and cannot regenerate publishable archives. |
 | P1 | Versioned package dependency refresh | NightForce release depends on BubbleLevelSet `2.0.4` for the Black mount. |
 | P1 | Profile/README release alignment | Verified versioned release records matching profile, README, changelog, and dependency versions. |
