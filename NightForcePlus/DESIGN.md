@@ -9,7 +9,7 @@ Black BubbleLevel mount. Both bubbles must follow world gravity consistently.
 
 | In scope | Out of scope |
 | --- | --- |
-| Shared gravity controller, NightForce regression coverage, package-source hygiene, authorized Thunderstore release | Reticle/art/UI redesign |
+| Shared gravity controller, NightForce regression coverage, package-source hygiene | Reticle/art/UI redesign, public release, Thunderstore publish |
 
 ## Architecture
 
@@ -43,12 +43,12 @@ names, and prefab script GUIDs.
 | Keep thin component wrappers | Changing script GUIDs or prefab component types risks missing-script migration. | 2026-07-17 |
 | External BubbleLevel package boundary | NightForce declares BubbleLevelSet for the Black mount by object ID; it includes no BubbleLevelSet component types or mount content. | 2026-07-17 |
 | Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
-| Release packaging boundary | User verified both deployed candidates in H3VR and authorized publication. Unity must rebuild release archives with their updated README files before upload. | 2026-07-17 |
+| No package version bump or publish now | Release versioning waits for verified package, dependency, and H3VR work. | 2026-07-17 |
 
 ## Known limits / backlog
 
 | Priority | Item | Done when |
 | --- | --- | --- |
-| P0 | Unity license recovery | Final source README files are release-ready, but Unity batch mode currently reports an invalid license and cannot regenerate publishable archives. |
+| P0 | Release authorization | Candidate packages are validated; deployment, H3VR testing, and publication remain unrequested. |
 | P1 | Versioned package dependency refresh | NightForce release depends on BubbleLevelSet `2.0.4` for the Black mount. |
 | P1 | Profile/README release alignment | Verified versioned release records matching profile, README, changelog, and dependency versions. |
