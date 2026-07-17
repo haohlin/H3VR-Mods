@@ -15,7 +15,7 @@ State: `active`
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Build item packages BubbleLevel Black mount and its spawn/object entries. | Verified. |
 | Shared source plan | Existing wrapper component classes/field names remain; common gravity implementation lives in BubbleLevel source. | Approved. |
-| Shared controller source | Unity source commit `13517f6` adds `GravityBubbleLevelController`; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
+| Shared controller source | `GravityBubbleLevelController` added; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
 | Unity runtime test | `NightForcePlusRuntimeTests` added for references, one-degree response, reverse mounting, travel limits, and exact MeatKit profile build. | Added; unrun. |
 | Package | Profile is `NightForcePlus` `1.0.5`; README changelog ends at `1.0.4`. | Release metadata reconciliation pending. |
 | Local pipeline | `git diff --check` passes in both repositories. `dotnet`, `csc`, and `mcs` are unavailable. | Partial static evidence only. |
