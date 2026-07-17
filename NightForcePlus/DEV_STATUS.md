@@ -15,10 +15,10 @@ State: `active`
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Build item packages BubbleLevel Black mount and its spawn/object entries. | Verified. |
 | Shared source plan | Existing wrapper component classes/field names remain; common gravity implementation lives in BubbleLevel source. | Approved. |
-| Shared controller source | Unity source commit `e9fc5b9` prepares BubbleLevelSet `2.0.4`, which owns `GravityBubbleLevelController`; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
-| Package boundary | NightForce `1.0.5` declares `HLin_Mods-BubbleLevelSet-2.0.4` and includes only `HLin_Mods.BubbleLevelScope`; shared controller types are supplied by BubbleLevelSet. | Static source check added; package inspection pending. |
+| Shared controller source | Unity source commit `13dcaca` owns `GravityBubbleLevelController` in BubbleLevel; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
+| Package boundary | NightForce profile declares BubbleLevelSet as a dependency but includes only `HLin_Mods.BubbleLevelScope`; shared controller types are supplied by BubbleLevelSet. | Static source check added; package inspection pending. |
 | Unity runtime test | `NightForcePlusRuntimeTests` added for references, one-degree response, reverse mounting, travel limits, and exact MeatKit profile build. | Added; unrun. |
-| Package candidate | Profile and README identify NightForcePlus `1.0.5` as an unreleased candidate requiring BubbleLevelSet `2.0.4`. | Windows package validation pending. |
+| Package | Profile is `NightForcePlus` `1.0.5`; README changelog ends at `1.0.4`. | Release metadata reconciliation pending. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
 | Windows Unity source | Unity project remains clean on `main`, but Unity is currently open. | Waiting for Unity to close before a safe feature-branch switch and batch run. |
 

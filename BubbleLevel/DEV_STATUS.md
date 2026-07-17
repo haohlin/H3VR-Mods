@@ -19,7 +19,7 @@ replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | --- | --- | --- |
 | Unity source | In-place `Assets/Projects` Git root in `H3VR-unity-projects`; matching origin `main` commit | Versioned. |
 | Controller | Current gravity/damping controller, prefabs, `.meta`, test tools, build profile | Versioned in Unity repository. |
-| Shared controller migration | Unity source commit `e9fc5b9` prepares BubbleLevelSet `2.0.4`: it owns `GravityBubbleLevelController` for rail and NightForce scope behavior. NightForce `1.0.5` declares `BubbleLevelSet-2.0.4` as an external dependency rather than embedding its types. Wrapper script GUIDs and serialized field names remain unchanged. | Source changed; Windows Unity/runtime validation pending. |
+| Shared controller migration | Unity source commit `13dcaca` adds `GravityBubbleLevelController` for rail and NightForce scope behavior; NightForce declares BubbleLevelSet as an external dependency rather than embedding its types. Wrapper script GUIDs and serialized field names remain unchanged. | Source changed; Windows Unity/runtime validation pending. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; preflight reports generated source current. | Passed. |
 | Unity runtime checks | Licensed Unity batch `RunAll` passed on 2026-07-14 | Passed. |
 | Sensitivity | Center `-0.008400`; 1° `0.095774` = `0.104174` travel; 4° reaches stop | Passed. |
@@ -55,7 +55,7 @@ Monitor release feedback. Material variants remain optional until visual approva
 | `[x]` | Document BubbleLevelSet usage and release history. | Unity source `README.md` provides contents, behavior, use, and compatibility; `CHANGELOG.md` provides full version history without changing packaged `2.0.3`. |
 | `[x]` | Keep `2.0.3` handoff ready. | `DESIGN.md` and `DEV_STATUS.md` state current release, source-only documentation boundary, verified behavior, and first resume action. |
 | `[x]` | Consolidate handoff state. | `DEV_STATUS.md` holds Status, Plan, and Testing; legacy split files removed. |
-| `[>]` | Validate shared BubbleLevel/NightForce gravity-controller migration. | Windows Unity BubbleLevel `2.0.4` and NightForce `1.0.5` runtime tests, MeatKit package-boundary checks, and H3VR regression cases pass; `2.0.3` remains last runtime-verified release until then. |
+| `[>]` | Validate shared BubbleLevel/NightForce gravity-controller migration. | Windows Unity BubbleLevel and NightForce runtime tests, MeatKit package checks, and H3VR regression cases pass; `2.0.3` remains last runtime-verified release until then. |
 | `[ ]` | Expand post-release H3VR regression coverage. | Offset rail, 30 mm mounts, nested chain, inversion, and settle behavior recorded when practical. |
 | `[ ]` | Decide material candidate. | Explicit approval/rejection; approved path has applied-proof render. |
 
