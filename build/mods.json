@@ -79,6 +79,19 @@
       "unityBuildSuccessMarker": "[BubbleLevelRuntime] MeatKit package built from exact profile:",
       "patchTargets": []
     },
+    "NightForcePlus": {
+      "kind": "unity",
+      "packageName": "NightForcePlus",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-NightForcePlus",
+      "layout": "legacy-flat",
+      "versionProfileRelativePath": "Assets\\Projects\\NightForcePlus\\Profile-NightForcePlus.asset",
+      "packageRelativePath": "AssetBundles\\NightForcePlus\\{version}\\HLin_Mods-NightForcePlus-{version}.zip",
+      "unityBuildMethod": "HLin_Mods.BubbleLevelScope.Editor.NightForcePlusRuntimeTests.BuildNightForcePlusPackage",
+      "unityBuildSuccessMarker": "[NightForcePlusRuntime] MeatKit package built from exact profile:",
+      "patchTargets": []
+    },
     "Teleport": {
       "patchTargets": [
         {
