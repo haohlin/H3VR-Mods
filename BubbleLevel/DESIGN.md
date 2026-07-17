@@ -17,8 +17,14 @@ world gravity
 
 | Part | Controller | Rule |
 | --- | --- | --- |
-| Rail/attachment level | `BubbleLevel` | Gravity-projected local-X travel, damping, hard stops. |
+| Rail/attachment level | `BubbleLevel` | Thin wrapper over shared gravity controller; keeps BubbleLevel calibration. |
 | Integrated 30 mm mounts | `BubbleLevelMount` | Separate pivot/rotation controller; test separately. |
+| NightForce integrated scope level | `BubbleLevelScope` | Thin wrapper over same shared gravity controller; scope calibration stays independent. |
+
+`GravityBubbleLevelController.cs` owns shared gravity projection, spring/drag,
+settle, and hard-stop behavior. Wrapper classes retain their existing Unity
+component identities and serialized field names so prefab script GUIDs do not
+change during the migration.
 
 ## Behavior contract
 
