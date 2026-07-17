@@ -19,8 +19,8 @@ State: `active`
 | Package boundary | NightForce profile declares BubbleLevelSet as a dependency but includes only `HLin_Mods.BubbleLevelScope`; shared controller types are supplied by BubbleLevelSet. | Static source check added; package inspection pending. |
 | Unity runtime test | `NightForcePlusRuntimeTests` added for references, one-degree response, reverse mounting, travel limits, and exact MeatKit profile build. | Added; unrun. |
 | Package | Profile is `NightForcePlus` `1.0.5`; README changelog ends at `1.0.4`. | Release metadata reconciliation pending. |
-| Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
-| Windows Unity source | Unity project remains clean on `main`, but Unity is currently open. | Waiting for Unity to close before a safe feature-branch switch and batch run. |
+| Local pipeline | `git diff --check` passes in both repositories. `dotnet`, `csc`, and `mcs` are unavailable. | Partial static evidence only. |
+| Windows pipeline | Private wrapper preflight succeeds; both Windows worktrees are clean on `main`. Unity is currently open, so switching source branches or starting batch mode would be unsafe. | Waiting for Unity to close. |
 
 ### Open blockers
 
