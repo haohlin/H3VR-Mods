@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-17`
-State: `active`
+State: `1.0.5 candidate validated; release unrequested`
 
 ### Verified now
 
@@ -13,29 +13,27 @@ State: `active`
 | --- | --- | --- |
 | Unity source | `H3VR-unity-projects/NightForcePlus` versioned and clean before migration branch. | Verified. |
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
-| Included mount | Build item packages BubbleLevel Black mount and its spawn/object entries. | Verified. |
-| Shared source plan | Existing wrapper component classes/field names remain; common gravity implementation lives in BubbleLevel source. | Approved. |
-| Shared controller source | Unity source commit `e9fc5b9` prepares BubbleLevelSet `2.0.4`, which owns `GravityBubbleLevelController`; `BubbleLevel` and `BubbleLevelScope` inherit it. Existing NightForce prefab references remain named `baseObject`, `attachment`, and `level_bubble`. | Static source checks pass; Unity compilation pending. |
-| Package boundary | NightForce `1.0.5` declares `HLin_Mods-BubbleLevelSet-2.0.4` and includes only `HLin_Mods.BubbleLevelScope`; shared controller types are supplied by BubbleLevelSet. | Static source check added; package inspection pending. |
-| Unity runtime test | `NightForcePlusRuntimeTests` added for references, one-degree response, reverse mounting, travel limits, and exact MeatKit profile build. | Added; unrun. |
-| Package candidate | Profile and README identify NightForcePlus `1.0.5` as an unreleased candidate requiring BubbleLevelSet `2.0.4`. | Windows package validation pending. |
+| Included mount | Black mount content is no longer packaged. NightForce requests it from BubbleLevelSet by object ID. | Package boundary validated. |
+| Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`; MeatKit compiles that one source into each package while preserving existing scope component identity and fields. | Windows Unity suite passed. |
+| Package boundary | NightForce `1.0.5` manifest requires `HLin_Mods-BubbleLevelSet-2.0.4`; its DLL contains shared-motion metadata but no BubbleLevelSet component or mount types. | Package inspection passed. |
+| Unity runtime test | `NightForcePlusRuntimeTests` checks references, one-degree response, reverse mounting, limits, source boundary, and exact profile build. | Passed in Windows batch mode. |
+| Package candidate | MeatKit package and archive validation passed. SHA-256 `B5ABFF605116697FD64BCAED276A5FD98BDC36988A5771CDD0463E44C61CAF7C`. | Passed. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
-| Windows Unity source | Unity project remains clean on `main`, but Unity is currently open. | Waiting for Unity to close before a safe feature-branch switch and batch run. |
+| Windows Unity source | Editor closed; feature branch checked out. Generated `BubbleLevel/CHANGELOG.md.meta` is untracked and preserved. | Tracked source unchanged by tests. |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| Unity editor active | Close Unity before switching the Windows Unity worktree to the feature branch and starting batch tests. | Maintainer environment |
-| New dependency release not created | Versioned BubbleLevelSet release containing shared base before NightForce package update. | Maintainer release decision |
+| Release authorization | BubbleLevelSet `2.0.4` must be published before NightForcePlus `1.0.5`; merge tested commits into `main` afterward. | Maintainer release decision |
 
 ## Plan
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[x]` | Migrate scope controller to shared gravity base and add source/runtime tests. | Shared source and wrapper inheritance are present; source checks and `.meta` identities are recorded. |
-| `[>]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper test/build/package, and package contents pass. |
-| `[ ]` | Perform H3VR VR acceptance. | Scope bubble, Black mount, reticles, zoom, turrets, and 180-degree mounting work without log errors. |
+| `[x]` | Migrate scope controller to shared motion source and add source/runtime tests. | One source governs both packages while MeatKit-safe component types remain package-local. |
+| `[x]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper tests, packages, manifests, and DLL metadata pass. |
+| `[-]` | Perform H3VR VR acceptance. | Not requested by user; no deployment occurred. |
 | `[ ]` | Version and publish only with explicit authorization. | Package/version/docs/dependency alignment verified; BubbleLevel releases first; the published commits are merged to `main`. |
 
 ### Deferred
@@ -65,8 +63,8 @@ State: `active`
 
 ### Release gate
 
-- [ ] Current Windows source and managed DLL status checked.
-- [ ] Automated checks pass.
-- [ ] Package payload/version verified.
-- [ ] Deployment receipt and BepInEx log checked.
-- [ ] Required VR interaction completed.
+- [x] Current Windows source and managed DLL status checked.
+- [x] Automated checks pass.
+- [x] Package payload/version verified.
+- [-] Deployment receipt and BepInEx log not requested.
+- [-] VR interaction not requested.

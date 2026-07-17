@@ -15,14 +15,16 @@ Black BubbleLevel mount. Both bubbles must follow world gravity consistently.
 
 ```text
 world gravity
-  -> BubbleLevel/GravityBubbleLevelController.cs
+  -> BubbleLevel/GravityBubbleLevelController.cs: GravityBubbleLevelMotion
   -> BubbleLevel or BubbleLevelScope wrapper
   -> bubble local-X travel with damping and hard stops
 ```
 
-`GravityBubbleLevelController` is owned by BubbleLevel Unity source in
-`HLin_Mods.BubbleLevelSet`. `BubbleLevel` and `BubbleLevelScope` keep their
-existing component classes, serialized field names, and prefab script GUIDs.
+`GravityBubbleLevelMotion` is owned by the BubbleLevel Unity source. MeatKit
+requires the script used by a prefab to be included in that prefab's package,
+so both package assemblies compile this one source while `BubbleLevel` and
+`BubbleLevelScope` retain their existing component classes, serialized field
+names, and prefab script GUIDs.
 
 ## Invariants
 
@@ -37,9 +39,9 @@ existing component classes, serialized field names, and prefab script GUIDs.
 
 | Decision | Reason | Date |
 | --- | --- | --- |
-| Shared abstract base in BubbleLevel source | One physics implementation; two Unity component identities remain stable. | 2026-07-17 |
+| Shared static motion source in BubbleLevel | One physics implementation source; MeatKit-safe package-local component types. | 2026-07-17 |
 | Keep thin component wrappers | Changing script GUIDs or prefab component types risks missing-script migration. | 2026-07-17 |
-| External BubbleLevel package boundary | NightForce declares BubbleLevelSet as a dependency and includes only its own namespace; it must not embed BubbleLevelSet types. | 2026-07-17 |
+| External BubbleLevel package boundary | NightForce declares BubbleLevelSet for the Black mount by object ID; it includes no BubbleLevelSet component types or mount content. | 2026-07-17 |
 | Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
 | No package version bump or publish now | Release versioning waits for verified package, dependency, and H3VR work. | 2026-07-17 |
 
@@ -47,6 +49,6 @@ existing component classes, serialized field names, and prefab script GUIDs.
 
 | Priority | Item | Done when |
 | --- | --- | --- |
-| P0 | Windows Unity and MeatKit validation | Current Unity runtime test, wrapper build, package, and H3VR VR cases pass. |
-| P1 | Versioned package dependency refresh | NightForce release depends on first BubbleLevelSet release containing shared base class. |
+| P0 | Release authorization | Candidate packages are validated; deployment, H3VR testing, and publication remain unrequested. |
+| P1 | Versioned package dependency refresh | NightForce release depends on BubbleLevelSet `2.0.4` for the Black mount. |
 | P1 | Profile/README release alignment | Verified versioned release records matching profile, README, changelog, and dependency versions. |
