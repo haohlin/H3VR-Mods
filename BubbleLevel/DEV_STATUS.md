@@ -20,6 +20,7 @@ replaces split `STATUS.md`, `PLAN.md`, and `TESTING.md` files.
 | Unity source | In-place `Assets/Projects` Git root in `H3VR-unity-projects`; matching origin `main` commit | Versioned. |
 | Controller | Current gravity/damping controller, prefabs, `.meta`, test tools, build profile | Versioned in Unity repository. |
 | Shared controller migration | Unity source commit `13dcaca` adds `GravityBubbleLevelController` for rail and NightForce scope behavior; NightForce declares BubbleLevelSet as an external dependency rather than embedding its types. Wrapper script GUIDs and serialized field names remain unchanged. | Source changed; Windows Unity/runtime validation pending. |
+| Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; preflight reports generated source current. | Passed. |
 | Unity runtime checks | Licensed Unity batch `RunAll` passed on 2026-07-14 | Passed. |
 | Sensitivity | Center `-0.008400`; 1° `0.095774` = `0.104174` travel; 4° reaches stop | Passed. |
 | 180° rail | Local positions `0.095774` / `-0.107402`; world movement dot `1.000000` | Passed. |
