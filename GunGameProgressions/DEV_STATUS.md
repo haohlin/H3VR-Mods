@@ -29,8 +29,8 @@ State: `1.4.0 released on Thunderstore; Modded optic-policy candidate awaiting W
 | One-minute runtime result | Initial Modded scan: `867 ms`, `2` entries while loaders registered. Scheduled one-minute scan: `1,053 ms`, `1,435` entries and saved pools. | Real Modded-profile BepInEx log. |
 | External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
 | Release boundary | Release source, skill guidance, and handoff record are on `main`; package was rebuilt from `main` before publish. | Windows Git, Test, Verify, Build, Package, and Thunderstore publish evidence. |
-| Compatibility candidate | Runtime 05 tests former exclusions; `Slingshot` remains sole blacklist; normal pools use last-resort catalog Picatinny scope fallback after direct/proprietary/exact selection. | Windows `Test` passed `87/87`; `SourceStatus`, `Verify`, `Build`, `Package`, and `Deploy` passed on feature commit `970ecba`. |
-| Offline fallback | Both tracked Vanilla pools regenerated from shared policy version `14`. | Windows `OfflineProfileGenerator`, then full Windows test suite `87/87`. |
+| Compatibility candidate | Runtime 05 tests former exclusions; `Slingshot` remains sole blacklist. Modded normal/probe pools use safe universal optic policy: exact route first, Modded reflex/RMR allowed, curated vanilla RMR/red-dot/low-power/LPVO fallback only. | Windows `SourceStatus`, `Verify`, `Test` `88/88`, `Build`, `Package`, and `Deploy` passed on feature commit `dc3d374`. |
+| Offline fallback | Both tracked Vanilla pools remain byte-equivalent after regeneration from shared policy version `15`; the known-good Vanilla content did not change. | Windows `OfflineProfileGenerator`, clean Git diff after staging refresh, then full Windows test suite `88/88`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
 | Live Compatibility Probe | Runtime 05 generated `46` test firearms from a `1,148`-entry Modded capture. | Live BepInEx receipt and trace: `compatibility probe updated: 46 test firearms.` |
 | Live GunGame failure | `GrappleGun` with direct `MagazineGrappleGun` fails GunGame chamber loading, then throws from `WeaponBuffer.SpawnImmediate` before optic mounting. | Live BepInEx: `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)` plus `NullReferenceException` / `KeyNotFoundException` stack traces. |
@@ -40,6 +40,7 @@ State: `1.4.0 released on Thunderstore; Modded optic-policy candidate awaiting W
 | MP5 metadata gap | MP5/SP5 entries expose bespoke adapter IDs but no dedicated optic ID or adapter-provided mount type. Current catalog-only resolver cannot prove a dedicated MP5 optic route. | Live `ObjectData.json`: `MP5PicatinnyAdapter` is `Adapter` on `Bespoke`, with empty `ProvidedMountTypes`; no MP5 optic entry exists. |
 | MP5 duplication | Released Vanilla has `29` MP5/SP5 variants; Runtime 05 has `19` more duplicates. | Release/current pool audit. |
 | Modded optic gap | Existing fallback selected any catalog `Scope`, including Modded/high-power scopes, and ignored reflex/RMR role fallback. MP5 adapter and several Modded VAL entries omit catalog output/mount data. | Source plus live catalog audit; real mount retry can occur only after normal gameplay spawn. |
+| Safe Modded optic candidate | Modded magnified scopes are rejected. Exact Russian routes select vanilla Russian scope; unresolved handgun, CQC, and rifle routes select curated vanilla RMR, red-dot/low-power, and LPVO/low-power candidates. If catalog mount tags are absent, spawn safety retries matching vanilla candidates only after actual firearm spawn. | Focused regression plus Windows suite `88/88`; live catalog verified all `17` fallback IDs exist. Deployment completed; VR mount behavior pending human confirmation. |
 
 ## Plan
 
@@ -53,7 +54,7 @@ State: `1.4.0 released on Thunderstore; Modded optic-policy candidate awaiting W
 | In progress | VR-test Runtime 05 and global Picatinny fallback. | Launch configured profile once, inspect BepInEx log, cycle every Runtime 05 weapon; record spawn/feed/physical-optic failures. No exception, wrong feed, or runaway memory. |
 | Pending decision | Classify confirmed Runtime 05 failures before allowing them in normal pools. | Keep each failed firearm testable in Runtime 05; exclude it from normal pools only with recorded live evidence and regression test. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
-| In progress | Validate safe universal Modded optics. | Windows `Test`, `Verify`, `Build`, `Package`, `Deploy`; Modded handgun gets RMR, Picatinny rifle gets vanilla low-power/LPVO, Russian rail gets vanilla Russian scope, MP5 adapter mounts vanilla red dot; Vanilla fallback remains unchanged. |
+| In progress | VR-test safe universal Modded optics. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets vanilla Russian scope; MP5 adapter mounts vanilla red dot; no loose/unmounted duplicate optic or spawn exception. |
 
 ## Testing
 
@@ -66,8 +67,8 @@ State: `1.4.0 released on Thunderstore; Modded optic-policy candidate awaiting W
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
-| Compatibility candidate | Deployed from `970ecba`; launch configured profile, select Runtime 05, cycle every weapon, then inspect log. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. Normal pools retain proprietary/exact optics before fallback. |
-| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `14` before any release. |
+| Compatibility candidate | Deployed safe-optic candidate; launch configured profile, select Modded pool and Runtime 05, then inspect log. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. |
+| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `15` and remain unchanged before any release. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
 `DEV_STATUS.md`, or `GENERATION_POLICY.md`.
