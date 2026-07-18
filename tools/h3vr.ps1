@@ -4,7 +4,7 @@ param(
     [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
-    [ValidateSet('ThePing', 'GunGameProgressions', 'BubbleLevel', 'NightForcePlus', 'Teleport', 'RemoveWhiteOut')]
+    [ValidateSet('ThePing', 'NuketownGunGameCompatibilityPatch', 'GunGameProgressions', 'BubbleLevel', 'NightForcePlus', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
     [string]$Query,

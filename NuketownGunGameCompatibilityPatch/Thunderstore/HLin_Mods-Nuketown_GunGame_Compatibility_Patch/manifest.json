@@ -1,0 +1,12 @@
+{
+  "name": "Nuketown_GunGame_Compatibility_Patch",
+  "author": "HLin_Mods",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/haohlin/H3VR-Mods",
+  "description": "Restores original BO1 Nuketown GunGame scene registration beside current GunGame. Does not replace or redistribute map files.",
+  "dependencies": [
+    "localpcnerd-NuketownGunGame-2.1.6",
+    "Kodeman-GunGame-1.0.2",
+    "nrgill28-Atlas-1.0.0"
+  ]
+}

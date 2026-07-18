@@ -25,6 +25,26 @@
         }
       ]
     },
+    "NuketownGunGameCompatibilityPatch": {
+      "kind": "dotnet",
+      "projectDir": "NuketownGunGameCompatibilityPatch",
+      "csproj": "NuketownGunGameCompatibilityPatch\\NuketownGunGameCompatibilityPatch.csproj",
+      "assemblyName": "NuketownGunGameCompatibilityPatch",
+      "targetFramework": "net35",
+      "packageSource": "NuketownGunGameCompatibilityPatch\\Thunderstore\\HLin_Mods-Nuketown_GunGame_Compatibility_Patch",
+      "packageName": "Nuketown_GunGame_Compatibility_Patch",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-Nuketown_GunGame_Compatibility_Patch",
+      "layout": "legacy-flat",
+      "payload": [
+        {
+          "from": "NuketownGunGameCompatibilityPatch\\bin\\Release\\net35\\NuketownGunGameCompatibilityPatch.dll",
+          "to": "NuketownGunGameCompatibilityPatch.dll"
+        }
+      ],
+      "patchTargets": []
+    },
     "GunGameProgressions": {
       "kind": "python",
       "projectDir": "GunGameProgressions",
