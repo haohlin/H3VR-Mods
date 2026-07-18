@@ -15,13 +15,14 @@ State: `active`
 | Test / verify | Windows `h3vr.ps1 -Action Test`: 87 passed, 0 failed. `Verify` passed. | Verified |
 | Build / package | Windows Release build: 0 warnings, 0 errors. Package `1.0.0` SHA-256: `86FCFF9632E8722087E71EAE4928498571011C4A02B0A288D434BD0956135009`. | Verified |
 | Deploy | Wrapper deployed package and created a rollback-capable receipt. | Verified |
-| Launch / VR | Active Windows desktop, Steam, loader, and map prerequisites verified. Three interactive-task Steam-URI dispatch variants produced no `h3vr.exe` or BepInEx output; direct Explorer task returned exit code `1`. | Blocked externally |
+| Launch / VR | r2modman native Modded launch created `h3vr.exe`. BepInEx loaded patch `1.0.0`; Atlas registered BO1 Nuketown; compatibility registration took 91 ms and logs no per-frame work. | Verified |
+| Runtime warning | Profile BepInEx is `5.4.17`; plugin compiled against `5.4.20`, producing a non-fatal compatibility warning despite successful load. | Pending release cleanup |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| BepInEx startup proof | Start H3VR from the active Windows Steam desktop, then inspect the profile log. The remote task dispatcher cannot currently trigger the Steam URI despite a valid user session. | User / Codex |
+| BepInEx reference warning | Pin the compile-time BepInEx reference to the active profile version, then rebuild and repeat startup proof. | Codex |
 | Full map gameplay acceptance | Runtime load and GunGame progression test in H3VR. | Codex + player VR acceptance |
 
 ## Plan
@@ -31,8 +32,8 @@ Keep one item active.
 | State | Item | Acceptance condition |
 | --- | --- | --- |
 | `[x]` | Implement, package, and deploy compatibility plugin. | Package contains only the compatibility DLL and metadata; Windows build, package, and deploy passed. |
-| `[>]` | Launch and inspect BepInEx registration. | A Steam-desktop launch creates `h3vr.exe`; log shows one compatibility registration and Atlas scene registration. |
-| `[ ]` | Perform manual VR gameplay acceptance. | Start, progression, death, respawn, and exit work normally. |
+| `[x]` | Launch and inspect BepInEx registration. | r2modman native launch created `h3vr.exe`; log shows one compatibility registration and Atlas scene registration. |
+| `[>]` | Perform manual VR gameplay acceptance. | BO1 Nuketown appears, loads, starts, promotes, demotes, respawns, and exits normally. |
 | `[ ]` | Publish with explicit user approval. | Versioned package passes release checks. |
 
 ### Deferred
@@ -55,7 +56,7 @@ Keep one item active.
 
 | Case | Expected result | Evidence |
 | --- | --- | --- |
-| Startup | Compatibility plugin loads once and Atlas registers BO1 Nuketown. | Pending Steam-desktop launch. |
+| Startup | Compatibility plugin loads once and Atlas registers BO1 Nuketown. | Verified: `Nuketown GunGame Compatibility Patch 1.0.0` loaded; Atlas registered BO1 Nuketown; registration took 91 ms. |
 | Map selector | BO1 Nuketown appears and loads. | Pending |
 | Gameplay | Start, kill promotion, death demotion, respawn, and exit work. | Pending |
 
@@ -65,5 +66,5 @@ Keep one item active.
 - [x] Automated checks pass.
 - [x] Package payload/version verified.
 - [x] Deployment receipt created.
-- [ ] BepInEx log checked.
+- [x] BepInEx log checked.
 - [ ] Required VR interaction completed.
