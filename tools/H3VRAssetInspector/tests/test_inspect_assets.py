@@ -36,6 +36,18 @@ class InspectAssetsTests(unittest.TestCase):
                 "fallback",
             ),
         )
+        self.assertEqual(
+            {"x": 1.0, "y": 2.0},
+            INSPECTOR.normalize_configuration_value({"x": 1.0, "y": 2.0}),
+        )
+        self.assertEqual(
+            {"time": 0.0, "value": 3.0},
+            INSPECTOR.normalize_configuration_value({"time": 0.0, "value": 3.0}),
+        )
+        self.assertEqual(
+            [("Components[0].Geo", 123)],
+            list(INSPECTOR.pointer_paths({"Components": [{"Geo": {"m_FileID": 0, "m_PathID": 123}}]})),
+        )
 
     def test_pip_scope_components_and_reference_summaries_stay_structural(self):
         components = INSPECTOR.normalize_pip_scope_components(

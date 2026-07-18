@@ -60,6 +60,19 @@ PIP_SCOPE_COMPONENT_FIELDS = (
     "UsesIncrementalValues",
     "IncrementalValue",
 )
+PIP_SCOPE_SCRIPT_FIELDS = {
+    "PIPScopeController": ("Components",),
+    "PIPScopeInteraction": (
+        "Controller",
+        "OptionType",
+        "IncrementBehavior",
+        "RotationMagnitudePerOption",
+        "DoesFlickIncrement",
+        "ForceAlwaysInteractable",
+    ),
+    "PIPScopeMagnificationInteraction": ("Controller", "RotationRange", "MagnificationCurve"),
+    "PIPScope_Camera": ("pScope",),
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -208,6 +221,37 @@ def normalize_pip_scope_components(value: Any) -> Any:
     return components
 
 
+def normalize_configuration_value(value: Any, depth: int = 0) -> Any:
+    """Keep finite config values useful for recreating PIP wiring."""
+    if depth > 4:
+        return {"objectKeys": sorted(str(key) for key in value)[:20]} if isinstance(value, dict) else str(value)[:MAX_SIGNAL_STRING_LENGTH]
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return normalize_value(value)
+    if isinstance(value, (list, tuple)):
+        return [normalize_configuration_value(item, depth + 1) for item in value[:32]]
+    if isinstance(value, dict):
+        pointer = normalize_value(value)
+        if isinstance(pointer, dict) and "m_PathID" in pointer:
+            return pointer
+        vector_keys = {"x", "y", "z", "w", "r", "g", "b", "a"}
+        keyframe_keys = {"time", "value", "inSlope", "outSlope", "tangentMode", "weightedMode", "inWeight", "outWeight"}
+        if set(value).issubset(vector_keys):
+            return {key: normalize_configuration_value(value[key], depth + 1) for key in sorted(value)}
+        if set(value).issubset(keyframe_keys):
+            return {key: normalize_configuration_value(value[key], depth + 1) for key in sorted(value)}
+        if "m_Curve" in value:
+            return {
+                "m_Curve": normalize_configuration_value(value["m_Curve"], depth + 1),
+                **{
+                    key: normalize_configuration_value(value[key], depth + 1)
+                    for key in ("m_PreInfinity", "m_PostInfinity")
+                    if key in value
+                },
+            }
+        return {"objectKeys": sorted(str(key) for key in value)[:20]}
+    return str(value)[:MAX_SIGNAL_STRING_LENGTH]
+
+
 def reference_summary(record: dict[str, Any] | None) -> dict[str, Any] | None:
     if not record:
         return None
@@ -217,6 +261,20 @@ def reference_summary(record: dict[str, Any] | None) -> dict[str, Any] | None:
         if value:
             summary[key] = value
     return summary
+
+
+def pointer_paths(value: Any, path: str = "") -> Iterable[tuple[str, int]]:
+    path_id = pointer_path_id(value)
+    if path_id is not None:
+        yield path, path_id
+        return
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = str(key) if not path else path + "." + str(key)
+            yield from pointer_paths(child, child_path)
+    elif isinstance(value, (list, tuple)):
+        for index, child in enumerate(value):
+            yield from pointer_paths(child, path + "[" + str(index) + "]")
 
 
 def collect_signals(value: Any, path: str = "", depth: int = 0, result: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -334,10 +392,16 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
         script_text = " ".join(script.values()) if script else ""
         if not (signals or is_interesting_text(name) or is_interesting_text(script_text) or object_type in {"Material", "MonoBehaviour", "GameObject"}):
             continue
-        if script and script.get("className") == "PIPScopeController" and isinstance(parsed, dict):
-            components = parsed.get("Components")
-            if components is not None:
-                signals.append({"path": "Components", "value": normalize_pip_scope_components(components)})
+        if script and isinstance(parsed, dict):
+            for field in PIP_SCOPE_SCRIPT_FIELDS.get(script.get("className", ""), ()):
+                if any(signal["path"] == field for signal in signals) or field not in parsed:
+                    continue
+                value = (
+                    normalize_pip_scope_components(parsed[field])
+                    if field == "Components"
+                    else normalize_configuration_value(parsed[field])
+                )
+                signals.append({"path": field, "value": value})
         record: dict[str, Any] = {
             "type": object_type,
             "name": name[:MAX_SIGNAL_STRING_LENGTH],
@@ -360,12 +424,18 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
     for record in records:
         references: list[dict[str, Any]] = []
         for signal in record["signals"]:
-            path_id = pointer_path_id(signal["value"])
-            if path_id is None or path_id == 0:
-                continue
-            target = reference_summary(records_by_path_id.get(path_id))
-            if target is not None:
-                references.append({"field": signal["path"], "target": target})
+            for relative_path, path_id in pointer_paths(signal["value"]):
+                if path_id == 0:
+                    continue
+                target = reference_summary(records_by_path_id.get(path_id))
+                if target is not None:
+                    if not relative_path:
+                        field = signal["path"]
+                    elif relative_path.startswith("["):
+                        field = signal["path"] + relative_path
+                    else:
+                        field = signal["path"] + "." + relative_path
+                    references.append({"field": field, "target": target})
         if references:
             record["references"] = references
 
