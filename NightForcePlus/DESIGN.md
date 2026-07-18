@@ -35,6 +35,14 @@ PIP API, creates the native scope/camera/controller/interactions, transfers the
 NightForce data, and removes the legacy components. No game DLL, shader, or
 third-party asset is copied into the project or package.
 
+The bridge must replace both ends of H3VR's attachment link: the native
+`PIPScopeController.Attachment` points at NightForce's existing
+`FVRFireArmAttachment`, and that attachment's `AttachmentInterface` points back
+at the controller. Native direct-hand interactions require colliders on the UI,
+zoom ring, elevation, and windage controls. The runtime material is created
+from installed H3VR's native PIP shader; no extracted shader or material enters
+NightForce source or payload.
+
 ## Invariants
 
 - Existing `baseObject`, `attachment`, and `level_bubble` prefab references stay valid.
@@ -58,6 +66,7 @@ third-party asset is copied into the project or package.
 | Manifest-first PIP research | Default to hash-backed structural manifests and Unity batch audits. An owner-authorized private full rip may validate recovery/reconstruction, but raw payloads never enter repository source, release packages, or Thunderstore. | 2026-07-18 |
 | Native PIP reference basis | Fixed-scope and variable-scope reference manifests, plus current installed PIP API source, establish native camera, material, reticle, controller, and direct-hand interaction relationships before changing the NightForce prefab. | 2026-07-18 |
 | Runtime PIP bridge | MeatKit's compile API lacks the current PIP types. Keep the prefab/package self-contained with a reflection bridge that resolves those types only from the installed game at runtime. | 2026-07-18 |
+| Native attachment replacement | Replacing only the legacy interface left the new controller detached, so H3VR never enabled its UI or direct interactions. Rewire both attachment fields before removing legacy runtime components. | 2026-07-18 |
 
 ## Known limits / backlog
 
