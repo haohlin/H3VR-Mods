@@ -274,20 +274,44 @@ public sealed class GunGameGeneratorTests
         var probeIds = Assert.IsAssignableFrom<IEnumerable>(
             rulesType.GetProperty("CompatibilityProbeFirearms")!.GetValue(rules));
         Assert.Equal(new[] { "ProbeFirearm" }, probeIds.Cast<string>().ToArray());
+        var forceIncludeIds = Assert.IsAssignableFrom<IEnumerable>(
+            rulesType.GetProperty("CompatibilityProbeForceIncludeFirearms")!.GetValue(rules));
+        Assert.Empty(forceIncludeIds.Cast<string>());
     }
 
     [Fact]
-    public void Production_profile_rules_blacklist_only_slingshot()
+    public void Production_profile_rules_keep_requested_runtime_exclusions_and_probe_overrides()
     {
         var rulesPath = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(PluginSourcePath)!,
             "..",
             "..",
             "profile-rules.json"));
-        var rules = File.ReadAllText(rulesPath);
+        using var rules = JsonDocument.Parse(File.ReadAllText(rulesPath));
+        var firearmBlacklist = rules.RootElement
+            .GetProperty("firearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
+        var forceIncludes = rules.RootElement
+            .GetProperty("compatibilityProbeForceIncludeFirearms")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
 
-        Assert.Contains("\"firearmBlacklist\": [\"Slingshot\"]", rules, StringComparison.Ordinal);
-        Assert.Contains("\"feedBlacklist\": []", rules, StringComparison.Ordinal);
+        Assert.Equal(
+            new[]
+            {
+                "Slingshot", "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
+                "PlungerLauncher", "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
+                "MP5A3", "MP5A4", "MP5K", "MP5KA2", "MP5KA3", "MP5KN", "MP5SD1", "MP5SD2",
+                "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding",
+            },
+            firearmBlacklist);
+        Assert.Equal(
+            new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
+            forceIncludes);
+        Assert.Equal(0, rules.RootElement.GetProperty("feedBlacklist").GetArrayLength());
     }
 
     [WindowsH3vrFact]
@@ -1344,6 +1368,44 @@ public sealed class GunGameGeneratorTests
         var gun = Assert.Single(ReadObjects(pool, "Guns"));
         Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
         Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
+        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_compatibility_probe_force_includes_only_explicit_unsafe_test_firearms()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 5));
+        var entries = Array.CreateInstance(entryType, 3);
+        var unsafeProbe = RuntimeEntry(entryType, "UnsafeProbe", "Firearm", false);
+        SetRuntimeProperty(entryType, unsafeProbe, "CompatibleMagazines", new List<string> { "UnsafeProbeMagazine" });
+        SetRuntimeProperty(entryType, unsafeProbe, "IsGunGameRoundDisplaySupported", false);
+        SetRuntimeProperty(entryType, unsafeProbe, "IsVerifiedFirearmPrefab", false);
+        entries.SetValue(unsafeProbe, 0);
+        entries.SetValue(RuntimeEntry(entryType, "UnsafeProbeMagazine", "Magazine", false, magazineType: 1), 1);
+        var scope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(scope, 2);
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var withoutOverride = buildProbe.Invoke(
+            null,
+            new object[] { entries, enemies, new[] { "UnsafeProbe" }, Array.Empty<string>(), new SequenceRandom(0d) });
+        Assert.Empty(ReadObjects(withoutOverride!, "Pools"));
+
+        var withOverride = buildProbe.Invoke(
+            null,
+            new object[] { entries, enemies, new[] { "UnsafeProbe" }, new[] { "UnsafeProbe" }, new SequenceRandom(0d) });
+        var pool = Assert.Single(ReadObjects(withOverride!, "Pools"));
+        var gun = Assert.Single(ReadObjects(pool, "Guns"));
+        Assert.Equal("UnsafeProbe", ReadString(gun, "GunName"));
+        Assert.Equal("UnsafeProbeMagazine", ReadString(gun, "MagName"));
         Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
     }
 

@@ -101,6 +101,7 @@ internal static class Program
             entries,
             ProbeEnemies,
             rules.CompatibilityProbeFirearms,
+            rules.CompatibilityProbeForceIncludeFirearms,
             new Random(OfflineSeed));
         var pool = result.Pools.SingleOrDefault(candidate => candidate.Family == "05_Compatibility_Probe");
         if (pool == null)

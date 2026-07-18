@@ -1230,9 +1230,9 @@ public sealed class Plugin : BaseUnityPlugin
         bool confirmedEmptySnapshot)
     {
         var rules = ProfileRules.Load(packagePath);
-        var profileEntries = phase == RuntimeGenerationPhase.Modded
-            ? entries.Where(entry => !entry.IsModContent || !rules.IsBlacklisted(entry)).ToList()
-            : entries;
+        var profileEntries = phase == RuntimeGenerationPhase.Vanilla
+            ? entries
+            : entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
         var phaseName = phase.ToString().ToLowerInvariant();
         var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
         var randomSeed = RuntimePoolPersistence.CreateStableSeed(contentFingerprint);
@@ -1241,6 +1241,7 @@ public sealed class Plugin : BaseUnityPlugin
                 profileEntries,
                 enemyEntries,
                 rules.CompatibilityProbeFirearms,
+                rules.CompatibilityProbeForceIncludeFirearms,
                 new System.Random(randomSeed))
             : phase == RuntimeGenerationPhase.Modded
                 ? RuntimeProfileBuilder.BuildModdedWithDiagnostics(

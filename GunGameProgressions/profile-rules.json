@@ -1,5 +1,10 @@
 {
-  "firearmBlacklist": ["Slingshot"],
+  "firearmBlacklist": [
+    "Slingshot", "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
+    "PlungerLauncher", "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
+    "MP5A3", "MP5A4", "MP5K", "MP5KA2", "MP5KA3", "MP5KN", "MP5SD1", "MP5SD2",
+    "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding"
+  ],
   "compatibilityProbeFirearms": [
     "MF_Syringegun", "Degle", "PotatoGun", "Stinger", "COOLCLOSEDBOLT", "COOLREVOLVER", "GrappleGun",
     "GravitonBeamer", "PlungerLauncher", "BrownBess", "BrownBessRamrod", "HeavyFlintlock18thCentury",
@@ -9,6 +14,9 @@
     "SP5KFolding", "Whizzbanger", "P6Twelve", "MF_Signaler", "MP5SFA2", "MP5SD1", "MP5SD2", "MP5SD3",
     "MP5SD5", "MP5SD4", "MP5K", "MP5KA2", "MP5KA3", "MP510A4", "MP540A4", "MP5A2", "MP5A3",
     "MP5A4", "MP5KN", "Quackenbush1886", "Airgun", "LadiesPepperbox", "LaserPistol", "M6Survival", "P11"
+  ],
+  "compatibilityProbeForceIncludeFirearms": [
+    "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger"
   ],
   "feedBlacklist": [],
   "offlinePrimaryFeeds": {

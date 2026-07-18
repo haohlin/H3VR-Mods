@@ -44,7 +44,7 @@ same integration; no map-specific patch is the normal design.
 | 02 | Modded Rot | Active mod firearms | Rotwieners |
 | 03 | Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
 | 04 | Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
-| 05 | Compatibility Probe | Former blacklist candidates with proven feeds | Rotwieners |
+| 05 | Compatibility Probe | Configured test candidates; direct-safe feeds plus explicit diagnostic overrides only | Rotwieners |
 
 The names and order are compatibility contracts. The two tracked offline
 Vanilla files are the safe packaged fallback; user-specific Modded files are
@@ -141,7 +141,7 @@ letting a bad loadout derail a session.
 | `no modded pools available` | No compatible active Modded firearms were found. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
-| `compatibility probe updated` | Runtime 05 wrote former blacklist candidates for manual compatibility testing. |
+| `compatibility probe updated` | Runtime 05 wrote configured compatibility candidates for manual testing. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Metadata merge,
@@ -182,7 +182,7 @@ writes turn a transient loader problem into a stutter.
 | `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
-| `profile-rules.json` | Slingshot blacklist plus Runtime 05 candidate list. |
+| `profile-rules.json` | Runtime Modded/05 firearm exclusions, Runtime 05 candidates, and five explicit Runtime 05-only unsafe-test overrides. |
 | Package README | Player-facing installation and use guidance. |
 
 Never package a player's captured Modded pool, private paths, credentials,
