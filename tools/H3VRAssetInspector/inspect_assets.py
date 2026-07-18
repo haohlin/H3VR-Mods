@@ -51,6 +51,15 @@ INTEREST_OBJECT_TYPES = {
 }
 MAX_SIGNALS_PER_OBJECT = 120
 MAX_SIGNAL_STRING_LENGTH = 384
+PIP_SCOPE_COMPONENT_FIELDS = (
+    "OptionType",
+    "Geo",
+    "Axis",
+    "Interp",
+    "Values",
+    "UsesIncrementalValues",
+    "IncrementalValue",
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -181,6 +190,35 @@ def script_identity(value: Any, fallback_name: str) -> dict[str, str]:
     return result
 
 
+def normalize_pip_scope_components(value: Any) -> Any:
+    """Keep controller visual-component configuration, without arbitrary object data."""
+    if not isinstance(value, (list, tuple)):
+        return normalize_value(value)
+    components: list[dict[str, Any]] = []
+    for component in value[:32]:
+        if not isinstance(component, dict):
+            continue
+        components.append(
+            {
+                key: normalize_value(component.get(key))
+                for key in PIP_SCOPE_COMPONENT_FIELDS
+                if key in component
+            }
+        )
+    return components
+
+
+def reference_summary(record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not record:
+        return None
+    summary: dict[str, Any] = {"pathId": record.get("pathId"), "type": record.get("type")}
+    for key in ("name", "gameObjectName", "script"):
+        value = record.get(key)
+        if value:
+            summary[key] = value
+    return summary
+
+
 def collect_signals(value: Any, path: str = "", depth: int = 0, result: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     signals = result if result is not None else []
     if depth > 8 or len(signals) >= MAX_SIGNALS_PER_OBJECT:
@@ -296,6 +334,10 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
         script_text = " ".join(script.values()) if script else ""
         if not (signals or is_interesting_text(name) or is_interesting_text(script_text) or object_type in {"Material", "MonoBehaviour", "GameObject"}):
             continue
+        if script and script.get("className") == "PIPScopeController" and isinstance(parsed, dict):
+            components = parsed.get("Components")
+            if components is not None:
+                signals.append({"path": "Components", "value": normalize_pip_scope_components(components)})
         record: dict[str, Any] = {
             "type": object_type,
             "name": name[:MAX_SIGNAL_STRING_LENGTH],
@@ -309,6 +351,23 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
         if parse_error:
             record["parseError"] = parse_error
         records.append(record)
+
+    records_by_path_id = {
+        record["pathId"]: record
+        for record in records
+        if isinstance(record.get("pathId"), int)
+    }
+    for record in records:
+        references: list[dict[str, Any]] = []
+        for signal in record["signals"]:
+            path_id = pointer_path_id(signal["value"])
+            if path_id is None or path_id == 0:
+                continue
+            target = reference_summary(records_by_path_id.get(path_id))
+            if target is not None:
+                references.append({"field": signal["path"], "target": target})
+        if references:
+            record["references"] = references
 
     result: dict[str, Any] = {
         "source": source,

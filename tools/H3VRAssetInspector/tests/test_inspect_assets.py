@@ -37,6 +37,46 @@ class InspectAssetsTests(unittest.TestCase):
             ),
         )
 
+    def test_pip_scope_components_and_reference_summaries_stay_structural(self):
+        components = INSPECTOR.normalize_pip_scope_components(
+            [
+                {
+                    "OptionType": 0,
+                    "Geo": {"m_FileID": 0, "m_PathID": 123},
+                    "Axis": 2,
+                    "Interp": 1,
+                    "Values": [0.0, 30.0],
+                    "UsesIncrementalValues": False,
+                    "IncrementalValue": 0.0,
+                    "NotPartOfTheContract": "discarded",
+                }
+            ]
+        )
+        self.assertEqual(
+            [
+                {
+                    "OptionType": 0,
+                    "Geo": {"m_FileID": 0, "m_PathID": 123},
+                    "Axis": 2,
+                    "Interp": 1,
+                    "Values": [0.0, 30.0],
+                    "UsesIncrementalValues": False,
+                    "IncrementalValue": 0.0,
+                }
+            ],
+            components,
+        )
+        self.assertEqual(
+            {
+                "pathId": 123,
+                "type": "MeshRenderer",
+                "gameObjectName": "ScopeLens",
+            },
+            INSPECTOR.reference_summary(
+                {"pathId": 123, "type": "MeshRenderer", "name": "", "gameObjectName": "ScopeLens"}
+            ),
+        )
+
     def test_list_candidates_records_hashes_without_unitypy(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
