@@ -20,8 +20,9 @@ State: `1.0.5 published; H3VR-verified`
 | Package candidate | MeatKit package and archive validation passed. SHA-256 `B5ABFF605116697FD64BCAED276A5FD98BDC36988A5771CDD0463E44C61CAF7C`. | Passed. |
 | Deployment / H3VR | Validated `1.0.5` package deployed after BubbleLevelSet `2.0.4`; installed manifest confirms the BubbleLevelSet dependency. User verified the mod in H3VR before release authorization. | Passed. |
 | Release documentation overlay | Source `main` documentation replaced only ZIP `README.md` and added `CHANGELOG.md`; every existing non-document archive entry kept its content hash. `H3vrPipeline validate` passed. Release SHA-256 `0C6E24310314E3132CA9FA9F660B9FDE5AFB1351AE02EBA0C50FD38C590F2021`. | Passed. |
-| Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
+| Pipeline wrapper | Windows `h3vr.ps1 -Action Test` passed `87/87`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
 | Windows Unity source | Editor closed; Unity source checkout is on release `main`. | Source synced. |
+| Headless package inspection | Hash-locked NightForce `1.0.5` archive produced two structural bundle manifests and two Unity `5.6.7f1` batch audits. Temporary bootstrap source and scratch bundles were removed after the audit. | Passed; research evidence only, no prefab/material change. |
 
 ### Open blockers
 
@@ -35,12 +36,14 @@ None.
 | `[x]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper tests, packages, manifests, and DLL metadata pass. |
 | `[x]` | Perform H3VR acceptance. | User verified both deployed candidates in H3VR. |
 | `[x]` | Publish with explicit authorization. | BubbleLevelSet `2.0.4` published first. Documentation-only archive overlay preserved non-document payload hashes, package validation passed, and exact Thunderstore download URL returned HTTP `200` for `1.0.5`. |
+| `[x]` | Establish a reproducible read-only scope-inspection baseline. | Archive hash, structural manifest, and Unity batch audit agree without retaining a raw rip. |
 
 ### Deferred
 
 | Priority | Item | Reason |
 | --- | --- | --- |
 | P2 | Reticle, art, or UI refresh | Shared behavior and regression safety take priority. |
+| P2 | Native PIP scope migration | Inspect current PIP evidence first, then recreate camera, texture, lens, reticle, and direct-hand interaction wiring as original project content; requires Unity and H3VR acceptance. |
 
 ## Testing
 
@@ -51,6 +54,7 @@ None.
 | Source contract | `dotnet test --filter FullyQualifiedName~NightForcePipelineTests` | Shared source and wrapper/profile contract pass. |
 | Unity controller | `HLin Mods > NightForcePlus > Run all runtime tests` | Scope gravity, limits, and reversed-mount assertions pass. |
 | Pipeline | `h3vr.ps1 -Action Test`, then `Build` and `Package` | Windows output reports zero failures and expected package. |
+| Structural package audit | `h3vr.ps1 -Action InspectAssets -InputPath <archive> -ExpectedSha256 <sha256>` | Parser manifest and Unity batch audit complete; bootstrap and scratch cleanup confirmed. |
 
 ### Manual H3VR acceptance
 

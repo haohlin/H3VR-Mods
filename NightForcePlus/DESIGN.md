@@ -9,7 +9,7 @@ Black BubbleLevel mount. Both bubbles must follow world gravity consistently.
 
 | In scope | Out of scope |
 | --- | --- |
-| Shared gravity controller, NightForce regression coverage, package-source hygiene, authorized Thunderstore release | Reticle/art/UI redesign |
+| Shared gravity controller, NightForce regression coverage, package-source hygiene, read-only PIP research, authorized Thunderstore release | Reticle/art/UI redesign or copied game/third-party assets |
 
 ## Architecture
 
@@ -44,6 +44,7 @@ names, and prefab script GUIDs.
 | External BubbleLevel package boundary | NightForce declares BubbleLevelSet for the Black mount by object ID; it includes no BubbleLevelSet component types or mount content. | 2026-07-17 |
 | Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
 | Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
+| Manifest-first PIP research | Inspect packages through hash-backed structural manifests and Unity batch audits. Use findings to recreate original configuration; never commit or ship extracted asset payloads. | 2026-07-18 |
 
 ## Known limits / backlog
 
@@ -51,3 +52,4 @@ names, and prefab script GUIDs.
 | --- | --- | --- |
 | P1 | Versioned package dependency refresh | NightForce release depends on BubbleLevelSet `2.0.4` for the Black mount. |
 | P1 | Profile/README release alignment | Verified versioned release records matching profile, README, changelog, and dependency versions. |
+| P2 | Native PIP scope migration research | A reviewed structural manifest identifies PIP camera, texture, lens, reticle, and interaction relationships before any Unity prefab change. |
