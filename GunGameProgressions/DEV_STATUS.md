@@ -32,6 +32,10 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | Compatibility candidate | Runtime 05 tests former exclusions; `Slingshot` remains sole blacklist; normal pools use last-resort catalog Picatinny scope fallback after direct/proprietary/exact selection. | Windows `Test` passed `87/87`; `SourceStatus`, `Verify`, `Build`, `Package`, and `Deploy` passed on feature commit `970ecba`. |
 | Offline fallback | Both tracked Vanilla pools regenerated from shared policy version `14`. | Windows `OfflineProfileGenerator`, then full Windows test suite `87/87`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
+| Live Compatibility Probe | Runtime 05 generated `46` test firearms from a `1,148`-entry Modded capture. | Live BepInEx receipt and trace: `compatibility probe updated: 46 test firearms.` |
+| Live GunGame failure | `GrappleGun` with direct `MagazineGrappleGun` fails GunGame chamber loading, then throws from `WeaponBuffer.SpawnImmediate` before optic mounting. | Live BepInEx: `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)` plus `NullReferenceException` / `KeyNotFoundException` stack traces. |
+| Safety boundary | Spawn safety rejects unavailable IDs and wrong categories, but cannot prove GunGame-specific chamber/load semantics from catalog metadata alone. | `GrappleGun` passes catalog feed/category validation yet fails upstream GunGame spawn. |
+| Unrelated loader noise | Failed pool-file loads belong to a separate installed map package, not GunGame Progressions. | Live log paths identify that package's `GunGameWeaponPool_*.json` files. |
 
 ## Plan
 
@@ -43,6 +47,7 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
 | In progress | VR-test Runtime 05 and global Picatinny fallback. | Launch configured profile once, inspect BepInEx log, cycle every Runtime 05 weapon; record spawn/feed/physical-optic failures. No exception, wrong feed, or runaway memory. |
+| Pending decision | Classify confirmed Runtime 05 failures before allowing them in normal pools. | Keep each failed firearm testable in Runtime 05; exclude it from normal pools only with recorded live evidence and regression test. |
 
 ## Testing
 
