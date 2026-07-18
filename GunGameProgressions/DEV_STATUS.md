@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-18`
 
-State: `1.4.0 released on Thunderstore; metadata-only Modded optic-policy candidate deployed for VR validation`
+State: `1.4.0 released on Thunderstore; metadata-only runtime-cost candidate built and validated on feature branch; not deployed`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ State: `1.4.0 released on Thunderstore; metadata-only Modded optic-policy candid
 | External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
 | Release boundary | Release source, skill guidance, and handoff record are on `main`; package was rebuilt from `main` before publish. | Windows Git, Test, Verify, Build, Package, and Thunderstore publish evidence. |
 | Compatibility candidate | Runtime 05 tests former exclusions; `Slingshot` remains sole blacklist. Modded normal/probe pools use safe universal optic policy: exact route first, Modded reflex/RMR allowed, curated vanilla RMR/red-dot/low-power/LPVO fallback only. | Windows `SourceStatus`, `Verify`, `Test` `88/88`, `Build`, `Package`, and `Deploy` passed on feature commit `dc3d374`. |
-| Offline fallback | Both tracked Vanilla pools remain byte-equivalent after regeneration from shared policy version `15`; the known-good Vanilla content did not change. | Windows `OfflineProfileGenerator`, clean Git diff after staging refresh, then full Windows test suite `88/88`. |
+| Offline fallback | Both tracked Vanilla pools remain byte-equivalent after regeneration from shared policy version `16`; the known-good Vanilla content did not change. | Windows `OfflineProfileGenerator`, clean Git diff after staging refresh, then full Windows test suite `88/88`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
 | Live Compatibility Probe | Runtime 05 generated `46` test firearms from a `1,148`-entry Modded capture. | Live BepInEx receipt and trace: `compatibility probe updated: 46 test firearms.` |
 | Live GunGame failure | `GrappleGun` with direct `MagazineGrappleGun` fails GunGame chamber loading, then throws from `WeaponBuffer.SpawnImmediate` before optic mounting. | Live BepInEx: `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)` plus `NullReferenceException` / `KeyNotFoundException` stack traces. |
@@ -42,6 +42,10 @@ State: `1.4.0 released on Thunderstore; metadata-only Modded optic-policy candid
 | Modded optic gap | Existing fallback selected any catalog `Scope`, including Modded/high-power scopes, and ignored reflex/RMR role fallback. Some Modded VAL entries still omit all mount metadata. | Source plus live catalog audit. Metadata-empty guns cannot be identified as Russian without unsafe name/prefab inference. |
 | Safe Modded optic candidate | Modded magnified scopes are rejected. Exact Russian routes select vanilla PSO-1 `MagnifierPSO1`; this one legacy object ID is normalized to `Scope`. Unresolved handgun, CQC, and rifle routes select curated vanilla RMR, red-dot/low-power, and LPVO/low-power candidates. Explicit MP5 adapter metadata resolves `MP5RailMount` to `Scope_G3SG1`. | H3VR scope reference confirms PSO-1 is a 4x side-rail scope; classifier keeps every other magnifier excluded. Windows suite `90/90`, Verify, Build, Package, and Deploy passed on `8b73ff1`. |
 | No runtime prefab materialization | Spawn safety now mounts only `Extra` objects spawned by GunGame. It no longer creates adapters or replacement optics. | Source regression rejects `GetGameObject*` and `UnityEngine.Object.Instantiate` in `GunGameSpawnSafety.cs`; Windows test `90/90` passed. |
+| Runtime-cost boundary | Modded capture remains two-millisecond metadata slices. One cached OtherLoader probe is read per request; delayed selector-event reflection retries every ten seconds; metadata merge/build/write run below-normal. Modded refresh indexes Vanilla metadata for compatibility but does not rebuild Vanilla weapon lists. | Source guard plus Windows `93/93` test suite. |
+| Local scope audit | Both tracked 661-gun Vanilla pools have `0` empty `Extra` entries. Metadata-only Runtime 05 report emitted `44` guns, all with nonempty `Extra`. | Windows offline generator `--probe-output`; focused regression test. |
+| Runtime 05 local candidate boundary | `54` candidate IDs are configured. `COOLCLOSEDBOLT` and `COOLREVOLVER` are absent from the versioned local snapshot; two ramrods are accessories; six firearm entries fail existing safety metadata gates. | Local metadata report: `44` emitted, `6` firearm skips, `0` empty optics. |
+| Current build candidate | Feature-branch package remains version `1.4.0`; it is a private validation artifact, not a new public release. | Windows `Verify`, `Build`, and `Package` passed; package SHA-256 recorded in build receipt. |
 
 ## Plan
 
@@ -56,6 +60,8 @@ State: `1.4.0 released on Thunderstore; metadata-only Modded optic-policy candid
 | Pending decision | Classify confirmed Runtime 05 failures before allowing them in normal pools. | Keep each failed firearm testable in Runtime 05; exclude it from normal pools only with recorded live evidence and regression test. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 | Complete | Build/deploy metadata-only Modded optic route. | Windows SourceStatus, Test `90/90`, Verify, Build, Package, Deploy passed. |
+| Complete | Keep runtime generation metadata-only and remove avoidable hot-path work. | Windows Test `93/93`, Verify, Build, Package passed. No pool policy or release version changed. |
+| Complete | Audit packaged local metadata scope coverage, including Runtime 05. | Two Vanilla pools: 661/661 scopes; Runtime 05 audit: 44/44 scopes. |
 | Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
 
 ## Testing
@@ -63,14 +69,15 @@ State: `1.4.0 released on Thunderstore; metadata-only Modded optic-policy candid
 | Check | Command / action | Expected |
 | --- | --- | --- |
 | Game API | `h3vr.ps1 -Action SourceStatus` | Current. |
-| Focused/full pipeline | `h3vr.ps1 -Action Test` | Passed `90/90`: golden count, catalog proof, prefab-free optic mounting, cartridge-negative, persistence, and existing regressions. |
+| Focused/full pipeline | `h3vr.ps1 -Action Test` | Passed `93/93`: golden count, catalog proof, prefab-free optic mounting, scope coverage, cartridge-negative, persistence, and existing regressions. |
 | Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Kodeman targets resolve. |
 | Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | `1.4.0` package with no player Modded pool. |
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Deployed safe-optic candidate; launch configured profile, select Modded pool and Runtime 05, then inspect log. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. |
-| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `15` and remain unchanged before any release. |
+| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `16` and remain unchanged before any release. |
+| Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Temporary local metadata-only report; 44 emitted guns, each has nonempty `Extra`; never package this file. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
 `DEV_STATUS.md`, or `GENERATION_POLICY.md`.
