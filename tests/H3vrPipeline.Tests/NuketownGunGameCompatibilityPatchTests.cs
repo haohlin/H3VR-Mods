@@ -19,10 +19,10 @@ public sealed class NuketownGunGameCompatibilityPatchTests
         var plugin = File.ReadAllText(pluginPath);
         Assert.Contains("localpcnerd-NuketownGunGame", plugin, StringComparison.Ordinal);
         Assert.Contains("nuketown", plugin, StringComparison.Ordinal);
-        Assert.Contains("Harmony.CreateAndPatchAll", plugin, StringComparison.Ordinal);
         Assert.DoesNotContain("void Update(", plugin, StringComparison.Ordinal);
         Assert.DoesNotContain("IEnumerator", plugin, StringComparison.Ordinal);
-        Assert.DoesNotContain("[HarmonyPatch", plugin, StringComparison.Ordinal);
+        Assert.DoesNotContain("Harmony", plugin, StringComparison.Ordinal);
+        Assert.DoesNotContain("Assembly.Load", plugin, StringComparison.Ordinal);
     }
 
     [Fact]

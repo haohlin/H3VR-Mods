@@ -19,10 +19,9 @@ Nuketown assets.
 ```text
 Thunderstore dependencies
   -> compatibility plugin Awake once
-  -> validate Nuketown package path and bundle
-  -> locate already-loaded Nuketown assembly
-  -> apply its existing Harmony annotations under compat ownership
+  -> validate Nuketown package path, descriptor, and bundle
   -> Atlas RegisterScene(nuketown)
+  -> scene loads its already-discovered original scripts
   -> original BO1 Nuketown map appears
 ```
 
@@ -33,15 +32,15 @@ Thunderstore dependencies
 - No `Update`, coroutine polling, scene scan, or allocation after startup.
 - Register only `localpcnerd-NuketownGunGame/nuketown`, once per process.
 - Fail closed with clear log messages for unsupported or incomplete package state.
-- Do not install a Harmony prefix/postfix/transpiler owned by this mod. Original
-  map annotations are applied only after package validation succeeds.
+- Do not install Harmony patches, load a second Nuketown assembly, or alter
+  original map code. Scene-owned GunGame hooks activate only when its map loads.
 
 ## Decisions
 
 | Decision | Reason | Date |
 | --- | --- | --- |
 | Ship a compatibility plugin, not a patched replacement DLL. | Keeps owner package intact, updates safe, and payload distributable. | 2026-07-18 |
-| Reuse original assembly annotations under unique Harmony ownership. | Restores map behavior after BepInEx skips original duplicate plugin identity. | 2026-07-18 |
+| Register only the original scene bundle. | Nuketown scene code owns its GunGame hooks at scene load; global duplicate hooks would widen scope and cost. | 2026-07-18 |
 | Use reflection for Atlas registration. | Avoids bundling or compiling against Atlas binaries; reflection runs once only. | 2026-07-18 |
 
 ## Known limits / backlog

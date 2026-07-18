@@ -26,7 +26,7 @@ Keep one item active.
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Implement, package, deploy, and launch compatibility plugin. | BepInEx logs one compatibility registration; map appears without replacing owner files. |
+| `[>]` | Implement, package, deploy, and launch compatibility plugin. | BepInEx logs one compatibility registration; map appears without replacing owner files, Harmony hooks, or per-frame work. |
 | `[ ]` | Perform manual VR gameplay acceptance. | Start, progression, death, respawn, and exit work normally. |
 | `[ ]` | Publish with explicit user approval. | Versioned package passes release checks. |
 
