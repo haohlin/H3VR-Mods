@@ -244,26 +244,12 @@ public sealed class GunGameSpawnSafety
                 return;
             }
 
-            var isCompatibilityProbe = RuntimeProfileFamily.IsCompatibilityProbePoolName(
-                ReadStringProperty(currentPool, "Name"));
-            if (TryAttachOptic(firearm, optic) ||
-                (!isCompatibilityProbe && TryAttachOpticThroughAdapter(firearm, optic)))
+            if (TryAttachOptic(firearm, optic))
             {
                 return;
             }
 
-            // Some mods omit mount tags from their catalog entry. Profile
-            // capture cannot inspect prefabs, so only after gameplay has
-            // already spawned this firearm do we use its real mount objects
-            // to retry one small vanilla-safe optic set.
-            if (!isCompatibilityProbe && TryAttachVanillaFallbackOptic(firearm, optic))
-            {
-                return;
-            }
-
-            trace(isCompatibilityProbe
-                ? "compatibility probe optic did not fit loadout " + weaponId + "."
-                : "could not mount generated optic for loadout " + weaponId + ".");
+            trace("could not mount generated optic for loadout " + weaponId + ".");
         }
         catch (Exception exception)
         {
@@ -379,134 +365,6 @@ public sealed class GunGameSpawnSafety
         optic.ClearQuickbeltState();
         optic.AttachToMount(mount, playSound: false);
         return true;
-    }
-
-    private static bool TryAttachOpticThroughAdapter(FVRFireArm firearm, FVRFireArmAttachment optic)
-    {
-        Dictionary<string, FVRObject> objects;
-        try
-        {
-            objects = IM.OD;
-        }
-        catch
-        {
-            return false;
-        }
-
-        if (objects == null)
-        {
-            return false;
-        }
-
-        foreach (var candidate in objects.Values)
-        {
-            if (candidate == null ||
-                candidate.Category != FVRObject.ObjectCategory.Attachment ||
-                candidate.TagAttachmentFeature != FVRObject.OTagAttachmentFeature.Adapter)
-            {
-                continue;
-            }
-
-            GameObject adapterObject;
-            FVRFireArmAttachment adapter;
-            try
-            {
-                adapterObject = UnityEngine.Object.Instantiate(
-                    candidate.GetGameObject(),
-                    firearm.transform.position,
-                    firearm.transform.rotation);
-                adapter = adapterObject.GetComponent<FVRFireArmAttachment>();
-            }
-            catch
-            {
-                continue;
-            }
-
-            var firearmMount = adapter == null ? null : FindCompatibleOpticMount(firearm, adapter);
-            if (firearmMount == null)
-            {
-                UnityEngine.Object.Destroy(adapterObject);
-                continue;
-            }
-
-            adapter.AttachToMount(firearmMount, playSound: false);
-            if (TryAttachOptic(adapter, optic))
-            {
-                return true;
-            }
-
-            adapter.DetachFromMount();
-            UnityEngine.Object.Destroy(adapterObject);
-        }
-
-        return false;
-    }
-
-    private static bool TryAttachVanillaFallbackOptic(
-        FVRFireArm firearm,
-        FVRFireArmAttachment originalOptic)
-    {
-        Dictionary<string, FVRObject> objects;
-        try
-        {
-            objects = IM.OD;
-        }
-        catch
-        {
-            return false;
-        }
-
-        if (objects == null)
-        {
-            return false;
-        }
-
-        var attempted = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var mount in firearm.AttachmentMounts ?? new List<FVRFireArmAttachmentMount>())
-        {
-            if (mount == null || !IsOpticMountType(mount.Type))
-            {
-                continue;
-            }
-
-            foreach (var opticId in RuntimeProfileBuilder.GetVanillaFallbackOpticIdsForPhysicalMount(mount.Type.ToString()))
-            {
-                FVRObject candidate;
-                if (!attempted.Add(opticId) ||
-                    !objects.TryGetValue(opticId, out candidate) ||
-                    candidate == null ||
-                    candidate.IsModContent ||
-                    candidate.Category != FVRObject.ObjectCategory.Attachment)
-                {
-                    continue;
-                }
-
-                GameObject candidateObject;
-                FVRFireArmAttachment fallbackOptic;
-                try
-                {
-                    candidateObject = UnityEngine.Object.Instantiate(
-                        candidate.GetGameObject(),
-                        firearm.transform.position,
-                        firearm.transform.rotation);
-                    fallbackOptic = candidateObject.GetComponent<FVRFireArmAttachment>();
-                }
-                catch
-                {
-                    continue;
-                }
-
-                if (fallbackOptic != null && TryAttachOptic(firearm, fallbackOptic))
-                {
-                    UnityEngine.Object.Destroy(originalOptic.gameObject);
-                    return true;
-                }
-
-                UnityEngine.Object.Destroy(candidateObject);
-            }
-        }
-
-        return false;
     }
 
     private static FVRFireArmAttachmentMount FindCompatibleOpticMount(

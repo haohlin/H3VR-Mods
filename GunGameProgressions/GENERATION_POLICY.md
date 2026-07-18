@@ -89,6 +89,9 @@ firearm
 |   +-- Picatinny / M-Lok rail -> matching scope or reflex sight
 |   `-- verified adapter       -> supported mount exposed by adapter
 |
++-- explicit compatible adapter with a declared optic-capable mount
+|   `-- matching vanilla scope/reflex (for example `MP5RailMount` -> `Scope_G3SG1`)
+|
 `-- no verified route -> deterministic random catalog Picatinny scope fallback
                            from curated vanilla-safe candidates
                            (or no optic if unavailable)
@@ -104,14 +107,16 @@ compatible optics
 Candidate gate: object must be `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded. For Modded profiles, a Modded candidate may only be `Reflex`; every magnified candidate must be a curated vanilla low-power/LPVO scope.
 
 Mount matching uses lightweight catalog metadata (`TagFirearmMounts`,
-`TagAttachmentMount`, and direct compatibility), not firearm or scope name
-lists. Adapter-provided mounts require prefab inspection and are omitted from
-runtime generation. The small hard-coded list in `OpticMountPolicy` is only the
-H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it
-contains no individual weapon or attachment IDs. Runtime mounting reuses that
-same taxonomy, checks the exact mount type, and permits rail mounts only when
-oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail
-positions are rejected.
+`TagAttachmentMount`, `BespokeAttachments`, `AttachmentFeature`, and
+`PhysicalMountTypes`), not firearm or scope name lists. A direct compatible
+adapter may supply an explicit optic-capable mount type; this covers the stock
+MP5 adapter route without reading its prefab. `ProvidedMountTypes` is used only
+when the catalog already declares it. The small hard-coded list in
+`OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify
+sight-capable interfaces; it contains no individual weapon or attachment IDs.
+Runtime mounting reuses that same taxonomy, checks the exact mount type, and
+permits rail mounts only when oriented as a top sighting rail. Muzzle, stock,
+grip, and side/bottom rail positions are rejected.
 
 An M4-style carbine is selected by metadata, never by Object ID: it must be `Carbine` size, use a rifle-caliber round class, and have Picatinny as its only recognized optic route. A direct/bespoke or proprietary route wins before role ranking. Pistol-caliber carbines remain CQC and prefer a reflex sight.
 
@@ -120,15 +125,18 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 Fallback is last, deterministic, and Modded-only. It uses a small maintained
 vanilla ID set because lightweight `FVRObject` metadata does not expose
 magnification values: RMR reflexes, Picatinny reflexes, fixed low-power scopes,
-LPVOs, and the vanilla Russian scope. These are generic optic classes, not
-per-firearm exceptions. Sniper scopes and all Modded magnified scopes are
-excluded.
+LPVOs, `Scope_G3SG1` for catalog-declared MP5 rails, and `MagnifierPSO1` for a
+catalog-declared Russian rail. `MagnifierPSO1` is a legacy object ID for H3VR's
+real PSO-1 4x scope; classifier normalizes only that exact stock ID before
+excluding every other magnifier. `Scope_M76` remains secondary Russian fallback.
+These are mount-class fallbacks, not Modded-firearm exceptions. Sniper scopes
+and all Modded magnified scopes are excluded.
 
 Direct bespoke optics, proprietary mounts, RMR, and exact Picatinny matches
 always win before fallback. If a Modded entry omits mount tags, profile capture
-does not inspect its prefab. At normal gameplay spawn only, mount safety may
-retry that same small vanilla set against physical RMR/Russian/Picatinny mounts.
-Fallback never changes feed selection.
+does not inspect its prefab and runtime does not materialize/instantiate an
+adapter or replacement optic. The normal GunGame loadout objects are the only
+objects materialized during play. Fallback never changes feed selection.
 
 ### Compatibility Probe
 
@@ -207,9 +215,11 @@ with coverage for the same condition.
 | M4-style Picatinny-only rifle carbine receives a reflex sight | Prefer a compatible variable scope; retain reflex priority for pistol-caliber carbines. | `Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines` |
 | Modded magnified scope is offered as a universal fallback | Never select it. Exact Modded reflex/RMR remains valid; magnified fallback comes from curated vanilla low-power/LPVO IDs. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
 | Otherwise-valid Modded firearm has no direct/proprietary/exact-mount optic | Handgun gets vanilla RMR reflex. CQC gets vanilla Picatinny reflex/low-power. Rifle/carbine/unknown gets vanilla LPVO/low-power/reflex. | `Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists`; `Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms`; `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
-| Catalog omits physical mount tags | Capture stays prefab-free. At gameplay spawn only, retry matching vanilla fallback against physical RMR/Russian/Picatinny mount. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Catalog omits physical mount tags | Capture and runtime remain prefab-free. Use only direct/declared adapter metadata or normal fallback; never instantiate a repair adapter/optic. | `Runtime_catalog_capture_never_materializes_the_prefab_registry`; `GunGame_spawn_safety_wraps_the_single_upstream_spawn_boundary` |
+| MP5 exposes only a declared compatible adapter | Read adapter `PhysicalMountTypes`; select its exact vanilla mount-matched scope without loading any prefab. | `Runtime_profile_builder_uses_a_declared_mp5_adapter_mount_without_prefab_materialization` |
+| Russian mount has no Modded scope | Use vanilla PSO-1 `MagnifierPSO1`; normalize only this legacy ID to `Scope`, and exclude every other magnifier. `Scope_M76` is secondary fallback. | `Runtime_profile_builder_uses_the_default_pso1_scope_when_no_modded_scope_is_available`; `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Former blacklist candidate | Runtime 05 uses same feed and safe Modded optic resolver; `Slingshot` remains absent. | `Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback` |
-| Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
+| Generic magnifier is treated as a scope | Exclude it; only legacy `MagnifierPSO1` normalizes to H3VR's real PSO-1 scope. | `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |

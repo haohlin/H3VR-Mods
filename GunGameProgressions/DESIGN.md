@@ -160,9 +160,8 @@ compatibility lists provide all required pool metadata. Missing or conflicting
 metadata means skip the item. Modded fallback uses curated vanilla
 RMR/red-dot/low-power/LPVO optics but does not claim a missing catalog mount
 exists. GunGame alone materializes the selected loadout at normal gameplay
-spawn time; if that optic cannot mount and the live firearm exposes an
-RMR/Russian/Picatinny mount, spawn-safety retries only its matching small
-vanilla set. Capture never materializes a prefab.
+spawn time. Spawn safety only attaches that already-spawned selected optic; it
+never materializes or instantiates a repair adapter or replacement optic.
 
 Logging is event-based: request, capture, write, or retained candidate. Never
 emit an exception or status log in a poll loop; repeated formatting and disk

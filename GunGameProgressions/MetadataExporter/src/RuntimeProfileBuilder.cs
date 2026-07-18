@@ -139,6 +139,10 @@ public static class RuntimeProfileBuilder
 
     private static readonly string[] VanillaRussianScopeFallbackIds =
     {
+        // H3VR's real PSO-1 scope is catalogued as MagnifierPSO1. The optic
+        // classifier normalizes that one stock item before generic magnifier
+        // exclusion. Scope_M76 remains an exact Russian-side-rail fallback.
+        "MagnifierPSO1",
         "Scope_M76",
     };
 
@@ -658,12 +662,47 @@ public static class RuntimeProfileBuilder
             }
         }
 
+        if (opticSelectionMode == OpticSelectionMode.ModdedUniversal)
+        {
+            // Some firearms expose an explicit compatible adapter but omit
+            // the firearm sight mount itself. The adapter's catalog mount is
+            // still enough to select an exact matching vanilla optic. This
+            // is metadata-only: never inspect or materialize either prefab.
+            var declaredAdapterCandidates = GetDeclaredBespokeAdapterOptics(index, firearm, opticSelectionMode);
+            if (declaredAdapterCandidates.Count > 0)
+            {
+                return SelectPreferredOptic(declaredAdapterCandidates, firearm, random, opticSelectionMode);
+            }
+        }
+
         if (opticSelectionMode == OpticSelectionMode.VanillaFallback)
         {
             return SelectLegacyVanillaPicatinnyFallback(index, random);
         }
 
         return SelectUniversalVanillaFallback(index, firearm, random);
+    }
+
+    private static List<RuntimeMetadataEntry> GetDeclaredBespokeAdapterOptics(
+        RuntimeProfileIndex index,
+        RuntimeMetadataEntry firearm,
+        OpticSelectionMode opticSelectionMode)
+    {
+        return (firearm.BespokeAttachments ?? new List<string>())
+            .Where(objectId => !string.IsNullOrEmpty(objectId))
+            .Distinct(StringComparer.Ordinal)
+            .Select(objectId => index.EntriesById.ContainsKey(objectId)
+                ? index.EntriesById[objectId]
+                : null)
+            .Where(adapter => adapter != null &&
+                adapter.Category == "Attachment" &&
+                adapter.AttachmentFeature == "Adapter")
+            .SelectMany(adapter => OpticMountPolicy.Rank(adapter.PhysicalMountTypes))
+            .SelectMany(rule => index.GetOptics(rule.OpticKinds)
+                .Where(attachment => IsCompatibleWithRule(attachment, rule, opticSelectionMode)))
+            .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
     }
 
     private static List<RuntimeMetadataEntry> GetAdapterCompatibleOptics(
@@ -842,6 +881,15 @@ public static class RuntimeProfileBuilder
         RuntimeMetadataEntry firearm,
         Random random)
     {
+        if (HasMount(firearm.PhysicalMountTypes, "Russian"))
+        {
+            var russian = GetKnownVanillaFallbackOptics(index, VanillaRussianScopeFallbackIds, "Russian");
+            if (russian.Count > 0)
+            {
+                return SelectPreferredOptic(russian, firearm, random, OpticSelectionMode.ModdedUniversal);
+            }
+        }
+
         if (IsHandgun(firearm))
         {
             var rmr = GetKnownVanillaFallbackOptics(index, VanillaRmrReflexFallbackIds, "RMR");
@@ -885,37 +933,6 @@ public static class RuntimeProfileBuilder
             : picatinnyScopes[random.Next(picatinnyScopes.Count)].ObjectID;
     }
 
-    // Shared with spawn safety. Profile capture stays catalog-only; after a
-    // selected optic fails to mount, gameplay may try this small vanilla set
-    // against the firearm's real physical mount.
-    public static IEnumerable<string> GetVanillaFallbackOpticIdsForPhysicalMount(string rawMountType)
-    {
-        var resolution = MountResolution.Resolve(rawMountType);
-        if (!resolution.IsResolved)
-        {
-            return Enumerable.Empty<string>();
-        }
-
-        if (string.Equals(resolution.CanonicalMount, "RMR", StringComparison.OrdinalIgnoreCase))
-        {
-            return VanillaRmrReflexFallbackIds;
-        }
-
-        if (string.Equals(resolution.CanonicalMount, "Russian", StringComparison.OrdinalIgnoreCase))
-        {
-            return VanillaRussianScopeFallbackIds;
-        }
-
-        if (string.Equals(resolution.CanonicalMount, "Picatinny", StringComparison.OrdinalIgnoreCase))
-        {
-            return VanillaPicatinnyReflexFallbackIds
-                .Concat(VanillaPicatinnyLowPowerScopeFallbackIds)
-                .Concat(VanillaPicatinnyVariableScopeFallbackIds);
-        }
-
-        return Enumerable.Empty<string>();
-    }
-
     private static List<RuntimeMetadataEntry> GetKnownVanillaFallbackOptics(
         RuntimeProfileIndex index,
         IEnumerable<string> objectIds,
@@ -946,9 +963,16 @@ public static class RuntimeProfileBuilder
         RuntimeMetadataEntry attachment,
         OpticSelectionMode opticSelectionMode)
     {
-        if (!IsVerifiedOptic(attachment) || opticSelectionMode != OpticSelectionMode.ModdedUniversal)
+        if (!IsVerifiedOptic(attachment))
         {
-            return IsVerifiedOptic(attachment);
+            return false;
+        }
+
+        // Keep established runtime/offline Vanilla fallback choices stable.
+        // PSO-1 normalization is a Modded compatibility fallback only.
+        if (opticSelectionMode != OpticSelectionMode.ModdedUniversal)
+        {
+            return !string.Equals(attachment.ObjectID, "MagnifierPSO1", StringComparison.Ordinal);
         }
 
         if (attachment.IsModContent)
