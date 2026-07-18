@@ -161,8 +161,25 @@ public static class RuntimeProfileBuilder
         var noOptic = new List<string>();
         var vanillaIndex = new RuntimeProfileIndex(vanillaEntries, vanillaEntriesById);
         var moddedIndex = new RuntimeProfileIndex(entries, entriesById);
-        var vanillaWeapons = BuildWeapons(vanillaFirearms, vanillaIndex, random, skipped, noOptic);
-        var moddedWeapons = BuildWeapons(moddedFirearms, moddedIndex, random, skipped, noOptic);
+        // Last-resort policy: preserve direct/proprietary and exact-mount
+        // choices first. If catalog data cannot select an optic, emit a
+        // Picatinny scope so every otherwise-valid firearm has a testable
+        // optic loadout. Runtime mounting still requires a real compatible
+        // sight mount and safely leaves an incompatible fallback unattached.
+        var vanillaWeapons = BuildWeapons(
+            vanillaFirearms,
+            vanillaIndex,
+            random,
+            skipped,
+            noOptic,
+            allowPicatinnyScopeFallback: true);
+        var moddedWeapons = BuildWeapons(
+            moddedFirearms,
+            moddedIndex,
+            random,
+            skipped,
+            noOptic,
+            allowPicatinnyScopeFallback: true);
         var rot = FindRot(enemyEntries);
         var vanillaMixed = BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent));
         var allActiveMixed = BuildMixedEnemies(enemyEntries);
@@ -214,12 +231,88 @@ public static class RuntimeProfileBuilder
         };
     }
 
+    // Compatibility Probe is an opt-in diagnostic profile. It keeps ordinary
+    // firearm and feed validation, then uses the same global fallback-optic
+    // policy as normal profiles against former blacklist candidates.
+    public static RuntimeGenerationResult BuildCompatibilityProbe(
+        IEnumerable<RuntimeMetadataEntry> sourceEntries,
+        IEnumerable<RuntimeEnemyEntry> sourceEnemies,
+        IEnumerable<string> probeFirearmIds,
+        Random random)
+    {
+        if (sourceEntries == null)
+        {
+            throw new ArgumentNullException("sourceEntries");
+        }
+
+        if (sourceEnemies == null)
+        {
+            throw new ArgumentNullException("sourceEnemies");
+        }
+
+        if (random == null)
+        {
+            throw new ArgumentNullException("random");
+        }
+
+        var probeIds = new HashSet<string>(
+            (probeFirearmIds ?? Enumerable.Empty<string>())
+                .Where(objectId => !string.IsNullOrEmpty(objectId)),
+            StringComparer.Ordinal);
+        var entries = sourceEntries
+            .Where(entry => entry != null && !string.IsNullOrEmpty(entry.ObjectID))
+            .OrderBy(entry => entry.ObjectID, StringComparer.Ordinal)
+            .ToList();
+        var entriesById = entries
+            .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var firearms = entries
+            .Where(entry => entry.Category == "Firearm" && probeIds.Contains(entry.ObjectID))
+            .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
+        var enemies = sourceEnemies
+            .Where(enemy => enemy != null && enemy.IsSpawnable && !string.IsNullOrEmpty(enemy.EnemyNameString))
+            .GroupBy(enemy => enemy.EnemyNameString, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderByDescending(enemy => enemy.DifficultyScore).First())
+            .ToList();
+        var skipped = new List<string>();
+        var noOptic = new List<string>();
+        var weapons = BuildWeapons(
+            firearms,
+            new RuntimeProfileIndex(entries, entriesById),
+            random,
+            skipped,
+            noOptic,
+            allowPicatinnyScopeFallback: true);
+        var pools = new List<RuntimeWeaponPool>();
+        if (weapons.Count > 0)
+        {
+            pools.Add(CreateScenarioPool(
+                "05_Compatibility_Probe",
+                "Runtime 05 - Compatibility Probe",
+                "Experimental legacy-firearm profile. Uses verified feeds and global Picatinny scope fallback.",
+                1,
+                0,
+                weapons,
+                FindRot(enemies)));
+        }
+
+        return new RuntimeGenerationResult
+        {
+            Pools = pools,
+            SkippedFirearms = skipped,
+            FirearmsWithoutOptics = noOptic,
+        };
+    }
+
     private static List<RuntimeGun> BuildWeapons(
         IEnumerable<RuntimeMetadataEntry> firearms,
         RuntimeProfileIndex index,
         Random random,
         List<string> skipped,
-        List<string> noOptic)
+        List<string> noOptic,
+        bool allowPicatinnyScopeFallback = false)
     {
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
@@ -237,7 +330,7 @@ public static class RuntimeProfileBuilder
                 continue;
             }
 
-            var extra = SelectOptic(index, firearm, random);
+            var extra = SelectOptic(index, firearm, random, allowPicatinnyScopeFallback);
             if (string.IsNullOrEmpty(extra))
             {
                 noOptic.Add(firearm.ObjectID);
@@ -494,7 +587,8 @@ public static class RuntimeProfileBuilder
     private static string SelectOptic(
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
-        Random random)
+        Random random,
+        bool allowPicatinnyScopeFallback = false)
     {
         var directCandidates = GetDirectOptics(index, firearm);
         if (directCandidates.Count > 0)
@@ -523,7 +617,18 @@ public static class RuntimeProfileBuilder
             }
         }
 
-        return null;
+        if (!allowPicatinnyScopeFallback)
+        {
+            return null;
+        }
+
+        var picatinnyScopes = index.GetOptics(new[] { "Scope" })
+            .Where(attachment => HasMount(attachment.PhysicalMountTypes, "Picatinny"))
+            .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+            .ToList();
+        return picatinnyScopes.Count == 0
+            ? null
+            : picatinnyScopes[random.Next(picatinnyScopes.Count)].ObjectID;
     }
 
     private static List<RuntimeMetadataEntry> GetAdapterCompatibleOptics(

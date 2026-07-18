@@ -9,6 +9,7 @@ public sealed class ProfileRules
 {
     public string[] FirearmBlacklist { get; set; }
     public string[] FeedBlacklist { get; set; }
+    public string[] CompatibilityProbeFirearms { get; set; }
 
     public static ProfileRules Load(string packageDirectory)
     {
@@ -23,6 +24,7 @@ public sealed class ProfileRules
         {
             FirearmBlacklist = ReadStringArray(json, "firearmBlacklist"),
             FeedBlacklist = ReadStringArray(json, "feedBlacklist"),
+            CompatibilityProbeFirearms = ReadStringArray(json, "compatibilityProbeFirearms"),
         };
     }
 

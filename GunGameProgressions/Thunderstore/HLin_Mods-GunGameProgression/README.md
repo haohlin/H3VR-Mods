@@ -24,6 +24,7 @@ Your last complete Modded profiles remain available after restarting H3VR. The m
 | Runtime 02 - Modded Rot | Currently enabled mod firearms only | Rotwieners only | Practice your active mod collection without mixing in vanilla guns. |
 | Runtime 03 - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
 | Runtime 04 - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
+| Runtime 05 - Compatibility Probe | Formerly excluded firearms that pass feed checks | Rotwieners only | Test profile; report weapon, feed, or optic failures. |
 
 Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents.
 
@@ -58,9 +59,17 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 
 - Guns receive usable ammunition: magazines first, then clips or speedloaders, then cartridges when needed.
 - An internally fed shotgun receives its compatible shells. A true box-mag shotgun receives its compatible magazine; the generator does not treat every shotgun as shell-fed.
-- Optics appear only when they fit the firearm's own mounting point.
+- Direct/proprietary/exact mount optics win. If none resolves, an available Picatinny scope is added as fallback; it mounts only when firearm has a real compatible top rail.
 - Reflex sights and scopes can appear; magnifiers and unrelated attachments are left out.
 - Every run can offer a different compatible choice, keeping familiar weapons from feeling identical.
+
+## Compatibility Probe
+
+`Runtime 05 - Compatibility Probe` tests former blacklist candidates with same
+magazine, clip, speedloader, cartridge, and scope rules as every other pool.
+`Slingshot` remains excluded because firing it can freeze GunGame. If a probe
+weapon fails, record its gun, feed, and optic IDs from the log before reporting
+it; other pools remain usable.
 
 ## Your Enabled Content
 

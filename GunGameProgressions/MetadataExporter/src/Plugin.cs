@@ -183,7 +183,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (instance.selectorTracker.Observe(loader))
         {
             instance.Trace("live selector ready event received.");
-            instance.RestorePersistedModdedProfilesForSelector(loader);
+            instance.RestorePersistedRuntimeProfilesForSelector(loader);
         }
 
         // A loader can fire more than once for the same selector when its map
@@ -206,12 +206,12 @@ public sealed class Plugin : BaseUnityPlugin
         return GunGameSelectorLocator.Resolve(weaponPoolLoaderType);
     }
 
-    private void RestorePersistedModdedProfilesForSelector(object weaponPoolLoader)
+    private void RestorePersistedRuntimeProfilesForSelector(object weaponPoolLoader)
     {
-        var persistedChoicesAdded = AddPersistedModdedPoolChoices(weaponPoolLoader);
+        var persistedChoicesAdded = AddPersistedRuntimePoolChoices(weaponPoolLoader);
         if (persistedChoicesAdded > 0)
         {
-            Trace("selector restored " + persistedChoicesAdded + " persisted modded profiles.");
+            Trace("selector restored " + persistedChoicesAdded + " persisted runtime profiles.");
         }
     }
 
@@ -379,6 +379,26 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
+        var probeJob = new RuntimeGenerationJob(
+            packagePath,
+            combinedMetadata,
+            enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
+            RuntimeGenerationPhase.CompatibilityProbe,
+            false);
+        probeJob.Start();
+        while (!probeJob.IsCompleted)
+        {
+            yield return null;
+        }
+
+        if (probeJob.Error != null)
+        {
+            Logger.LogDebug("GunGame compatibility probe generation failed: " + probeJob.Error);
+        }
+        else if (probeJob.Report.WasWritten)
+        {
+            Trace("compatibility probe updated: " + probeJob.Report.EligibleWeaponsPerPool + " test firearms.");
+        }
         if (report.PoolCount == 0 && report.WasWritten)
         {
             Logger.LogInfo(RuntimeStatusMessages.NoModdedPools);
@@ -416,12 +436,17 @@ public sealed class Plugin : BaseUnityPlugin
             return "Runtime 02 - Modded Rot";
         }
 
-        return poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0
-            ? "Runtime 04 - Modded Mixed Enemy"
+        if (poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0)
+        {
+            return "Runtime 04 - Modded Mixed Enemy";
+        }
+
+        return poolFileName != null && poolFileName.IndexOf("_05_Compatibility_Probe_", StringComparison.Ordinal) >= 0
+            ? "Runtime 05 - Compatibility Probe"
             : string.Empty;
     }
 
-    private int AddPersistedModdedPoolChoices(object loader)
+    private int AddPersistedRuntimePoolChoices(object loader)
     {
         var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         if (string.IsNullOrEmpty(packagePath) || !Directory.Exists(packagePath))
@@ -431,7 +456,8 @@ public sealed class Plugin : BaseUnityPlugin
 
         var poolFileNames = Directory.GetFiles(packagePath, "GunGameWeaponPool_Runtime_*.json")
             .Select(Path.GetFileName)
-            .Where(RuntimeProfileFamily.IsModdedPoolFile)
+            .Where(fileName => RuntimeProfileFamily.IsModdedPoolFile(fileName) ||
+                RuntimeProfileFamily.IsCompatibilityProbePoolFile(fileName))
             .OrderBy(fileName => fileName, StringComparer.Ordinal)
             .ToList();
         return AddPoolChoices(loader, poolFileNames);
@@ -1194,17 +1220,25 @@ public sealed class Plugin : BaseUnityPlugin
         bool confirmedEmptySnapshot)
     {
         var rules = ProfileRules.Load(packagePath);
-        var profileEntries = phase == RuntimeGenerationPhase.Vanilla
-            ? entries
-            : entries.Where(entry => !entry.IsModContent || !rules.IsBlacklisted(entry)).ToList();
+        var profileEntries = phase == RuntimeGenerationPhase.Modded
+            ? entries.Where(entry => !entry.IsModContent || !rules.IsBlacklisted(entry)).ToList()
+            : entries;
         var phaseName = phase.ToString().ToLowerInvariant();
         var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
         var randomSeed = RuntimePoolPersistence.CreateStableSeed(contentFingerprint);
-        var result = RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
+        var result = phase == RuntimeGenerationPhase.CompatibilityProbe
+            ? RuntimeProfileBuilder.BuildCompatibilityProbe(
+                profileEntries,
+                enemyEntries,
+                rules.CompatibilityProbeFirearms,
+                new System.Random(randomSeed))
+            : RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
         var phasePools = result.Pools
             .Where(pool => phase == RuntimeGenerationPhase.Vanilla
                 ? RuntimeProfileFamily.IsVanilla(pool.Family)
-                : RuntimeProfileFamily.IsModded(pool.Family))
+                : phase == RuntimeGenerationPhase.Modded
+                    ? RuntimeProfileFamily.IsModded(pool.Family)
+                    : RuntimeProfileFamily.IsCompatibilityProbe(pool.Family))
             .ToList();
         var phaseResult = new RuntimeGenerationResult
         {
@@ -1246,7 +1280,9 @@ public sealed class Plugin : BaseUnityPlugin
 
         Func<string, bool> isOwnedByPhase = phase == RuntimeGenerationPhase.Vanilla
             ? RuntimeProfileFamily.IsVanillaPoolFile
-            : RuntimeProfileFamily.IsModdedPoolFile;
+            : phase == RuntimeGenerationPhase.Modded
+                ? RuntimeProfileFamily.IsModdedPoolFile
+                : RuntimeProfileFamily.IsCompatibilityProbePoolFile;
         var storedFingerprint = RuntimePoolPersistence.ReadFingerprint(receiptPath);
         var poolFilesMatch = RuntimePoolPersistence.HasExpectedPoolFiles(packagePath, expectedPoolFiles, isOwnedByPhase);
         var shouldWrite = RuntimePoolPersistence.ShouldWrite(storedFingerprint, contentFingerprint, poolFilesMatch);
@@ -1263,8 +1299,11 @@ public sealed class Plugin : BaseUnityPlugin
                 false);
         }
 
-        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
-        WriteTextAtomically(metadataPath, SerializeMetadata(profileEntries));
+        if (phase != RuntimeGenerationPhase.CompatibilityProbe)
+        {
+            var metadataPath = Path.Combine(packagePath, "ObjectData.json");
+            WriteTextAtomically(metadataPath, SerializeMetadata(profileEntries));
+        }
         Directory.CreateDirectory(runtimePoolsPath);
         foreach (var runtimePool in phasePools)
         {
@@ -1295,6 +1334,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Vanilla,
         Modded,
+        CompatibilityProbe,
     }
 
     private sealed class RuntimeGenerationJob

@@ -244,12 +244,17 @@ public sealed class GunGameSpawnSafety
                 return;
             }
 
-            if (TryAttachOptic(firearm, optic) || TryAttachOpticThroughAdapter(firearm, optic))
+            var isCompatibilityProbe = RuntimeProfileFamily.IsCompatibilityProbePoolName(
+                ReadStringProperty(currentPool, "Name"));
+            if (TryAttachOptic(firearm, optic) ||
+                (!isCompatibilityProbe && TryAttachOpticThroughAdapter(firearm, optic)))
             {
                 return;
             }
 
-            trace("could not mount generated optic for loadout " + weaponId + ".");
+            trace(isCompatibilityProbe
+                ? "compatibility probe optic did not fit loadout " + weaponId + "."
+                : "could not mount generated optic for loadout " + weaponId + ".");
         }
         catch (Exception exception)
         {

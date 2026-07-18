@@ -6,9 +6,9 @@ cross-session handoff source of truth.
 
 ## Status
 
-Last verified: `2026-07-17`
+Last verified: `2026-07-18`
 
-State: `1.4.0 released on Thunderstore and merged to main`
+State: `1.4.0 released on Thunderstore; local compatibility-probe candidate awaits Windows validation`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -29,6 +29,8 @@ State: `1.4.0 released on Thunderstore and merged to main`
 | One-minute runtime result | Initial Modded scan: `867 ms`, `2` entries while loaders registered. Scheduled one-minute scan: `1,053 ms`, `1,435` entries and saved pools. | Real Modded-profile BepInEx log. |
 | External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
 | Release boundary | Release source, skill guidance, and handoff record are on `main`; package was rebuilt from `main` before publish. | Windows Git, Test, Verify, Build, Package, and Thunderstore publish evidence. |
+| Compatibility candidate | Local feature branch adds Runtime 05, moves former global exclusions into its test list, retains only `Slingshot` blacklist, and applies last-resort catalog Picatinny scope fallback after normal optic ranking. | Source review only; **not built, deployed, or VR tested**. |
+| Windows blocker | Private Windows host/repository configuration is unavailable in current macOS session. | `H3VR_WINDOWS_HOST`, `H3VR_WINDOWS_REPOSITORY`, and ignored local environment file absent. |
 
 ## Plan
 
@@ -39,6 +41,7 @@ State: `1.4.0 released on Thunderstore and merged to main`
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
+| In progress | Validate Runtime 05 and global Picatinny fallback on Windows. | Windows `Test`, `Verify`, `Build`, `Package`, `Deploy`; VR-test every Runtime 05 entry; regenerate/verify offline Vanilla pools; no spawn exception, wrong feed, or runaway memory. |
 
 ## Testing
 
@@ -51,6 +54,8 @@ State: `1.4.0 released on Thunderstore and merged to main`
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
+| Compatibility candidate | Build/deploy local feature branch on Windows; select Runtime 05; cycle every weapon. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. Normal pools retain proprietary/exact optics before fallback. |
+| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `14` before any release. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
 `DEV_STATUS.md`, or `GENERATION_POLICY.md`.

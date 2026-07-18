@@ -221,7 +221,8 @@ public sealed class GunGameGeneratorTests
             """
             {
               "firearmBlacklist": ["BlockedFirearm"],
-              "feedBlacklist": ["BlockedMagazine"]
+              "feedBlacklist": ["BlockedMagazine"],
+              "compatibilityProbeFirearms": ["ProbeFirearm"]
             }
             """);
 
@@ -230,6 +231,23 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedMagazine", "Magazine", false) })!);
         Assert.False((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "AllowedMagazine", "Magazine", false) })!);
+        var probeIds = Assert.IsAssignableFrom<IEnumerable>(
+            rulesType.GetProperty("CompatibilityProbeFirearms")!.GetValue(rules));
+        Assert.Equal(new[] { "ProbeFirearm" }, probeIds.Cast<string>().ToArray());
+    }
+
+    [Fact]
+    public void Production_profile_rules_blacklist_only_slingshot()
+    {
+        var rulesPath = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(PluginSourcePath)!,
+            "..",
+            "..",
+            "profile-rules.json"));
+        var rules = File.ReadAllText(rulesPath);
+
+        Assert.Contains("\"firearmBlacklist\": [\"Slingshot\"]", rules, StringComparison.Ordinal);
+        Assert.Contains("\"feedBlacklist\": []", rules, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
@@ -606,6 +624,7 @@ public sealed class GunGameGeneratorTests
         var familyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileFamily"));
         var isVanillaFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsVanillaPoolFile", BindingFlags.Public | BindingFlags.Static));
         var isModdedFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsModdedPoolFile", BindingFlags.Public | BindingFlags.Static));
+        var isProbeFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsCompatibilityProbePoolFile", BindingFlags.Public | BindingFlags.Static));
 
         Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
         Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json" })!);
@@ -615,6 +634,8 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_04_Modded_Mixed_Enemy_CustomSosig.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Unknown_RW_Rot.json" })!);
+        Assert.True((bool)isProbeFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Compatibility_Probe_RW_Rot.json" })!);
+        Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Compatibility_Probe_RW_Rot.json" })!);
     }
 
     [WindowsH3vrFact]
@@ -738,7 +759,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("RemoveEventHandler", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
-        Assert.Contains("RestorePersistedModdedProfilesForSelector", source, StringComparison.Ordinal);
+        Assert.Contains("RestorePersistedRuntimeProfilesForSelector", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoaderStatusProbe", source, StringComparison.Ordinal);
@@ -1214,7 +1235,46 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_profile_builder_ignores_unrecognized_non_optic_mounts()
+    public void Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var probeGun = RuntimeEntry(entryType, "LegacyProbeGun", "Firearm", false, magazineType: 27);
+        SetRuntimeProperty(entryType, probeGun, "PhysicalMountTypes", new List<string> { "Muzzle" });
+        entries.SetValue(probeGun, 0);
+        entries.SetValue(RuntimeEntry(entryType, "LegacyProbeMagazine", "Magazine", false, magazineType: 27), 1);
+
+        var picatinnyScope = RuntimeEntry(entryType, "ProbePicatinnyScope", "Attachment", false);
+        SetRuntimeProperty(entryType, picatinnyScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(picatinnyScope, 2);
+
+        var slingshot = RuntimeEntry(entryType, "Slingshot", "Firearm", false, magazineType: 27);
+        entries.SetValue(slingshot, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var result = buildProbe.Invoke(
+            null,
+            new object[] { entries, enemies, new[] { "LegacyProbeGun", "Slingshot" }, new SequenceRandom(0d) });
+        var pools = ReadObjects(result!, "Pools");
+
+        var pool = Assert.Single(pools);
+        Assert.Equal("Runtime 05 - Compatibility Probe", ReadString(pool, "Name"));
+        var gun = Assert.Single(ReadObjects(pool, "Guns"));
+        Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
+        Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
+        Assert.Equal("ProbePicatinnyScope", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1222,7 +1282,7 @@ public sealed class GunGameGeneratorTests
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 3);
+        var entries = Array.CreateInstance(entryType, 4);
 
         var firearm = RuntimeEntry(entryType, "NonOpticMountFirearm", "Firearm", true);
         SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "Magazine" });
@@ -1235,6 +1295,11 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "NonOpticMountA" });
         entries.SetValue(invalidScope, 2);
 
+        var fallbackScope = RuntimeEntry(entryType, "FallbackPicatinnyScope", "Attachment", true);
+        SetRuntimeProperty(entryType, fallbackScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, fallbackScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(fallbackScope, 3);
+
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
@@ -1243,11 +1308,11 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .Single();
 
-        Assert.Equal(string.Empty, ReadString(gun, "Extra"));
+        Assert.Equal("FallbackPicatinnyScope", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
-    public void Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts()
+    public void Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1268,7 +1333,7 @@ public sealed class GunGameGeneratorTests
             entries.SetValue(RuntimeEntry(entryType, "UnsafeMountMagazine" + index, "Magazine", true, magazineType: index + 1), index * 3 + 1);
             var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", true);
             SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
-            SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { mountTypes[index] });
+            SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
             entries.SetValue(scope, index * 3 + 2);
         }
 
@@ -1279,7 +1344,7 @@ public sealed class GunGameGeneratorTests
             "Guns");
 
         Assert.Equal(mountTypes.Length, guns.Count);
-        Assert.All(guns, gun => Assert.Equal(string.Empty, ReadString(gun, "Extra")));
+        Assert.All(guns, gun => Assert.Equal("UnsafeMountScope0", ReadString(gun, "Extra")));
     }
 
     [Fact]
@@ -1304,8 +1369,9 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts",
             "Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role",
             "Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines",
-            "Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts",
-            "Runtime_profile_builder_ignores_unrecognized_non_optic_mounts",
+            "Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists",
+            "Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms",
+            "Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback",
             "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",
             "Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes",
