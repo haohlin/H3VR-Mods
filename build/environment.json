@@ -13,5 +13,9 @@
   "unity": {
     "meatKitProjectRoot": "%H3VR_UNITY_MEATKIT_PROJECT%",
     "editorExecutable": "%H3VR_UNITY_EXECUTABLE%"
+  },
+  "inspection": {
+    "pythonExecutable": "%H3VR_ASSET_INSPECTION_PYTHON%",
+    "managedAssemblyDirectory": "%H3VR_MANAGED_DLLS%"
   }
 }

@@ -173,6 +173,11 @@ Validate the prefab/scene wiring, MeatKit build profile and dependencies,
 generated package, BepInEx log, and real in-game interaction before calling a
 Unity-content change complete.
 
+For read-only inspection of Unity bundles or release ZIPs, use the headless
+inspector workflow in
+[`references/headless-unity-asset-inspection.md`](references/headless-unity-asset-inspection.md).
+It records manifests, never versioned rips or game assets.
+
 ## Add a New Mod
 
 Start from an existing mod with the same delivery style. Add project/package

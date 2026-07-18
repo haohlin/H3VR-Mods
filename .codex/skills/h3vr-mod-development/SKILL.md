@@ -65,6 +65,10 @@ material, mesh, texture, audio, shader, ID, or AssetBundle. They are reference
 guidance for Unity/MeatKit, Atlas, and asset-replacement work; the current
 Windows repository, live assemblies, and wrapper remain authoritative.
 
+For read-only Unity package research, use the lightweight manifest workflow in
+`skills/h3vr-remote-development/references/headless-unity-asset-inspection.md`.
+Do not commit exported game or third-party assets.
+
 For established code-only or data-only work—such as `GunGameProgressions`
 generation—do not read the Unity references or run a Unity workflow. Follow the
 relevant code/data section below and consult the wiki only if Unity content

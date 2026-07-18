@@ -1,13 +1,19 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetupAssetInspector', 'InspectAssets', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'BubbleLevel', 'NightForcePlus', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
     [string]$Query,
+    [string]$InputPath,
+    [string]$OutputPath,
+    [string]$ExpectedSha256,
+    [string[]]$ManagedAssemblyDirectory = @(),
+    [switch]$SkipUnityVerification,
+    [switch]$KeepInspectionScratch,
     [switch]$Publish,
     [switch]$VrApproved,
     [switch]$ReuseExistingUnityPackage
@@ -32,7 +38,7 @@ $ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw |
 function Expand-EnvironmentConfiguration {
     param([object]$Config)
 
-    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity)) {
+    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity, $Config.inspection)) {
         if ($null -eq $section) {
             continue
         }
@@ -417,6 +423,220 @@ function Invoke-UnityBuild {
     }
 
     return $packagePath
+}
+
+function Get-AssetInspectorRoot {
+    return Join-Path $RepoRoot 'tools\H3VRAssetInspector'
+}
+
+function Get-AssetInspectorVenvRoot {
+    return Join-Path (Join-Path $BuildRoot 'tooling') 'h3vr-asset-inspector'
+}
+
+function Get-AssetInspectorPython {
+    $venvPython = Join-Path (Get-AssetInspectorVenvRoot) 'Scripts\python.exe'
+    if (Test-Path -LiteralPath $venvPython) {
+        return $venvPython
+    }
+
+    throw 'Asset inspector environment is missing. Run SetupAssetInspector first.'
+}
+
+function Get-AssetInspectorBootstrapPython {
+    $inspectionConfig = $EnvironmentConfig.PSObject.Properties['inspection'].Value
+    if ($null -ne $inspectionConfig -and
+        -not [string]::IsNullOrWhiteSpace($inspectionConfig.pythonExecutable) -and
+        (Test-Path -LiteralPath $inspectionConfig.pythonExecutable)) {
+        return $inspectionConfig.pythonExecutable
+    }
+
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -eq $python) {
+        throw 'Python 3.11 or newer is not configured. Set H3VR_ASSET_INSPECTION_PYTHON in private configuration.'
+    }
+    return $python.Source
+}
+
+function Initialize-AssetInspector {
+    $bootstrapPython = Get-AssetInspectorBootstrapPython
+    $venvRoot = Get-AssetInspectorVenvRoot
+    $venvPython = Join-Path $venvRoot 'Scripts\python.exe'
+    $requirementsPath = Join-Path (Get-AssetInspectorRoot) 'requirements.txt'
+
+    if (-not (Test-Path -LiteralPath $venvPython)) {
+        Ensure-Directory (Split-Path -Parent $venvRoot)
+        Write-Host 'Creating isolated asset-inspector Python environment.'
+        Invoke-CheckedNative { & $bootstrapPython -m venv $venvRoot }
+    }
+
+    Write-Host 'Installing pinned asset-inspector dependencies.'
+    Invoke-CheckedNative { & $venvPython -m pip install --disable-pip-version-check --requirement $requirementsPath }
+    & $venvPython -c "import UnityPy; print('UnityPy ' + UnityPy.__version__)"
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Asset inspector dependency validation failed.'
+    }
+}
+
+function Invoke-UnityAssetInspectionAudit {
+    param(
+        [string[]]$CandidatePaths,
+        [string]$ScratchDirectory
+    )
+
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+    if (@(Get-Process -Name Unity -ErrorAction SilentlyContinue).Count -gt 0) {
+        throw 'Close Unity before running headless asset inspection.'
+    }
+
+    $bootstrapDirectory = Join-Path $projectRoot 'Assets\Editor'
+    $bootstrapPath = Join-Path $bootstrapDirectory 'H3VRAssetInspectionBatch.cs'
+    $bootstrapMetaPath = "$bootstrapPath.meta"
+    if (Test-Path -LiteralPath $bootstrapPath -or Test-Path -LiteralPath $bootstrapMetaPath) {
+        throw 'Asset-inspection bootstrap path already exists. Refusing to overwrite it.'
+    }
+
+    $templatePath = Join-Path (Get-AssetInspectorRoot) 'H3VRAssetInspectionBatch.cs'
+    $previousInput = $env:H3VR_ASSET_INSPECTION_INPUT
+    $previousOutput = $env:H3VR_ASSET_INSPECTION_OUTPUT
+    $results = [System.Collections.Generic.List[object]]::new()
+    try {
+        Ensure-Directory $bootstrapDirectory
+        Copy-Item -LiteralPath $templatePath -Destination $bootstrapPath
+        for ($index = 0; $index -lt $CandidatePaths.Count; $index++) {
+            $auditPath = Join-Path $ScratchDirectory ("unity-audit-$index.json")
+            $env:H3VR_ASSET_INSPECTION_INPUT = $CandidatePaths[$index]
+            $env:H3VR_ASSET_INSPECTION_OUTPUT = $auditPath
+            $completed = $false
+            for ($attempt = 1; $attempt -le 2; $attempt++) {
+                Remove-Item -LiteralPath $auditPath -Force -ErrorAction SilentlyContinue
+                $logPath = Join-Path $ScratchDirectory ("unity-audit-$index-attempt-$attempt.log")
+                $arguments = @(
+                    '-batchmode',
+                    '-nographics',
+                    '-quit',
+                    '-projectPath', ('"{0}"' -f $projectRoot),
+                    '-executeMethod', 'H3VRAssetInspectionBatch.Run',
+                    '-logFile', ('"{0}"' -f $logPath)
+                )
+                $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+                if ($process.ExitCode -ne 0) {
+                    throw "Unity batch asset inspection failed with exit code $($process.ExitCode)."
+                }
+                if (Test-Path -LiteralPath $auditPath) {
+                    $completed = $true
+                    break
+                }
+                if ($attempt -eq 1) {
+                    Write-Warning 'Unity imported the inspection bootstrap before executing it; retrying once.'
+                }
+            }
+            if (-not $completed) {
+                throw 'Unity did not write an asset-inspection audit.'
+            }
+            $results.Add((Get-Content -LiteralPath $auditPath -Raw | ConvertFrom-Json))
+        }
+        return @($results)
+    }
+    finally {
+        Remove-Item -LiteralPath $bootstrapPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $bootstrapMetaPath -Force -ErrorAction SilentlyContinue
+        if ($null -eq $previousInput) {
+            Remove-Item Env:H3VR_ASSET_INSPECTION_INPUT -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:H3VR_ASSET_INSPECTION_INPUT = $previousInput
+        }
+        if ($null -eq $previousOutput) {
+            Remove-Item Env:H3VR_ASSET_INSPECTION_OUTPUT -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:H3VR_ASSET_INSPECTION_OUTPUT = $previousOutput
+        }
+    }
+}
+
+function Invoke-AssetInspection {
+    if ([string]::IsNullOrWhiteSpace($InputPath)) {
+        throw 'InspectAssets requires -InputPath.'
+    }
+    if (-not (Test-Path -LiteralPath $InputPath)) {
+        throw 'Asset-inspection input path does not exist.'
+    }
+
+    $python = Get-AssetInspectorPython
+    $scriptPath = Join-Path (Get-AssetInspectorRoot) 'inspect_assets.py'
+    $source = Get-Item -LiteralPath $InputPath
+    if ($source.PSIsContainer) {
+        throw 'InspectAssets accepts a Unity bundle or release ZIP. Use inspect_assets.py directly for directory scans.'
+    }
+    $sourceLabel = $source.Name
+    $sourceHash = Get-FileSha256 $source.FullName
+    $inspectionDirectory = Join-Path $BuildRoot 'inspection'
+    Ensure-Directory $inspectionDirectory
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+        $OutputPath = Join-Path $inspectionDirectory ("$sourceLabel-$($sourceHash.Substring(0, 12)).json")
+    }
+    $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+
+    $scratchDirectory = Join-Path (Join-Path $BuildRoot 'staging') ("asset-inspection-" + [Guid]::NewGuid().ToString('N'))
+    $candidateDirectory = Join-Path $scratchDirectory 'bundles'
+    Ensure-Directory $scratchDirectory
+    try {
+        $arguments = @(
+            $scriptPath,
+            '--input', $source.FullName,
+            '--output', $OutputPath,
+            '--scratch-root', $scratchDirectory,
+            '--stage-bundles-directory', $candidateDirectory
+        )
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedSha256)) {
+            $arguments += @('--expected-sha256', $ExpectedSha256)
+        }
+        $inspectionConfig = $EnvironmentConfig.PSObject.Properties['inspection'].Value
+        $managedDirectories = [System.Collections.Generic.List[string]]::new()
+        if ($null -ne $inspectionConfig -and
+            -not [string]::IsNullOrWhiteSpace($inspectionConfig.managedAssemblyDirectory) -and
+            (Test-Path -LiteralPath $inspectionConfig.managedAssemblyDirectory)) {
+            $managedDirectories.Add($inspectionConfig.managedAssemblyDirectory)
+        }
+        foreach ($directory in $ManagedAssemblyDirectory) {
+            if (-not [string]::IsNullOrWhiteSpace($directory) -and (Test-Path -LiteralPath $directory)) {
+                $managedDirectories.Add((Resolve-Path -LiteralPath $directory).Path)
+            }
+        }
+        foreach ($directory in ($managedDirectories | Select-Object -Unique)) {
+            $arguments += @('--managed-directory', $directory)
+        }
+        Invoke-CheckedNative { & $python @arguments }
+
+        if (-not $SkipUnityVerification) {
+            $candidatePaths = @(Get-ChildItem -LiteralPath $candidateDirectory -File | Sort-Object Name | ForEach-Object { $_.FullName })
+            if ($candidatePaths.Count -eq 0) {
+                throw 'Asset inspector produced no Unity bundle candidates for Unity verification.'
+            }
+            $unityAudits = Invoke-UnityAssetInspectionAudit -CandidatePaths $candidatePaths -ScratchDirectory $scratchDirectory
+            $manifest = Get-Content -LiteralPath $OutputPath -Raw | ConvertFrom-Json
+            $manifest | Add-Member -NotePropertyName unityBatchAudits -NotePropertyValue $unityAudits
+            Write-JsonFile -Path $OutputPath -Value $manifest
+        }
+
+        $manifestHash = Get-FileSha256 $OutputPath
+        Write-Host "Wrote asset-inspection manifest: $OutputPath"
+        Write-Host "Manifest SHA-256: $manifestHash"
+    }
+    finally {
+        if ($KeepInspectionScratch) {
+            Write-Warning "Retained inspection scratch directory: $scratchDirectory"
+        }
+        else {
+            Remove-Item -LiteralPath $scratchDirectory -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 function Get-GunGameStagingPath {
@@ -892,6 +1112,8 @@ switch ($Action) {
     'Logs' { Invoke-LogAction 'all' }
     'TailLogs' { Invoke-LogAction 'tail' }
     'ClearLogs' { Invoke-LogAction 'clear' }
+    'SetupAssetInspector' { Initialize-AssetInspector }
+    'InspectAssets' { Invoke-AssetInspection }
     'SetPublishToken' {
         $secureToken = Read-Host -Prompt 'Thunderstore service-account token' -AsSecureString
         $tokenPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)

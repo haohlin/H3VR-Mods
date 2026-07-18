@@ -13,5 +13,9 @@
   "unity": {
     "meatKitProjectRoot": "<absolute-path-to-meatkit-lite-project>",
     "editorExecutable": "<absolute-path-to-unity-editor-executable>"
+  },
+  "inspection": {
+    "pythonExecutable": "<absolute-path-to-python-3.11-or-newer>",
+    "managedAssemblyDirectory": "<absolute-path-to-h3vr-managed-dlls>"
   }
 }

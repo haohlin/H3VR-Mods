@@ -68,6 +68,8 @@ artifacts/
 /build/staging/
 /build/artifacts/
 /build/receipts/
+/build/inspection/
+/build/tooling/
 /build/environment.local.json
 
 # Generated release payloads are built into build/artifacts, not versioned with

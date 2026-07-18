@@ -13,7 +13,11 @@ public sealed class PublicSanitizationTests
                      ".claude/skills/h3vr-mod-development.md",
                      ".codex/skills/h3vr-mod-development/SKILL.md",
                      "skills/h3vr-remote-development/SKILL.md",
+                     "skills/h3vr-remote-development/references/headless-unity-asset-inspection.md",
                      "build/environment.json",
+                     "build/environment.local.example.json",
+                     "tools/H3VRAssetInspector/inspect_assets.py",
+                     "tools/H3VRAssetInspector/H3VRAssetInspectionBatch.cs",
                      "ThePing/Properties/launchSettings.json",
                  })
         {
@@ -38,6 +42,8 @@ public sealed class PublicSanitizationTests
         Assert.Contains("/build/environment.local.json", ignoreRules, StringComparison.Ordinal);
         Assert.Contains("environment.local.json", pipeline, StringComparison.Ordinal);
         Assert.Contains("ExpandEnvironmentVariables", pipeline, StringComparison.Ordinal);
+        Assert.Contains("SetupAssetInspector", pipeline, StringComparison.Ordinal);
+        Assert.Contains("InspectAssets", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]

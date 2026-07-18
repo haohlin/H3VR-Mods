@@ -25,5 +25,7 @@ jobs:
           git ls-files --error-unmatch GunGameProgressions/GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json
           git ls-files --error-unmatch GunGameProgressions/GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json
           dotnet run --project GunGameProgressions/OfflineProfileGenerator/OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions/ObjectData.json --output-dir GunGameProgressions --verify
+      - name: Run headless asset-inspector portable tests
+        run: python tools/H3VRAssetInspector/tests/test_inspect_assets.py
       - name: Run unit tests
         run: dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj
