@@ -10,6 +10,7 @@ public sealed class HeadlessAssetInspectionTests
         foreach (var relativePath in new[]
                  {
                      "tools/H3VRAssetInspector/inspect_assets.py",
+                     "tools/H3VRAssetInspector/export_private_asset_rip.ps1",
                      "tools/H3VRAssetInspector/requirements.txt",
                      "tools/H3VRAssetInspector/H3VRAssetInspectionBatch.cs",
                      "tools/H3VRAssetInspector/tests/test_inspect_assets.py",
@@ -26,6 +27,24 @@ public sealed class HeadlessAssetInspectionTests
         Assert.Contains("Refusing to overwrite", pipeline, StringComparison.Ordinal);
         Assert.Contains("if ((Test-Path -LiteralPath $bootstrapPath) -or (Test-Path -LiteralPath $bootstrapMetaPath))", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Test-Path -LiteralPath $bootstrapPath -or", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Private_asset_rip_driver_is_headless_atomic_and_non_destructive()
+    {
+        var driver = File.ReadAllText(Path.Combine(
+            RepositoryRoot,
+            "tools",
+            "H3VRAssetInspector",
+            "export_private_asset_rip.ps1"));
+
+        Assert.Contains("--headless=true", driver, StringComparison.Ordinal);
+        Assert.Contains("$baseUri/LoadFolder", driver, StringComparison.Ordinal);
+        Assert.Contains("$baseUri/LoadFile", driver, StringComparison.Ordinal);
+        Assert.Contains("$baseUri/Export/UnityProject", driver, StringComparison.Ordinal);
+        Assert.Contains("Refusing to overwrite existing AssetRipper export", driver, StringComparison.Ordinal);
+        Assert.Contains("Move-Item -LiteralPath $stagingPath -Destination $outputPath", driver, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item -LiteralPath $stagingPath", driver, StringComparison.Ordinal);
     }
 
     [Fact]

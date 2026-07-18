@@ -17,6 +17,7 @@ public sealed class PublicSanitizationTests
                      "build/environment.json",
                      "build/environment.local.example.json",
                      "tools/H3VRAssetInspector/inspect_assets.py",
+                     "tools/H3VRAssetInspector/export_private_asset_rip.ps1",
                      "tools/H3VRAssetInspector/H3VRAssetInspectionBatch.cs",
                      "ThePing/Properties/launchSettings.json",
                  })

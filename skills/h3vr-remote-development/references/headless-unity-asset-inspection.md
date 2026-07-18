@@ -1,8 +1,9 @@
 # Headless Unity Asset Inspection
 
 Use this workflow to study scope packages and other Unity bundles without
-making exported assets part of a repository. It is a structural-evidence tool,
-not an asset-extraction or authoring workflow.
+making exported assets part of a repository. Structural manifests are default.
+An explicitly authorized, owner-private full rip is a separate validation path;
+it is never package source, Git content, or release payload.
 
 ## Purpose and boundary
 
@@ -15,6 +16,35 @@ repository.
 Use a project’s own assets for a release. Treat inspected package data as
 configuration evidence only. Do not commit, redistribute, or build from game or
 third-party mod assets without permission.
+
+## Owner-private full-rip validation
+
+Use this only when the owner explicitly authorizes local reconstruction and
+inspection. It answers a different question from the structural inspector:
+whether a known package or the installed game can be recovered into a Unity
+project for private comparison.
+
+1. Create a private lab outside every repository. Check free space first.
+2. Record source package/game hashes and retain source archives only in that
+   private lab.
+3. Give AssetRipper the package/game input plus relevant managed assemblies so
+   serialized `MonoBehaviour` fields can be decoded.
+4. Export to a new staging directory, verify `ProjectVersion.txt`, then move
+   staging atomically to the final private export.
+5. Batch-import with the matching Unity version. Record import completion and
+   every decompiler/compile error separately from asset recovery results.
+6. Treat a successful Unity import as asset-recovery evidence only. A playable
+   private clone still needs a separate MeatKit reconstruction, package build,
+   and human H3VR comparison.
+
+Use `tools/H3VRAssetInspector/export_private_asset_rip.ps1` with explicit
+private executable, input, output, and log paths. It starts AssetRipper in
+headless mode, loads a file or folder, exports a Unity project, preserves
+unfinished staging for review, and refuses to overwrite prior output.
+
+Never copy private raw output into source projects, manifests, release ZIPs, or
+Thunderstore. Delete it only after its manifest, import log, and any active
+reconstruction have been reviewed.
 
 ## Setup
 
@@ -64,10 +94,10 @@ game-version boundary. Ask it to identify only evidence-backed relationships:
 - references that need a targeted second inspection; and
 - evidence missing before a prefab, shader, or MeatKit change.
 
-An agent can select a narrow follow-up inspection or draft a source change. It
-must not infer a visual result from names alone, substitute extracted art for
-original work, or make a package/release decision without normal Unity and VR
-validation.
+An agent can select a narrow follow-up inspection, run an owner-authorized
+private rip, or draft a source change. It must not infer a visual result from
+names alone, substitute extracted art for original work, or make a
+package/release decision without normal Unity and VR validation.
 
 ## Evidence and cleanup
 
