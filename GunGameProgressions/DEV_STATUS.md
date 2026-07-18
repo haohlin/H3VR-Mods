@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-18`
 
-State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed from feature branch for VR validation`
+State: `1.4.0 released on Thunderstore; Modded optic-policy candidate awaiting Windows validation`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -39,6 +39,7 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | Runtime 05 overlap | `44/46` Runtime 05 firearms already exist in released `1.4.0` Vanilla fallback. Only `COOLCLOSEDBOLT` and `JunkyardFlameThrower` are absent. | Current Runtime 05 JSON compared with release commit `c713b72` Vanilla pool. |
 | MP5 metadata gap | MP5/SP5 entries expose bespoke adapter IDs but no dedicated optic ID or adapter-provided mount type. Current catalog-only resolver cannot prove a dedicated MP5 optic route. | Live `ObjectData.json`: `MP5PicatinnyAdapter` is `Adapter` on `Bespoke`, with empty `ProvidedMountTypes`; no MP5 optic entry exists. |
 | MP5 duplication | Released Vanilla has `29` MP5/SP5 variants; Runtime 05 has `19` more duplicates. | Release/current pool audit. |
+| Modded optic gap | Existing fallback selected any catalog `Scope`, including Modded/high-power scopes, and ignored reflex/RMR role fallback. MP5 adapter and several Modded VAL entries omit catalog output/mount data. | Source plus live catalog audit; real mount retry can occur only after normal gameplay spawn. |
 
 ## Plan
 
@@ -52,6 +53,7 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | In progress | VR-test Runtime 05 and global Picatinny fallback. | Launch configured profile once, inspect BepInEx log, cycle every Runtime 05 weapon; record spawn/feed/physical-optic failures. No exception, wrong feed, or runaway memory. |
 | Pending decision | Classify confirmed Runtime 05 failures before allowing them in normal pools. | Keep each failed firearm testable in Runtime 05; exclude it from normal pools only with recorded live evidence and regression test. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
+| In progress | Validate safe universal Modded optics. | Windows `Test`, `Verify`, `Build`, `Package`, `Deploy`; Modded handgun gets RMR, Picatinny rifle gets vanilla low-power/LPVO, Russian rail gets vanilla Russian scope, MP5 adapter mounts vanilla red dot; Vanilla fallback remains unchanged. |
 
 ## Testing
 

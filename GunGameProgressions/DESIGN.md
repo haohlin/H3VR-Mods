@@ -101,7 +101,8 @@ offline Vanilla fallback. Runtime capture uses the lightweight `FVRObject`
 catalog only, then follows the shared feed and optic policy.
 
 ```text
-catalog-proven firearm + verified compatible feed + ranked optic or Picatinny fallback
+catalog-proven firearm + verified compatible feed + exact optic route
+    or safe Modded fallback
     -> progression entry
 anything unproven / malformed
     -> skip it safely
@@ -156,11 +157,12 @@ delay.
 never call `GetGameObject()` or `GetGameObjectAsync()`: either can materialize
 an Anvil/OtherLoader prefab and retain its bundle. Catalog tags and direct
 compatibility lists provide all required pool metadata. Missing or conflicting
-metadata means skip the item. A fallback optic uses a catalog-declared Picatinny
-scope but does not claim that firearm has a physical rail. GunGame alone
-materializes the selected loadout at normal gameplay spawn time; spawn-safety
-attaches an optic only to a real compatible top mount and skips resulting
-failures.
+metadata means skip the item. Modded fallback uses curated vanilla
+RMR/red-dot/low-power/LPVO optics but does not claim a missing catalog mount
+exists. GunGame alone materializes the selected loadout at normal gameplay
+spawn time; if that optic cannot mount and the live firearm exposes an
+RMR/Russian/Picatinny mount, spawn-safety retries only its matching small
+vanilla set. Capture never materializes a prefab.
 
 Logging is event-based: request, capture, write, or retained candidate. Never
 emit an exception or status log in a poll loop; repeated formatting and disk

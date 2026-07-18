@@ -86,6 +86,12 @@ public sealed class RuntimeGenerationResult
     public List<string> FirearmsWithoutOptics { get; set; }
 }
 
+internal enum OpticSelectionMode
+{
+    ExactOnly,
+    ModdedUniversal,
+}
+
 public static class RuntimeProfileBuilder
 {
     // The one deliberate object-ID exclusion. Slingshot can freeze a GunGame
@@ -93,6 +99,47 @@ public static class RuntimeProfileBuilder
     private static readonly HashSet<string> ExplicitFirearmBlacklist = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "Slingshot",
+    };
+
+    // Catalog-only capture cannot read PIP-scope magnification without
+    // materializing a prefab. These are maintained vanilla fallbacks whose
+    // physical mount and intended low/variable-power role are known. They are
+    // optic policy, never firearm-specific exceptions.
+    private static readonly string[] VanillaRmrReflexFallbackIds =
+    {
+        "ReflexH507CSlideMount",
+        "ReflexRMRSlideMount",
+        "ReflexSROSlideMount",
+    };
+
+    private static readonly string[] VanillaPicatinnyReflexFallbackIds =
+    {
+        "ReflexArco",
+        "ReflexCom4",
+        "ReflexMRS",
+        "ReflexSRS2",
+        "ReflexVUH1",
+    };
+
+    private static readonly string[] VanillaPicatinnyLowPowerScopeFallbackIds =
+    {
+        "ScopeAcog4x32",
+        "ScopeG36",
+        "ScopeHAMComboScope4x24",
+        "ScopeSusat",
+    };
+
+    private static readonly string[] VanillaPicatinnyVariableScopeFallbackIds =
+    {
+        "ScopeLion2-5x",
+        "ScopeST6T16x24mmBlack",
+        "ScopeST6T16x24mmFDE",
+        "ScopeVRZ_1_6x24mm",
+    };
+
+    private static readonly string[] VanillaRussianScopeFallbackIds =
+    {
+        "Scope_M76",
     };
 
     public static List<RuntimeWeaponPool> Build(IEnumerable<RuntimeMetadataEntry> sourceEntries, Random random)
@@ -161,25 +208,20 @@ public static class RuntimeProfileBuilder
         var noOptic = new List<string>();
         var vanillaIndex = new RuntimeProfileIndex(vanillaEntries, vanillaEntriesById);
         var moddedIndex = new RuntimeProfileIndex(entries, entriesById);
-        // Last-resort policy: preserve direct/proprietary and exact-mount
-        // choices first. If catalog data cannot select an optic, emit a
-        // Picatinny scope so every otherwise-valid firearm has a testable
-        // optic loadout. Runtime mounting still requires a real compatible
-        // sight mount and safely leaves an incompatible fallback unattached.
         var vanillaWeapons = BuildWeapons(
             vanillaFirearms,
             vanillaIndex,
             random,
             skipped,
             noOptic,
-            allowPicatinnyScopeFallback: true);
+            OpticSelectionMode.ExactOnly);
         var moddedWeapons = BuildWeapons(
             moddedFirearms,
             moddedIndex,
             random,
             skipped,
             noOptic,
-            allowPicatinnyScopeFallback: true);
+            OpticSelectionMode.ModdedUniversal);
         var rot = FindRot(enemyEntries);
         var vanillaMixed = BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent));
         var allActiveMixed = BuildMixedEnemies(enemyEntries);
@@ -231,9 +273,8 @@ public static class RuntimeProfileBuilder
         };
     }
 
-    // Compatibility Probe is an opt-in diagnostic profile. It keeps ordinary
-    // firearm and feed validation, then uses the same global fallback-optic
-    // policy as normal profiles against former blacklist candidates.
+    // Compatibility Probe is an opt-in diagnostic profile. It uses the same
+    // safe Modded optic policy as normal Modded profiles.
     public static RuntimeGenerationResult BuildCompatibilityProbe(
         IEnumerable<RuntimeMetadataEntry> sourceEntries,
         IEnumerable<RuntimeEnemyEntry> sourceEnemies,
@@ -284,14 +325,14 @@ public static class RuntimeProfileBuilder
             random,
             skipped,
             noOptic,
-            allowPicatinnyScopeFallback: true);
+            OpticSelectionMode.ModdedUniversal);
         var pools = new List<RuntimeWeaponPool>();
         if (weapons.Count > 0)
         {
             pools.Add(CreateScenarioPool(
                 "05_Compatibility_Probe",
                 "Runtime 05 - Compatibility Probe",
-                "Experimental legacy-firearm profile. Uses verified feeds and global Picatinny scope fallback.",
+                "Experimental legacy-firearm profile. Uses verified feeds and safe universal optic fallback.",
                 1,
                 0,
                 weapons,
@@ -312,7 +353,7 @@ public static class RuntimeProfileBuilder
         Random random,
         List<string> skipped,
         List<string> noOptic,
-        bool allowPicatinnyScopeFallback = false)
+        OpticSelectionMode opticSelectionMode)
     {
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
@@ -330,7 +371,7 @@ public static class RuntimeProfileBuilder
                 continue;
             }
 
-            var extra = SelectOptic(index, firearm, random, allowPicatinnyScopeFallback);
+            var extra = SelectOptic(index, firearm, random, opticSelectionMode);
             if (string.IsNullOrEmpty(extra))
             {
                 noOptic.Add(firearm.ObjectID);
@@ -588,52 +629,47 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
         Random random,
-        bool allowPicatinnyScopeFallback = false)
+        OpticSelectionMode opticSelectionMode)
     {
-        var directCandidates = GetDirectOptics(index, firearm);
+        var directCandidates = GetDirectOptics(index, firearm, opticSelectionMode);
         if (directCandidates.Count > 0)
         {
             // BespokeAttachments is the game's direct compatibility list. A
             // verified optic there is the authoritative proprietary choice.
-            return SelectPreferredOptic(directCandidates, firearm, random);
+            return SelectPreferredOptic(directCandidates, firearm, random, opticSelectionMode);
         }
 
         foreach (var rule in OpticMountPolicy.Rank(firearm.PhysicalMountTypes))
         {
             var candidates = index.GetOptics(rule.OpticKinds)
-                .Where(attachment => IsCompatibleWithRule(attachment, rule))
+                .Where(attachment => IsCompatibleWithRule(attachment, rule, opticSelectionMode))
                 .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
                 .Select(group => group.First())
                 .ToList();
             if (candidates.Count > 0)
             {
-                return SelectPreferredOptic(candidates, firearm, random);
+                return SelectPreferredOptic(candidates, firearm, random, opticSelectionMode);
             }
 
-            var adapterCandidates = GetAdapterCompatibleOptics(index, rule);
+            var adapterCandidates = GetAdapterCompatibleOptics(index, rule, opticSelectionMode);
             if (adapterCandidates.Count > 0)
             {
-                return SelectPreferredOptic(adapterCandidates, firearm, random);
+                return SelectPreferredOptic(adapterCandidates, firearm, random, opticSelectionMode);
             }
         }
 
-        if (!allowPicatinnyScopeFallback)
+        if (opticSelectionMode != OpticSelectionMode.ModdedUniversal)
         {
             return null;
         }
 
-        var picatinnyScopes = index.GetOptics(new[] { "Scope" })
-            .Where(attachment => HasMount(attachment.PhysicalMountTypes, "Picatinny"))
-            .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
-            .ToList();
-        return picatinnyScopes.Count == 0
-            ? null
-            : picatinnyScopes[random.Next(picatinnyScopes.Count)].ObjectID;
+        return SelectUniversalVanillaFallback(index, firearm, random);
     }
 
     private static List<RuntimeMetadataEntry> GetAdapterCompatibleOptics(
         RuntimeProfileIndex index,
-        OpticMountRule firearmRule)
+        OpticMountRule firearmRule,
+        OpticSelectionMode opticSelectionMode)
     {
         return index.EntriesById.Values
             .Where(adapter => adapter.Category == "Attachment" &&
@@ -641,7 +677,7 @@ public static class RuntimeProfileBuilder
                 HasMount(adapter.PhysicalMountTypes, firearmRule.MountType))
             .SelectMany(adapter => OpticMountPolicy.Rank(adapter.ProvidedMountTypes))
             .SelectMany(rule => index.GetOptics(rule.OpticKinds)
-                .Where(attachment => IsCompatibleWithRule(attachment, rule)))
+                .Where(attachment => IsCompatibleWithRule(attachment, rule, opticSelectionMode)))
             .GroupBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
             .Select(group => group.First())
             .ToList();
@@ -649,13 +685,15 @@ public static class RuntimeProfileBuilder
 
     private static List<RuntimeMetadataEntry> GetDirectOptics(
         RuntimeProfileIndex index,
-        RuntimeMetadataEntry firearm)
+        RuntimeMetadataEntry firearm,
+        OpticSelectionMode opticSelectionMode)
     {
         var candidates = new List<RuntimeMetadataEntry>();
         foreach (var objectId in firearm.BespokeAttachments ?? new List<string>())
         {
             RuntimeMetadataEntry attachment;
-            if (index.EntriesById.TryGetValue(objectId, out attachment) && IsVerifiedOptic(attachment))
+            if (index.EntriesById.TryGetValue(objectId, out attachment) &&
+                IsAllowedOpticCandidate(attachment, opticSelectionMode))
             {
                 candidates.Add(attachment);
             }
@@ -664,9 +702,12 @@ public static class RuntimeProfileBuilder
         return candidates;
     }
 
-    private static bool IsCompatibleWithRule(RuntimeMetadataEntry attachment, OpticMountRule rule)
+    private static bool IsCompatibleWithRule(
+        RuntimeMetadataEntry attachment,
+        OpticMountRule rule,
+        OpticSelectionMode opticSelectionMode)
     {
-        return IsVerifiedOptic(attachment) &&
+        return IsAllowedOpticCandidate(attachment, opticSelectionMode) &&
             rule.Accepts(attachment.OpticKind) &&
             HasMount(attachment.PhysicalMountTypes, rule.MountType);
     }
@@ -674,7 +715,8 @@ public static class RuntimeProfileBuilder
     private static string SelectPreferredOptic(
         IEnumerable<RuntimeMetadataEntry> candidates,
         RuntimeMetadataEntry firearm,
-        Random random)
+        Random random,
+        OpticSelectionMode opticSelectionMode)
     {
         var candidateList = candidates
             .Where(candidate => candidate != null)
@@ -684,9 +726,9 @@ public static class RuntimeProfileBuilder
             return null;
         }
 
-        var bestRank = candidateList.Min(candidate => OpticFitRank(firearm, candidate));
+        var bestRank = candidateList.Min(candidate => OpticFitRank(firearm, candidate, opticSelectionMode));
         var bestCandidates = candidateList
-            .Where(candidate => OpticFitRank(firearm, candidate) == bestRank)
+            .Where(candidate => OpticFitRank(firearm, candidate, opticSelectionMode) == bestRank)
             .OrderBy(candidate => candidate.ObjectID, StringComparer.Ordinal)
             .ToList();
         return bestCandidates[random.Next(bestCandidates.Count)].ObjectID;
@@ -694,8 +736,16 @@ public static class RuntimeProfileBuilder
 
     // This is a selection preference only. Physical mount verification and
     // proprietary-mount priority are enforced before it is called.
-    private static int OpticFitRank(RuntimeMetadataEntry firearm, RuntimeMetadataEntry optic)
+    private static int OpticFitRank(
+        RuntimeMetadataEntry firearm,
+        RuntimeMetadataEntry optic,
+        OpticSelectionMode opticSelectionMode)
     {
+        if (opticSelectionMode == OpticSelectionMode.ModdedUniversal)
+        {
+            return ModdedUniversalOpticFitRank(firearm, optic);
+        }
+
         if (IsPicatinnyOnlyRifleCarbine(firearm))
         {
             return VariableScopeFirstRank(optic);
@@ -744,6 +794,196 @@ public static class RuntimeProfileBuilder
         return optic.IsVariableMagnification && optic.OpticMinMagnification <= 3f && optic.OpticMaxMagnification >= 4f
             ? 0
             : 10;
+    }
+
+    // Modded catalogs often omit size, magnification, or mount detail. This
+    // policy keeps the resolver universal without trusting arbitrary modded
+    // scopes: modded reflex/RMR sights remain eligible, while every scope
+    // comes from the small vanilla low-power/LPVO/proprietary fallback set.
+    private static int ModdedUniversalOpticFitRank(
+        RuntimeMetadataEntry firearm,
+        RuntimeMetadataEntry optic)
+    {
+        if (HasScopeOnlyMount(firearm.PhysicalMountTypes))
+        {
+            return optic.OpticKind == "Scope" ? 0 : 10;
+        }
+
+        if (IsHandgun(firearm))
+        {
+            return optic.OpticKind == "Reflex" ? 0 : 10;
+        }
+
+        if (IsCloseRangeFirearm(firearm))
+        {
+            if (optic.OpticKind == "Reflex")
+            {
+                return 0;
+            }
+
+            return IsVanillaPicatinnyLowPowerScope(optic) ? 10 : 20;
+        }
+
+        if (IsVanillaPicatinnyVariableScope(optic))
+        {
+            return 0;
+        }
+
+        if (IsVanillaPicatinnyLowPowerScope(optic))
+        {
+            return 10;
+        }
+
+        return optic.OpticKind == "Reflex" ? 20 : 30;
+    }
+
+    private static string SelectUniversalVanillaFallback(
+        RuntimeProfileIndex index,
+        RuntimeMetadataEntry firearm,
+        Random random)
+    {
+        if (IsHandgun(firearm))
+        {
+            var rmr = GetKnownVanillaFallbackOptics(index, VanillaRmrReflexFallbackIds, "RMR");
+            if (rmr.Count > 0)
+            {
+                return SelectRandomOptic(rmr, random);
+            }
+        }
+
+        if (IsCloseRangeFirearm(firearm))
+        {
+            var closeRange = GetKnownVanillaFallbackOptics(
+                index,
+                VanillaPicatinnyReflexFallbackIds.Concat(VanillaPicatinnyLowPowerScopeFallbackIds),
+                "Picatinny");
+            if (closeRange.Count > 0)
+            {
+                return SelectPreferredOptic(closeRange, firearm, random, OpticSelectionMode.ModdedUniversal);
+            }
+        }
+
+        var rifle = GetKnownVanillaFallbackOptics(
+            index,
+            VanillaPicatinnyVariableScopeFallbackIds
+                .Concat(VanillaPicatinnyLowPowerScopeFallbackIds)
+                .Concat(VanillaPicatinnyReflexFallbackIds),
+            "Picatinny");
+        return rifle.Count == 0
+            ? null
+            : SelectPreferredOptic(rifle, firearm, random, OpticSelectionMode.ModdedUniversal);
+    }
+
+    // Shared with spawn safety. Profile capture stays catalog-only; after a
+    // selected optic fails to mount, gameplay may try this small vanilla set
+    // against the firearm's real physical mount.
+    public static IEnumerable<string> GetVanillaFallbackOpticIdsForPhysicalMount(string rawMountType)
+    {
+        var resolution = MountResolution.Resolve(rawMountType);
+        if (!resolution.IsResolved)
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        if (string.Equals(resolution.CanonicalMount, "RMR", StringComparison.OrdinalIgnoreCase))
+        {
+            return VanillaRmrReflexFallbackIds;
+        }
+
+        if (string.Equals(resolution.CanonicalMount, "Russian", StringComparison.OrdinalIgnoreCase))
+        {
+            return VanillaRussianScopeFallbackIds;
+        }
+
+        if (string.Equals(resolution.CanonicalMount, "Picatinny", StringComparison.OrdinalIgnoreCase))
+        {
+            return VanillaPicatinnyReflexFallbackIds
+                .Concat(VanillaPicatinnyLowPowerScopeFallbackIds)
+                .Concat(VanillaPicatinnyVariableScopeFallbackIds);
+        }
+
+        return Enumerable.Empty<string>();
+    }
+
+    private static List<RuntimeMetadataEntry> GetKnownVanillaFallbackOptics(
+        RuntimeProfileIndex index,
+        IEnumerable<string> objectIds,
+        string mountType)
+    {
+        var candidates = new List<RuntimeMetadataEntry>();
+        foreach (var objectId in objectIds ?? Enumerable.Empty<string>())
+        {
+            RuntimeMetadataEntry candidate;
+            if (index.EntriesById.TryGetValue(objectId, out candidate) &&
+                !candidate.IsModContent &&
+                IsVerifiedOptic(candidate) &&
+                HasMount(candidate.PhysicalMountTypes, mountType))
+            {
+                candidates.Add(candidate);
+            }
+        }
+
+        return candidates;
+    }
+
+    private static string SelectRandomOptic(IList<RuntimeMetadataEntry> candidates, Random random)
+    {
+        return candidates[random.Next(candidates.Count)].ObjectID;
+    }
+
+    private static bool IsAllowedOpticCandidate(
+        RuntimeMetadataEntry attachment,
+        OpticSelectionMode opticSelectionMode)
+    {
+        if (!IsVerifiedOptic(attachment) || opticSelectionMode != OpticSelectionMode.ModdedUniversal)
+        {
+            return IsVerifiedOptic(attachment);
+        }
+
+        if (attachment.IsModContent)
+        {
+            return attachment.OpticKind == "Reflex";
+        }
+
+        return attachment.OpticKind != "Scope" ||
+            !HasMount(attachment.PhysicalMountTypes, "Picatinny") ||
+            IsVanillaPicatinnySafeScope(attachment);
+    }
+
+    private static bool IsVanillaPicatinnySafeScope(RuntimeMetadataEntry optic)
+    {
+        return IsVanillaPicatinnyLowPowerScope(optic) ||
+            IsVanillaPicatinnyVariableScope(optic);
+    }
+
+    private static bool IsVanillaPicatinnyLowPowerScope(RuntimeMetadataEntry optic)
+    {
+        return optic != null &&
+            (VanillaPicatinnyLowPowerScopeFallbackIds.Contains(optic.ObjectID, StringComparer.Ordinal) ||
+             (!optic.IsVariableMagnification &&
+              optic.OpticMaxMagnification > 0f &&
+              optic.OpticMaxMagnification <= 4f));
+    }
+
+    private static bool IsVanillaPicatinnyVariableScope(RuntimeMetadataEntry optic)
+    {
+        return optic != null &&
+            (VanillaPicatinnyVariableScopeFallbackIds.Contains(optic.ObjectID, StringComparer.Ordinal) ||
+             (optic.IsVariableMagnification &&
+              optic.OpticMinMagnification <= 2f &&
+              optic.OpticMaxMagnification >= 2f &&
+              optic.OpticMaxMagnification <= 6f));
+    }
+
+    private static bool HasScopeOnlyMount(IEnumerable<string> mounts)
+    {
+        return OpticMountPolicy.Rank(mounts)
+            .Any(rule => rule.OpticKinds.Count == 1 && rule.OpticKinds[0] == "Scope");
+    }
+
+    private static bool IsHandgun(RuntimeMetadataEntry firearm)
+    {
+        return firearm.FirearmSize == "Pocket" || firearm.FirearmSize == "Pistol";
     }
 
     private static bool IsCloseRangeFirearm(RuntimeMetadataEntry firearm)

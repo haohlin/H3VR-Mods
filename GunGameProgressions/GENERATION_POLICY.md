@@ -17,10 +17,10 @@ The versioned `ObjectData.json` vanilla snapshot is required generator input and
 is packaged beside those two profiles for repeatable offline validation.
 
 > **Compatibility rule:** when metadata cannot prove a safe firearm or feed,
-> omit it. Never guess an object ID from a name or shared caliber. After
-> direct/proprietary/exact-mount optic selection fails, use one catalog-declared
-> Picatinny **Scope** fallback. Runtime mounting still requires a real
-> compatible top sight mount.
+> omit it. Never guess firearm/feed IDs from a name or shared caliber. Modded
+> magnified scopes are never selected. When no exact optic route exists, use
+> only curated vanilla RMR/reflex/low-power/LPVO fallback optics; runtime still
+> requires a real compatible top sight mount.
 
 > **Catalog-only capture rule:** runtime profile capture reads `FVRObject`
 > fields and never materializes a prefab. A firearm needs valid GunGame
@@ -36,8 +36,9 @@ is packaged beside those two profiles for repeatable offline validation.
 | Not a supported firearm | Skip |
 | Firearm lacks catalog proof or GunGame round-display data | Skip |
 | No verified compatible feed | Skip |
-| No ranked compatible optic, but catalog has Picatinny scope | Assign deterministic random Picatinny scope fallback |
-| No ranked compatible optic and no Picatinny scope exists | Spawn firearm without optic |
+| Modded exact route | Prefer compatible proprietary/Russian/RMR/Picatinny optic; permit Modded reflex/RMR, never Modded magnified scope |
+| No Modded exact optic route | Handgun: vanilla RMR reflex; CQC: vanilla Picatinny reflex/low-power; rifle/carbine/unknown: vanilla LPVO/low-power/reflex |
+| Curated fallback missing | Spawn firearm without optic |
 | Actual GunGame spawn rejects or throws for a generated loadout | Clear it, skip it, and advance safely |
 
 Skipping an ambiguous weapon is intentional. A missing progression entry is safer than a wrong object ID, a malformed loadout, or a game crash.
@@ -89,18 +90,18 @@ firearm
 |   `-- verified adapter       -> supported mount exposed by adapter
 |
 `-- no verified route -> deterministic random catalog Picatinny scope fallback
-                           (or no optic if catalog has none)
+                           from curated vanilla-safe candidates
+                           (or no optic if unavailable)
 
 compatible optics
 |
 +-- CQC / pistol / SMG / shotgun -> reflex -> low-power scope
-+-- bolt-action full-power / anti-materiel -> high-power scope
-+-- rifle-caliber carbine with Picatinny as its only valid optic route
-|   -> variable scope -> other scope -> reflex
-`-- rifle / battle rifle -> variable scope -> other scope -> reflex
++-- handgun without metadata route -> vanilla RMR reflex
++-- rifle / carbine / unknown route -> vanilla LPVO -> low-power -> reflex
+`-- proprietary Russian route -> matching vanilla Russian scope first
 ```
 
-Candidate gate: the object must be an `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded.
+Candidate gate: object must be `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded. For Modded profiles, a Modded candidate may only be `Reflex`; every magnified candidate must be a curated vanilla low-power/LPVO scope.
 
 Mount matching uses lightweight catalog metadata (`TagFirearmMounts`,
 `TagAttachmentMount`, and direct compatibility), not firearm or scope name
@@ -116,15 +117,18 @@ An M4-style carbine is selected by metadata, never by Object ID: it must be `Car
 
 ### Fallback optic rule
 
-Fallback is last and deterministic. It selects only an `Attachment` classified
-as `Scope` with declared `Picatinny` mount. It does not infer a firearm mount:
-runtime mounting still checks actual compatible top sight mounts. If no mount
-accepts it, GunGame stays playable and scope remains unattached.
+Fallback is last, deterministic, and Modded-only. It uses a small maintained
+vanilla ID set because lightweight `FVRObject` metadata does not expose
+magnification values: RMR reflexes, Picatinny reflexes, fixed low-power scopes,
+LPVOs, and the vanilla Russian scope. These are generic optic classes, not
+per-firearm exceptions. Sniper scopes and all Modded magnified scopes are
+excluded.
 
 Direct bespoke optics, proprietary mounts, RMR, and exact Picatinny matches
-always win before fallback. Fallback never changes feed selection. Every
-otherwise-valid firearm receives an optic entry when active catalog has a
-Picatinny scope; no object is invented when catalog has none.
+always win before fallback. If a Modded entry omits mount tags, profile capture
+does not inspect its prefab. At normal gameplay spawn only, mount safety may
+retry that same small vanilla set against physical RMR/Russian/Picatinny mounts.
+Fallback never changes feed selection.
 
 ### Compatibility Probe
 
@@ -189,7 +193,7 @@ with coverage for the same condition.
 | Firearm without catalog proof or verified feed | Skip it; never guess magazine, round, or arrow from name/model. This covers malformed `CompoundBow`, MCX rail objects, and incomplete G28 variants. Sole feedless exception: `GravitonBeamer`. | `Runtime_profile_builder_skips_unproven_modded_cartridge_guesses_and_bad_feedless_objects` |
 | Mod firearm or feed has incomplete catalog metadata | Skip it; profile capture must not materialize prefabs to repair it. Actual spawn failures also skip and advance safely. | `Runtime_catalog_capture_never_materializes_the_prefab_registry`; `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
-| G28-style magazine-fed firearm is skipped because optional identity tags are absent | Accept direct/exact catalog feed proof, keep its magazine, then use only exact mount-compatible scope. | `Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes` |
+| G28-style magazine-fed firearm is skipped because optional identity tags are absent | Accept direct/exact catalog feed proof, keep its magazine, then use exact mount route or safe Modded fallback. | `Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes` |
 | Mod firearm receives loose cartridge from `RoundType` alone | Skip it unless it declares direct cartridge compatibility. | `Runtime_profile_builder_skips_unproven_modded_cartridge_guesses_and_bad_feedless_objects` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |
 | Tube, internal, or break-action shotgun receives P6-12/Jackhammer-style rotary feed | Use a verified shell; never a generic magazine or rotary loader. | `Runtime_profile_builder_uses_shells_for_non_box_shotguns_in_both_profile_families` |
@@ -199,10 +203,12 @@ with coverage for the same condition.
 | Verified RMR or Picatinny sight mount receives no optic | Use a verified compatible reflex or scope when one exists. | `Runtime_profile_builder_selects_only_exact_mount_verified_optics` |
 | Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
 | Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
-| CQC, rifle, and sniper receive indiscriminate optic power | Rank verified compatible optics by firearm role. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| CQC, rifle, and sniper receive indiscriminate optic power | Modded profiles permit vanilla red-dot/low-power/LPVO choices only; sniper scopes are excluded. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
 | M4-style Picatinny-only rifle carbine receives a reflex sight | Prefer a compatible variable scope; retain reflex priority for pistol-caliber carbines. | `Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines` |
-| Otherwise-valid firearm has no direct/proprietary/exact-mount optic | Assign catalog Picatinny scope fallback. Runtime mounts only on real compatible top rail. | `Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists`; `Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms` |
-| Former blacklist candidate | Runtime 05 uses same feed and optic resolver; `Slingshot` remains absent. | `Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback` |
+| Modded magnified scope is offered as a universal fallback | Never select it. Exact Modded reflex/RMR remains valid; magnified fallback comes from curated vanilla low-power/LPVO IDs. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Otherwise-valid Modded firearm has no direct/proprietary/exact-mount optic | Handgun gets vanilla RMR reflex. CQC gets vanilla Picatinny reflex/low-power. Rifle/carbine/unknown gets vanilla LPVO/low-power/reflex. | `Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists`; `Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms`; `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Catalog omits physical mount tags | Capture stays prefab-free. At gameplay spawn only, retry matching vanilla fallback against physical RMR/Russian/Picatinny mount. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Former blacklist candidate | Runtime 05 uses same feed and safe Modded optic resolver; `Slingshot` remains absent. | `Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback` |
 | Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |

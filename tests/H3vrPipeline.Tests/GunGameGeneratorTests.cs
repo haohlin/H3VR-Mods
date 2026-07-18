@@ -1062,7 +1062,7 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
-        Assert.Equal("PicatinnyHighScope", ReadString(guns["Sniper"], "Extra"));
+        Assert.Equal("PicatinnyVariableScope", ReadString(guns["Sniper"], "Extra"));
         Assert.Equal("PicatinnyReflex", ReadString(guns["Smg"], "Extra"));
         Assert.Equal("PicatinnyVariableScope", ReadString(guns["Rifle"], "Extra"));
     }
@@ -1295,9 +1295,10 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "NonOpticMountA" });
         entries.SetValue(invalidScope, 2);
 
-        var fallbackScope = RuntimeEntry(entryType, "FallbackPicatinnyScope", "Attachment", true);
+        var fallbackScope = RuntimeEntry(entryType, "FallbackPicatinnyScope", "Attachment", false);
         SetRuntimeProperty(entryType, fallbackScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, fallbackScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, fallbackScope, "OpticMaxMagnification", 4f);
         entries.SetValue(fallbackScope, 3);
 
         var enemies = Array.CreateInstance(enemyType, 1);
@@ -1309,6 +1310,77 @@ public sealed class GunGameGeneratorTests
             .Single();
 
         Assert.Equal("FallbackPicatinnyScope", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        var handgun = RuntimeEntry(entryType, "UnknownMountHandgun", "Firearm", true, magazineType: 1);
+        SetRuntimeProperty(entryType, handgun, "FirearmSize", "Pistol");
+        SetRuntimeProperty(entryType, handgun, "CompatibleMagazines", new List<string> { "HandgunMagazine" });
+        entries.SetValue(handgun, 0);
+
+        var rifle = RuntimeEntry(entryType, "UnknownMountRifle", "Firearm", true, magazineType: 2);
+        SetRuntimeProperty(entryType, rifle, "FirearmSize", "Carbine");
+        SetRuntimeProperty(entryType, rifle, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, rifle, "CompatibleMagazines", new List<string> { "RifleMagazine" });
+        entries.SetValue(rifle, 1);
+
+        var russianRifle = RuntimeEntry(entryType, "RussianRailModRifle", "Firearm", true, magazineType: 3);
+        SetRuntimeProperty(entryType, russianRifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, russianRifle, "PhysicalMountTypes", new List<string> { "Russian", "Picatinny" });
+        SetRuntimeProperty(entryType, russianRifle, "CompatibleMagazines", new List<string> { "RussianMagazine" });
+        entries.SetValue(russianRifle, 2);
+
+        entries.SetValue(RuntimeEntry(entryType, "HandgunMagazine", "Magazine", true, magazineType: 1), 3);
+        entries.SetValue(RuntimeEntry(entryType, "RifleMagazine", "Magazine", true, magazineType: 2), 4);
+        entries.SetValue(RuntimeEntry(entryType, "RussianMagazine", "Magazine", true, magazineType: 3), 5);
+
+        var rmr = RuntimeEntry(entryType, "ReflexRMRSlideMount", "Attachment", false);
+        SetRuntimeProperty(entryType, rmr, "OpticKind", "Reflex");
+        SetRuntimeProperty(entryType, rmr, "PhysicalMountTypes", new List<string> { "RMR" });
+        entries.SetValue(rmr, 6);
+
+        var lowVariable = RuntimeEntry(entryType, "ScopeLion2-5x", "Attachment", false);
+        SetRuntimeProperty(entryType, lowVariable, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, lowVariable, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, lowVariable, "OpticMinMagnification", 1f);
+        SetRuntimeProperty(entryType, lowVariable, "OpticMaxMagnification", 5f);
+        SetRuntimeProperty(entryType, lowVariable, "IsVariableMagnification", true);
+        entries.SetValue(lowVariable, 7);
+
+        var russianScope = RuntimeEntry(entryType, "Scope_M76", "Attachment", false);
+        SetRuntimeProperty(entryType, russianScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, russianScope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(russianScope, 8);
+
+        var moddedSniperScope = RuntimeEntry(entryType, "ModdedSniperScope", "Attachment", true);
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, moddedSniperScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticMinMagnification", 6f);
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticMaxMagnification", 24f);
+        SetRuntimeProperty(entryType, moddedSniperScope, "IsVariableMagnification", true);
+        entries.SetValue(moddedSniperScope, 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
+
+        Assert.Equal("ReflexRMRSlideMount", ReadString(guns["UnknownMountHandgun"], "Extra"));
+        Assert.Equal("ScopeLion2-5x", ReadString(guns["UnknownMountRifle"], "Extra"));
+        Assert.Equal("Scope_M76", ReadString(guns["RussianRailModRifle"], "Extra"));
+        Assert.DoesNotContain(guns.Values, gun => ReadString(gun, "Extra") == "ModdedSniperScope");
     }
 
     [WindowsH3vrFact]
@@ -1331,9 +1403,10 @@ public sealed class GunGameGeneratorTests
             entries.SetValue(firearm, index * 3);
 
             entries.SetValue(RuntimeEntry(entryType, "UnsafeMountMagazine" + index, "Magazine", true, magazineType: index + 1), index * 3 + 1);
-            var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", true);
+            var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", false);
             SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
             SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+            SetRuntimeProperty(entryType, scope, "OpticMaxMagnification", 4f);
             entries.SetValue(scope, index * 3 + 2);
         }
 
@@ -1371,6 +1444,7 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines",
             "Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists",
             "Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms",
+            "Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms",
             "Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback",
             "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",
             "Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles",
@@ -1718,7 +1792,7 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(g28, 0);
         entries.SetValue(RuntimeEntry(entryType, "G28Magazine10", "Magazine", true), 1);
         entries.SetValue(RuntimeEntry(entryType, "G28Magazine20", "Magazine", true), 2);
-        entries.SetValue(Optic(entryType, "G28Scope", "Scope", 2f, 8f, true), 3);
+        entries.SetValue(Optic(entryType, "G28Scope", "Scope", 1f, 6f, true), 3);
 
         // A loose same-round cartridge is not proof that it fits a mod rifle.
         // Without direct/exact metadata this entry must be omitted.
@@ -2411,7 +2485,7 @@ public sealed class GunGameGeneratorTests
         float maximumMagnification,
         bool variableMagnification)
     {
-        var optic = RuntimeEntry(entryType, objectId, "Attachment", true);
+        var optic = RuntimeEntry(entryType, objectId, "Attachment", false);
         SetRuntimeProperty(entryType, optic, "OpticKind", opticKind);
         SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
         SetRuntimeProperty(entryType, optic, "OpticMinMagnification", minimumMagnification);
