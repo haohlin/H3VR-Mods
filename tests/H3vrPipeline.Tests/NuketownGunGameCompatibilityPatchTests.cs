@@ -40,6 +40,11 @@ public sealed class NuketownGunGameCompatibilityPatchTests
             "NuketownGunGameCompatibilityPatch",
             "Thunderstore",
             "HLin_Mods-Nuketown_GunGame_Compatibility_Patch");
+
+        var changelogPath = Path.Combine(packageRoot, "CHANGELOG.md");
+        Assert.True(File.Exists(changelogPath), "Every package must provide the metadata required by the packaging wrapper.");
+        Assert.Contains("## 1.0.0", File.ReadAllText(changelogPath), StringComparison.Ordinal);
+
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(packageRoot, "manifest.json")));
         var dependencies = manifest.RootElement.GetProperty("dependencies").EnumerateArray().Select(item => item.GetString()).ToArray();
 
