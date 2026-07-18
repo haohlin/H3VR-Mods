@@ -24,6 +24,8 @@ public sealed class HeadlessAssetInspectionTests
         Assert.Contains("H3VRAssetInspectionBatch.cs", pipeline, StringComparison.Ordinal);
         Assert.Contains("Remove-Item -LiteralPath $scratchDirectory -Recurse -Force", pipeline, StringComparison.Ordinal);
         Assert.Contains("Refusing to overwrite", pipeline, StringComparison.Ordinal);
+        Assert.Contains("if ((Test-Path -LiteralPath $bootstrapPath) -or (Test-Path -LiteralPath $bootstrapMetaPath))", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("Test-Path -LiteralPath $bootstrapPath -or", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]

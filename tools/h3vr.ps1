@@ -496,7 +496,7 @@ function Invoke-UnityAssetInspectionAudit {
     $bootstrapDirectory = Join-Path $projectRoot 'Assets\Editor'
     $bootstrapPath = Join-Path $bootstrapDirectory 'H3VRAssetInspectionBatch.cs'
     $bootstrapMetaPath = "$bootstrapPath.meta"
-    if (Test-Path -LiteralPath $bootstrapPath -or Test-Path -LiteralPath $bootstrapMetaPath) {
+    if ((Test-Path -LiteralPath $bootstrapPath) -or (Test-Path -LiteralPath $bootstrapMetaPath)) {
         throw 'Asset-inspection bootstrap path already exists. Refusing to overwrite it.'
     }
 
