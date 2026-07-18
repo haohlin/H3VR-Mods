@@ -36,6 +36,9 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | Live GunGame failure | `GrappleGun` with direct `MagazineGrappleGun` fails GunGame chamber loading, then throws from `WeaponBuffer.SpawnImmediate` before optic mounting. | Live BepInEx: `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)` plus `NullReferenceException` / `KeyNotFoundException` stack traces. |
 | Safety boundary | Spawn safety rejects unavailable IDs and wrong categories, but cannot prove GunGame-specific chamber/load semantics from catalog metadata alone. | `GrappleGun` passes catalog feed/category validation yet fails upstream GunGame spawn. |
 | Unrelated loader noise | Failed pool-file loads belong to a separate installed map package, not GunGame Progressions. | Live log paths identify that package's `GunGameWeaponPool_*.json` files. |
+| Runtime 05 overlap | `44/46` Runtime 05 firearms already exist in released `1.4.0` Vanilla fallback. Only `COOLCLOSEDBOLT` and `JunkyardFlameThrower` are absent. | Current Runtime 05 JSON compared with release commit `c713b72` Vanilla pool. |
+| MP5 metadata gap | MP5/SP5 entries expose bespoke adapter IDs but no dedicated optic ID or adapter-provided mount type. Current catalog-only resolver cannot prove a dedicated MP5 optic route. | Live `ObjectData.json`: `MP5PicatinnyAdapter` is `Adapter` on `Bespoke`, with empty `ProvidedMountTypes`; no MP5 optic entry exists. |
+| MP5 duplication | Released Vanilla has `29` MP5/SP5 variants; Runtime 05 has `19` more duplicates. | Release/current pool audit. |
 
 ## Plan
 
@@ -48,6 +51,7 @@ State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed f
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
 | In progress | VR-test Runtime 05 and global Picatinny fallback. | Launch configured profile once, inspect BepInEx log, cycle every Runtime 05 weapon; record spawn/feed/physical-optic failures. No exception, wrong feed, or runaway memory. |
 | Pending decision | Classify confirmed Runtime 05 failures before allowing them in normal pools. | Keep each failed firearm testable in Runtime 05; exclude it from normal pools only with recorded live evidence and regression test. |
+| Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 
 ## Testing
 
