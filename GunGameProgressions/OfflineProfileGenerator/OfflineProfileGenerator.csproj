@@ -14,5 +14,6 @@
     <Compile Include="..\MetadataExporter\src\OpticMountPolicy.cs" Link="Shared\OpticMountPolicy.cs" />
     <Compile Include="..\MetadataExporter\src\MountResolution.cs" Link="Shared\MountResolution.cs" />
     <Compile Include="..\MetadataExporter\src\EnemyWeightPolicy.cs" Link="Shared\EnemyWeightPolicy.cs" />
+    <Compile Include="..\MetadataExporter\src\ProfileRules.cs" Link="Shared\ProfileRules.cs" />
   </ItemGroup>
 </Project>

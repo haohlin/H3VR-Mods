@@ -22,6 +22,17 @@ internal static class Program
 
     private const int OfflineSeed = 0;
 
+    private static readonly RuntimeEnemyEntry[] ProbeEnemies =
+    {
+        new RuntimeEnemyEntry
+        {
+            EnemyNameString = "RW_Rot",
+            DisplayName = "Rot",
+            IsSpawnable = true,
+            DifficultyScore = 1,
+        },
+    };
+
     public static int Main(string[] args)
     {
         try
@@ -30,6 +41,11 @@ internal static class Program
             var entries = JsonSerializer.Deserialize<List<RuntimeMetadataEntry>>(
                 File.ReadAllText(options.InputPath),
                 JsonOptions) ?? new List<RuntimeMetadataEntry>();
+            if (!string.IsNullOrEmpty(options.ProbeOutputPath))
+            {
+                return WriteCompatibilityProbeReport(entries, options);
+            }
+
             var vanillaEntries = entries.Where(entry => entry != null && !entry.IsModContent).ToList();
             var pools = RuntimeProfileBuilder.Build(vanillaEntries, new Random(OfflineSeed));
 
@@ -73,6 +89,32 @@ internal static class Program
             Console.Error.WriteLine(exception);
             return 1;
         }
+    }
+
+    private static int WriteCompatibilityProbeReport(
+        List<RuntimeMetadataEntry> entries,
+        OfflineGeneratorOptions options)
+    {
+        var inputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.InputPath)) ?? ".";
+        var rules = ProfileRules.Load(inputDirectory);
+        var result = RuntimeProfileBuilder.BuildCompatibilityProbe(
+            entries,
+            ProbeEnemies,
+            rules.CompatibilityProbeFirearms,
+            new Random(OfflineSeed));
+        var pool = result.Pools.SingleOrDefault(candidate => candidate.Family == "05_Compatibility_Probe");
+        if (pool == null)
+        {
+            throw new InvalidOperationException("Local metadata produced no Runtime 05 compatibility candidates.");
+        }
+
+        var outputPath = Path.GetFullPath(options.ProbeOutputPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
+        File.WriteAllText(outputPath, SerializePool(pool), new UTF8Encoding(false));
+        Console.WriteLine(
+            "Generated Runtime 05 metadata-only report with " + pool.Guns.Count +
+            " firearms; skipped " + result.SkippedFirearms.Count + ".");
+        return 0;
     }
 
     private static RuntimeWeaponPool FindPool(IEnumerable<RuntimeWeaponPool> pools, string family)
@@ -189,6 +231,7 @@ internal sealed class OfflineGeneratorOptions
 {
     public string InputPath { get; private set; } = string.Empty;
     public string OutputDirectory { get; private set; } = string.Empty;
+    public string ProbeOutputPath { get; private set; } = string.Empty;
     public bool VerifyOnly { get; private set; }
 
     public static OfflineGeneratorOptions Parse(string[] args)
@@ -211,6 +254,9 @@ internal sealed class OfflineGeneratorOptions
                     break;
                 case "--verify":
                     options.VerifyOnly = true;
+                    break;
+                case "--probe-output":
+                    options.ProbeOutputPath = ReadValue(args, ref index, "--probe-output");
                     break;
                 default:
                     throw new ArgumentException("Unknown option: " + args[index]);

@@ -179,7 +179,7 @@ writes turn a transient loader problem into a stutter.
 | Artifact | Role |
 | --- | --- |
 | `ObjectData.json` | Versioned vanilla-only metadata snapshot. |
-| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools. |
+| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
 | `profile-rules.json` | Slingshot blacklist plus Runtime 05 candidate list. |

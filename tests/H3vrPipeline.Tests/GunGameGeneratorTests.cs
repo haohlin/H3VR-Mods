@@ -212,6 +212,41 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
+    public void Offline_generator_emits_a_metadata_only_runtime_05_scope_audit()
+    {
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "ObjectData.json");
+        var rulesPath = Path.Combine(workspace.Path, "profile-rules.json");
+        var outputPath = Path.Combine(workspace.Path, "Runtime05.json");
+        File.Copy(Path.Combine(profileDirectory, "ObjectData.json"), inputPath);
+        File.Copy(Path.Combine(profileDirectory, "profile-rules.json"), rulesPath);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"run --project \"{OfflineProfileGeneratorProjectPath}\" -c Release -- --input \"{inputPath}\" --probe-output \"{outputPath}\"",
+            WorkingDirectory = Path.GetDirectoryName(OfflineProfileGeneratorProjectPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.True(
+            process.ExitCode == 0,
+            $"Runtime 05 metadata audit failed:{Environment.NewLine}{standardOutput}{standardError}");
+        using var pool = JsonDocument.Parse(File.ReadAllText(outputPath));
+        var guns = pool.RootElement.GetProperty("Guns").EnumerateArray().ToArray();
+        Assert.NotEmpty(guns);
+        Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
+    }
+
+    [WindowsH3vrFact]
     public void Runtime_profile_rules_load_shared_blacklists_without_System_Web_extensions()
     {
         var assembly = LoadBuiltMetadataExporter();
