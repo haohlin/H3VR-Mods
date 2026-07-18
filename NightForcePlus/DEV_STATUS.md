@@ -31,6 +31,8 @@ State: `1.0.5 published; H3VR-verified`
 | Native PIP structural package audit | Hash-locked candidate manifest resolves both `NativePipScopeBootstrap` and retained `Cityrobo.ScopeShaderZoom` configuration source. Manifest SHA-256 `36602D1410D11F38D36E442744CAC27F00E0903E1D956FF63998DC714A8728B4`. | Passed; no raw extraction retained. |
 | Native PIP deployment | Canonical wrapper deployed the validated candidate and recorded a VR receipt with backup of the prior profile folder. | Passed. |
 | Native PIP H3VR launch | Profile preloader and legacy Doorstop contract were verified. Interactive Steam-URI task launches returned without `h3vr.exe` or a new BepInEx log. Temporary tasks and scratch logs were removed. | Manual launch required. |
+| Owner-private full-rip validation | Owner-authorized AssetRipper exports for game and PIP reference packages batch-imported with Unity `5.6.7f1`. A separate private Git project produced a reconstructed L115 visual/PIP prefab, removed leaked legacy NightForce runtime types, and passed its editor contracts. | Passed; isolated research only, never NightForce source or release payload. |
+| Owner-private MeatKit package | Isolated private profile built and archive-validated a `0.0.1` r2modman ZIP. Manifest contains the standard `OtherLoader` dependency only; it contains no BubbleLevelSet or NightForce dependency. | Passed; human local H3VR comparison pending. |
 
 ### Open blockers
 
@@ -49,6 +51,7 @@ H3VR process or BepInEx log, so it is not runtime proof.
 | `[x]` | Establish a reproducible read-only scope-inspection baseline. | Archive hash, structural manifest, and Unity batch audit agree without retaining a raw rip. |
 | `[x]` | Capture native fixed and variable PIP reference structures. | Manifests identify PIP camera/material/lens/reticle hierarchy, controller settings, and direct hand interactions without retaining copied payloads. |
 | `[x]` | Map NightForce's existing model, controls, and reticle to native PIP fields. | Project-owned bridge references resolve to NightForce model/camera/switch/reticle data; legacy controller is explicitly replaced at runtime. |
+| `[x]` | Validate full-rip reconstruction workflow privately. | Matching Unity import, isolated private prefab contracts, MeatKit ZIP, and archive manifest pass without putting recovered assets in a repository or release. |
 | `[-]` | Build and validate NightForce native PIP prefab migration. | Unity test, MeatKit package audit, and deployment pass; user H3VR runtime/interaction acceptance remains. |
 
 ### Deferred
@@ -72,6 +75,7 @@ H3VR process or BepInEx log, so it is not runtime proof.
 | Native PIP prefab bridge | `HLin Mods > NightForcePlus > Migrate to native PIP scope`, then `Run all runtime tests` | Serialized bridge keeps NightForce-owned references; test reports `PASS`. |
 | Native PIP package | `h3vr.ps1 -Action Package -Mod NightForcePlus -ReuseExistingUnityPackage`, then `Deploy` | Candidate ZIP validates and deployment receipt is written. |
 | Native PIP candidate audit | `h3vr.ps1 -Action InspectAssets` with candidate SHA-256 | Structural manifest resolves bridge and retained configuration source without raw asset output. |
+| Private reconstruction package | Private Unity batch rebuild/verify, then explicit private MeatKit profile build | Recovered visual/PIP prefab contract and package profile contract pass; ZIP opens with manifest, README, icon, plugin DLL, and asset bundles. |
 
 ### Manual H3VR acceptance
 
@@ -82,6 +86,7 @@ H3VR process or BepInEx log, so it is not runtime proof.
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
 | Optic controls | Zoom, reticle, zero, elevation, and windage remain functional. | User verified release candidate in H3VR. |
 | Native PIP controls | Scope image, reticle, zoom ring, elevation, windage, zeroing, and bubble work on mounted and held scope. | Pending user Modded-profile launch and interaction test. |
+| Private reconstruction ZIP | r2modman imports local ZIP; scope spawns; PIP image, reticle, controls, and bubble work. | Pending user local test; not release evidence. |
 
 ### Release gate
 
