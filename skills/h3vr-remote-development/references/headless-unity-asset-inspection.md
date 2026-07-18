@@ -43,8 +43,10 @@ headless mode, loads a file or folder, exports a Unity project, preserves
 unfinished staging for review, and refuses to overwrite prior output.
 
 Never copy private raw output into source projects, manifests, release ZIPs, or
-Thunderstore. Delete it only after its manifest, import log, and any active
-reconstruction have been reviewed.
+Thunderstore. For an owner-approved full-game export, preserve the private lab
+with a compact archive manifest, source/import evidence, and enough free local
+disk for later comparison. Delete it only with explicit owner direction after
+all active reconstructions and future-inspection needs are closed.
 
 ## Setup
 

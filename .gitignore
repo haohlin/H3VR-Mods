@@ -72,6 +72,11 @@ artifacts/
 /build/tooling/
 /build/environment.local.json
 
+# Owner-private AssetRipper labs. Preserve outside every Git worktree; these
+# guards prevent an accidental local copy from entering source or releases.
+/H3VR-PrivateScopeLab/
+/AssetRipperProject/
+
 # Generated release payloads are built into build/artifacts, not versioned with
 # their Thunderstore metadata.
 /ThePing/Thunderstore/HLin_Mods-The_Ping/*.dll

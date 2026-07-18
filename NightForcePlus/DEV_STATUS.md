@@ -32,7 +32,8 @@ State: `1.0.5 published; H3VR-verified`
 | Native PIP deployment | Canonical wrapper deployed the validated candidate and recorded a VR receipt with backup of the prior profile folder. | Passed. |
 | Native PIP H3VR launch | Profile preloader and legacy Doorstop contract were verified. Interactive Steam-URI task launches returned without `h3vr.exe` or a new BepInEx log. Temporary tasks and scratch logs were removed. | Manual launch required. |
 | Owner-private full-rip validation | Owner-authorized AssetRipper exports for game and PIP reference packages batch-imported with Unity `5.6.7f1`. A separate private Git project produced a reconstructed L115 visual/PIP prefab, removed leaked legacy NightForce runtime types, and passed its editor contracts. | Passed; isolated research only, never NightForce source or release payload. |
-| Owner-private MeatKit package | Isolated private profile built and archive-validated a `0.0.1` r2modman ZIP. Manifest contains the standard `OtherLoader` dependency only; it contains no BubbleLevelSet or NightForce dependency. | Passed; human local H3VR comparison pending. |
+| Owner-private full-game archive | Full-game export is retained outside all Git worktrees with a compact private archive manifest for future Unity inspection and scope/API comparison. | Preserved; no repository or release payload contains it. |
+| Owner-private MeatKit package | Isolated private profile built and archive-validated a `0.0.2` r2modman ZIP. Manifest contains the standard `OtherLoader` dependency only; it contains no BubbleLevelSet or NightForce dependency. | Passed; human local H3VR comparison pending. |
 | Feature repository suite | Windows feature-worktree `dotnet test` completed with `37` executable tests passed, `51` runtime-only tests skipped, and zero failures. | Passed. |
 
 ### Open blockers
