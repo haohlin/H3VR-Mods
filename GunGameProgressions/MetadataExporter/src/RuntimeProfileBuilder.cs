@@ -169,6 +169,27 @@ public static class RuntimeProfileBuilder
         IEnumerable<RuntimeEnemyEntry> sourceEnemies,
         Random random)
     {
+        return BuildWithDiagnostics(sourceEntries, sourceEnemies, random, true, true);
+    }
+
+    // Runtime Modded refreshes retain vanilla metadata for feed and optic
+    // compatibility, but do not need to rebuild the two vanilla weapon lists.
+    // Keep shared indexing and resolver rules; only skip unused weapon work.
+    public static RuntimeGenerationResult BuildModdedWithDiagnostics(
+        IEnumerable<RuntimeMetadataEntry> sourceEntries,
+        IEnumerable<RuntimeEnemyEntry> sourceEnemies,
+        Random random)
+    {
+        return BuildWithDiagnostics(sourceEntries, sourceEnemies, random, false, true);
+    }
+
+    private static RuntimeGenerationResult BuildWithDiagnostics(
+        IEnumerable<RuntimeMetadataEntry> sourceEntries,
+        IEnumerable<RuntimeEnemyEntry> sourceEnemies,
+        Random random,
+        bool includeVanillaWeapons,
+        bool includeModdedWeapons)
+    {
         if (sourceEntries == null)
         {
             throw new ArgumentNullException("sourceEntries");
@@ -212,46 +233,56 @@ public static class RuntimeProfileBuilder
         var noOptic = new List<string>();
         var vanillaIndex = new RuntimeProfileIndex(vanillaEntries, vanillaEntriesById);
         var moddedIndex = new RuntimeProfileIndex(entries, entriesById);
-        var vanillaWeapons = BuildWeapons(
-            vanillaFirearms,
-            vanillaIndex,
-            random,
-            skipped,
-            noOptic,
-            OpticSelectionMode.VanillaFallback);
-        var moddedWeapons = BuildWeapons(
-            moddedFirearms,
-            moddedIndex,
-            random,
-            skipped,
-            noOptic,
-            OpticSelectionMode.ModdedUniversal);
-        var rot = FindRot(enemyEntries);
-        var vanillaMixed = BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent));
-        var allActiveMixed = BuildMixedEnemies(enemyEntries);
+        var vanillaWeapons = includeVanillaWeapons
+            ? BuildWeapons(
+                vanillaFirearms,
+                vanillaIndex,
+                random,
+                skipped,
+                noOptic,
+                OpticSelectionMode.VanillaFallback)
+            : new List<RuntimeGun>();
+        var moddedWeapons = includeModdedWeapons
+            ? BuildWeapons(
+                moddedFirearms,
+                moddedIndex,
+                random,
+                skipped,
+                noOptic,
+                OpticSelectionMode.ModdedUniversal)
+            : new List<RuntimeGun>();
+        var rot = includeVanillaWeapons ? FindRot(enemyEntries) : null;
+        var vanillaMixed = includeVanillaWeapons
+            ? BuildMixedEnemies(enemyEntries.Where(enemy => !enemy.IsModContent))
+            : new List<RuntimeEnemy>();
+        var allActiveMixed = includeModdedWeapons
+            ? BuildMixedEnemies(enemyEntries)
+            : new List<RuntimeEnemy>();
 
-        var pools = new List<RuntimeWeaponPool>
+        var pools = new List<RuntimeWeaponPool>();
+        if (includeVanillaWeapons)
         {
-            CreateScenarioPool(
+            pools.Add(CreateScenarioPool(
                 "01_Vanilla_Rot",
                 "Runtime 01 - Vanilla Rot",
                 "A Rot-only random progression using active vanilla firearms.",
                 1,
                 0,
                 vanillaWeapons,
-                rot),
-            CreateScenarioPool(
+                rot));
+            pools.Add(CreateScenarioPool(
                 "03_Vanilla_Mixed_Enemy",
                 "Runtime 03 - Vanilla Mixed Enemy",
                 "A weighted mixed-enemy progression using active vanilla firearms.",
                 1,
                 0,
                 vanillaWeapons,
-                vanillaMixed.ToArray()),
-        };
-        if (moddedWeapons.Count > 0)
+                vanillaMixed.ToArray()));
+        }
+
+        if (includeModdedWeapons && moddedWeapons.Count > 0)
         {
-            pools.Insert(1, CreateScenarioPool(
+            pools.Insert(includeVanillaWeapons ? 1 : 0, CreateScenarioPool(
                 "02_Modded_Rot",
                 "Runtime 02 - Modded Rot",
                 "A Rot-only random progression using active modded firearms and compatible active feeds.",

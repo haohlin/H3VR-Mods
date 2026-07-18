@@ -63,9 +63,10 @@ created only at runtime and are never published in a package.
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
-There is no Modded loading row or live-insertion path. This removes selector
-UI ownership and prevents selector reloads from retaining polling coroutines or
-cloned UI components. Reloading GunGame is the reliable player path after a
+There is no Modded loading row or live-insertion path. Selector restore clones
+at most one existing GunGame choice per already-persisted runtime pool (02, 04,
+or 05), once per selector instance. It never captures metadata, builds pools,
+or loads an asset prefab. Reloading GunGame is reliable player path after a
 fresh pair is written.
 
 ## Persistence and replacement
@@ -143,11 +144,15 @@ letting a bad loadout derail a session.
 | `compatibility probe updated` | Runtime 05 wrote former blacklist candidates for manual compatibility testing. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
-Capture yields after a two-millisecond frame budget. Building/writing happens
-in a background job. Each request has one status read and one catalog snapshot;
-it never waits for a global loader completion signal or polls registry. Startup
-does one immediate snapshot plus one-, five-, and ten-minute rescans. The
-event log records each completed scan's wall-clock duration for live
+Capture yields after a two-millisecond frame budget. Metadata merge,
+generation, serialization, and disk writes run on below-normal background
+workers. A Modded build retains vanilla entries only as feed/optic lookup data;
+it does not rebuild Vanilla weapon lists. Each request has one cached loader
+status read and one catalog snapshot; it never waits for a global loader
+completion signal or polls registry. If GunGame's selector type arrives late,
+its event subscription retries only every ten seconds and stops after success.
+Startup does one immediate snapshot plus one-, five-, and ten-minute rescans.
+The event log records each completed scan's wall-clock duration for live
 measurement. Design goal is responsive game, not a fixed artificial loading
 delay.
 
@@ -161,7 +166,9 @@ metadata means skip the item. Modded fallback uses curated vanilla
 RMR/red-dot/low-power/LPVO optics but does not claim a missing catalog mount
 exists. GunGame alone materializes the selected loadout at normal gameplay
 spawn time. Spawn safety only attaches that already-spawned selected optic; it
-never materializes or instantiates a repair adapter or replacement optic.
+never materializes or instantiates a repair adapter or replacement optic. The
+small selector choice clone uses GunGame's existing UI prefab only after a
+saved profile is found; it is not an item/attachment/prefab load.
 
 Logging is event-based: request, capture, write, or retained candidate. Never
 emit an exception or status log in a poll loop; repeated formatting and disk

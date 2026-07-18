@@ -29,6 +29,12 @@ is packaged beside those two profiles for repeatable offline validation.
 > feedless `GravitonBeamer` exception. Missing/conflicting metadata is skipped,
 > never repaired by scanning prefabs.
 
+> **Runtime-cost rule:** capture reads plain catalog metadata in two-millisecond
+> frame slices. Merge, resolver work, serialization, and file writes run on a
+> below-normal worker. No `Update`/`FixedUpdate` loop may scan registry,
+> instantiate weapon assets, or rebuild Vanilla weapon lists during a Modded
+> refresh.
+
 ## Safety gate
 
 | Metadata state | Result |
@@ -222,6 +228,8 @@ with coverage for the same condition.
 | Generic magnifier is treated as a scope | Exclude it; only legacy `MagnifierPSO1` normalizes to H3VR's real PSO-1 scope. | `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |
+| Runtime scan regresses into a hot loop or main-thread resolver | Retry selector-event reflection at most every ten seconds until subscribed; keep merge/build/write on below-normal worker; no registry scan in `Update`/`FixedUpdate`. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread` |
+| Packaged local metadata produces a scope-less emitted gun | Both tracked Vanilla pools and every generated local Runtime 05 candidate must have nonempty `Extra`. | `Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
 | H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |
 

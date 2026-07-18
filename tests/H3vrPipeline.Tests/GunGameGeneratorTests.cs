@@ -126,6 +126,11 @@ public sealed class GunGameGeneratorTests
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
             Assert.All(pools, pool => Assert.Equal(661, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(
+                pools,
+                pool => Assert.DoesNotContain(
+                    pool.RootElement.GetProperty("Guns").EnumerateArray(),
+                    gun => string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
             var goldenWeaponIds = pools[0].RootElement
                 .GetProperty("Guns")
                 .EnumerateArray()
@@ -745,11 +750,39 @@ public sealed class GunGameGeneratorTests
     {
         var source = File.ReadAllText(PluginSourcePath);
 
-        Assert.Contains("var externalLoadState = new OtherLoaderStatusProbe().Read(Logger.LogDebug);", source, StringComparison.Ordinal);
+        Assert.Contains("private readonly OtherLoaderStatusProbe otherLoaderStatusProbe = new OtherLoaderStatusProbe();", source, StringComparison.Ordinal);
+        Assert.Contains("var externalLoadState = otherLoaderStatusProbe.Read(Logger.LogDebug);", source, StringComparison.Ordinal);
         Assert.Contains("Trace(\"modded capture started.\");", source, StringComparison.Ordinal);
         Assert.Contains("externalLoadState == ExternalContentLoadState.Complete", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ModdedRefreshAttemptSeconds", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ModdedProfileReadinessGate", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread()
+    {
+        var pluginSource = File.ReadAllText(PluginSourcePath);
+        var builderPath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "RuntimeProfileBuilder.cs");
+        var builderSource = File.ReadAllText(builderPath);
+        var candidateStart = pluginSource.IndexOf("private IEnumerator GenerateModdedPoolCandidate(", StringComparison.Ordinal);
+        var candidateEnd = pluginSource.IndexOf("private static string RuntimePoolDisplayName", StringComparison.Ordinal);
+
+        Assert.True(candidateStart >= 0 && candidateEnd > candidateStart);
+        var candidateBody = pluginSource.Substring(candidateStart, candidateEnd - candidateStart);
+        Assert.Contains("new RuntimeGenerationJob(", candidateBody, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Concat(", candidateBody, StringComparison.Ordinal);
+        Assert.DoesNotContain(".GroupBy(", candidateBody, StringComparison.Ordinal);
+        Assert.Contains("private static List<RuntimeMetadataEntry> MergeRuntimeMetadata(", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("ThreadPriority.BelowNormal", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("private const float SelectorSubscriptionRetrySeconds = 10f;", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("new WaitForSecondsRealtime(SelectorSubscriptionRetrySeconds)", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WaitForSeconds(0.5f)", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private void Update()", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private void FixedUpdate()", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObject(", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObjectAsync", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("BuildModdedWithDiagnostics", builderSource, StringComparison.Ordinal);
+        Assert.Contains("return BuildWithDiagnostics(sourceEntries, sourceEnemies, random, false, true);", builderSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -793,6 +826,7 @@ public sealed class GunGameGeneratorTests
         var probeSource = File.ReadAllText(probePath);
         Assert.DoesNotContain("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", pluginSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Could not read OtherLoader load status", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("new OtherLoaderStatusProbe().Read", pluginSource, StringComparison.Ordinal);
         Assert.Contains("private bool initialized", probeSource, StringComparison.Ordinal);
         Assert.Contains("private bool failureLogged", probeSource, StringComparison.Ordinal);
         Assert.Contains("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", probeSource, StringComparison.Ordinal);
@@ -1276,6 +1310,41 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
         Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
         Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        var metadataType = typeof(List<>).MakeGenericType(entryType);
+        var entries = JsonSerializer.Deserialize(
+            File.ReadAllText(Path.Combine(profileDirectory, "ObjectData.json")),
+            metadataType);
+        Assert.NotNull(entries);
+
+        using var rules = JsonDocument.Parse(File.ReadAllText(Path.Combine(profileDirectory, "profile-rules.json")));
+        var probeIds = rules.RootElement
+            .GetProperty("compatibilityProbeFirearms")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .Where(item => !string.IsNullOrEmpty(item))
+            .Cast<string>()
+            .ToArray();
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var result = buildProbe.Invoke(null, new object[] { entries!, enemies, probeIds, new Random(0) });
+        var pools = ReadObjects(result!, "Pools");
+        var pool = Assert.Single(pools);
+        var guns = ReadObjects(pool, "Guns");
+
+        Assert.NotEmpty(guns);
+        Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(ReadString(gun, "Extra")), ReadString(gun, "GunName")));
     }
 
     [WindowsH3vrFact]
