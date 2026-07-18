@@ -24,11 +24,18 @@ State: `1.0.5 published; H3VR-verified`
 | Windows Unity source | Editor closed; Unity source checkout is on release `main`. | Source synced. |
 | Headless package inspection | Hash-locked NightForce `1.0.5` archive produced two structural bundle manifests and two Unity `5.6.7f1` batch audits. Temporary bootstrap source and scratch bundles were removed after the audit. | Passed; research evidence only, no prefab/material change. |
 | Legacy inspection cleanup | New manifest/audit evidence replaced stale raw rips, obsolete extraction tools, and superseded generated NightForce package candidates. Pinned inspector tooling and manifest evidence remain ignored/local. | Completed. |
-| Native PIP references | Hash-backed fixed and variable PIP reference manifests plus current installed PIP source identify required controller, camera, lens, reticle, material, magnification, zeroing, and direct-hand interaction relationships. | Passed; NightForce prefab unchanged. |
+| Native PIP references | Hash-backed fixed and variable PIP reference manifests plus current installed PIP source identify required controller, camera, lens, reticle, material, magnification, zeroing, and direct-hand interaction relationships. | Passed; baseline complete before prefab migration. |
+| Native PIP prefab bridge | Batch Unity migration created project-owned bridge references, UI anchor, and elevation/windage controls while preserving NightForce model, camera, switch, reticles, and legacy configuration source. | Passed. |
+| Native PIP Unity contract | `NightForcePlusRuntimeTests.RunAll` completed with the native bridge/reference checks and existing gravity checks. | Passed. |
+| Native PIP package | MeatKit completed `NightForcePlus 1.0.5`; wrapper package validation passed. Candidate SHA-256 `3F67DBD2EE19F45683752DE3BB604402AAAE733B3ECE68F26002F16FF1B2D6E4`. | Passed; test candidate only, not a release. |
+| Native PIP deployment | Canonical wrapper deployed the validated candidate and recorded a VR receipt with backup of the prior profile folder. | Passed. |
+| Native PIP H3VR launch | Profile preloader and legacy Doorstop contract were verified. Interactive Steam-URI task launches returned without `h3vr.exe` or a new BepInEx log. Temporary tasks and scratch logs were removed. | Manual launch required. |
 
 ### Open blockers
 
-None.
+Native PIP requires one successful user Modded-profile launch. Automated package
+and deployment proof exists, but the interactive Steam URI did not create an
+H3VR process or BepInEx log, so it is not runtime proof.
 
 ## Plan
 
@@ -40,8 +47,8 @@ None.
 | `[x]` | Publish with explicit authorization. | BubbleLevelSet `2.0.4` published first. Documentation-only archive overlay preserved non-document payload hashes, package validation passed, and exact Thunderstore download URL returned HTTP `200` for `1.0.5`. |
 | `[x]` | Establish a reproducible read-only scope-inspection baseline. | Archive hash, structural manifest, and Unity batch audit agree without retaining a raw rip. |
 | `[x]` | Capture native fixed and variable PIP reference structures. | Manifests identify PIP camera/material/lens/reticle hierarchy, controller settings, and direct hand interactions without retaining copied payloads. |
-| `[-]` | Map NightForce's existing model, controls, and reticle to native PIP fields. | Every PIP reference resolves to a project-owned NightForce object or new project-owned asset; legacy scope controls have an explicit removal/replacement decision. |
-| `[ ]` | Build and validate NightForce native PIP prefab migration. | Unity test, MeatKit package audit, deployment, and user H3VR interaction acceptance pass. |
+| `[x]` | Map NightForce's existing model, controls, and reticle to native PIP fields. | Project-owned bridge references resolve to NightForce model/camera/switch/reticle data; legacy controller is explicitly replaced at runtime. |
+| `[-]` | Build and validate NightForce native PIP prefab migration. | Unity test, MeatKit package audit, and deployment pass; user H3VR runtime/interaction acceptance remains. |
 
 ### Deferred
 
@@ -61,6 +68,8 @@ None.
 | Pipeline | `h3vr.ps1 -Action Test`, then `Build` and `Package` | Windows output reports zero failures and expected package. |
 | Structural package audit | `h3vr.ps1 -Action InspectAssets -InputPath <archive> -ExpectedSha256 <sha256>` | Parser manifest and Unity batch audit complete; bootstrap and scratch cleanup confirmed. |
 | Native PIP reference audit | `h3vr.ps1 -Action InspectAssets` using each recorded reference SHA-256 | Fixed and variable scope manifests resolve native PIP components and their object relationships. |
+| Native PIP prefab bridge | `HLin Mods > NightForcePlus > Migrate to native PIP scope`, then `Run all runtime tests` | Serialized bridge keeps NightForce-owned references; test reports `PASS`. |
+| Native PIP package | `h3vr.ps1 -Action Package -Mod NightForcePlus -ReuseExistingUnityPackage`, then `Deploy` | Candidate ZIP validates and deployment receipt is written. |
 
 ### Manual H3VR acceptance
 
@@ -70,7 +79,7 @@ None.
 | Scope reversed/180-degree mount | Bubble remains on same world-uphill side. | User verified release candidate in H3VR. |
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
 | Optic controls | Zoom, reticle, zero, elevation, and windage remain functional. | User verified release candidate in H3VR. |
-| Native PIP controls | Scope image, reticle, zoom ring, elevation, windage, zeroing, and bubble work on mounted and held scope. | Pending migration. |
+| Native PIP controls | Scope image, reticle, zoom ring, elevation, windage, zeroing, and bubble work on mounted and held scope. | Pending user Modded-profile launch and interaction test. |
 
 ### Release gate
 

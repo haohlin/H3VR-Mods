@@ -26,6 +26,15 @@ so both package assemblies compile this one source while `BubbleLevel` and
 `BubbleLevelScope` retain their existing component classes, serialized field
 names, and prefab script GUIDs.
 
+Native PIP uses a project-owned runtime bridge. The current MeatKit editor API
+does not expose H3VR's current PIP types at compile time, although the running
+game does. The serialized prefab therefore retains `ScopeShaderZoom` only as
+the source of NightForce-owned zoom, zero, reticle, and color data. Before the
+legacy component runs in H3VR, `NativePipScopeBootstrap` resolves the installed
+PIP API, creates the native scope/camera/controller/interactions, transfers the
+NightForce data, and removes the legacy components. No game DLL, shader, or
+third-party asset is copied into the project or package.
+
 ## Invariants
 
 - Existing `baseObject`, `attachment`, and `level_bubble` prefab references stay valid.
@@ -34,6 +43,8 @@ names, and prefab script GUIDs.
 - Normal and 180-degree mounting move toward one shared world-uphill side.
 - BubbleLevel keeps released 3.25-degree calibration; NightForce starts at 2.64 degrees.
 - Scope zoom, reticle, zero, elevation, windage, mesh, and UI wiring remain unchanged.
+- Native PIP runtime creation uses only current installed H3VR types and
+  NightForce-owned serialized references/data.
 
 ## Decisions
 
@@ -46,6 +57,7 @@ names, and prefab script GUIDs.
 | Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
 | Manifest-first PIP research | Inspect packages through hash-backed structural manifests and Unity batch audits. Use findings to recreate original configuration; never commit or ship extracted asset payloads. | 2026-07-18 |
 | Native PIP reference basis | Fixed-scope and variable-scope reference manifests, plus current installed PIP API source, establish native camera, material, reticle, controller, and direct-hand interaction relationships before changing the NightForce prefab. | 2026-07-18 |
+| Runtime PIP bridge | MeatKit's compile API lacks the current PIP types. Keep the prefab/package self-contained with a reflection bridge that resolves those types only from the installed game at runtime. | 2026-07-18 |
 
 ## Known limits / backlog
 
