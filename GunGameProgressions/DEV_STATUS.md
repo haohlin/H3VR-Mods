@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-18`
 
-State: `1.4.0 released on Thunderstore; local compatibility-probe candidate awaits Windows validation`
+State: `1.4.0 released on Thunderstore; compatibility-probe candidate deployed from feature branch for VR validation`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -29,8 +29,9 @@ State: `1.4.0 released on Thunderstore; local compatibility-probe candidate awai
 | One-minute runtime result | Initial Modded scan: `867 ms`, `2` entries while loaders registered. Scheduled one-minute scan: `1,053 ms`, `1,435` entries and saved pools. | Real Modded-profile BepInEx log. |
 | External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
 | Release boundary | Release source, skill guidance, and handoff record are on `main`; package was rebuilt from `main` before publish. | Windows Git, Test, Verify, Build, Package, and Thunderstore publish evidence. |
-| Compatibility candidate | Local feature branch adds Runtime 05, moves former global exclusions into its test list, retains only `Slingshot` blacklist, and applies last-resort catalog Picatinny scope fallback after normal optic ranking. | Source review only; **not built, deployed, or VR tested**. |
-| Windows blocker | Private Windows host/repository configuration is unavailable in current macOS session. | `H3VR_WINDOWS_HOST`, `H3VR_WINDOWS_REPOSITORY`, and ignored local environment file absent. |
+| Compatibility candidate | Runtime 05 tests former exclusions; `Slingshot` remains sole blacklist; normal pools use last-resort catalog Picatinny scope fallback after direct/proprietary/exact selection. | Windows `Test` passed `87/87`; `SourceStatus`, `Verify`, `Build`, `Package`, and `Deploy` passed on feature commit `970ecba`. |
+| Offline fallback | Both tracked Vanilla pools regenerated from shared policy version `14`. | Windows `OfflineProfileGenerator`, then full Windows test suite `87/87`. |
+| Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
 
 ## Plan
 
@@ -41,7 +42,7 @@ State: `1.4.0 released on Thunderstore; local compatibility-probe candidate awai
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
-| In progress | Validate Runtime 05 and global Picatinny fallback on Windows. | Windows `Test`, `Verify`, `Build`, `Package`, `Deploy`; VR-test every Runtime 05 entry; regenerate/verify offline Vanilla pools; no spawn exception, wrong feed, or runaway memory. |
+| In progress | VR-test Runtime 05 and global Picatinny fallback. | Launch configured profile once, inspect BepInEx log, cycle every Runtime 05 weapon; record spawn/feed/physical-optic failures. No exception, wrong feed, or runaway memory. |
 
 ## Testing
 
@@ -54,7 +55,7 @@ State: `1.4.0 released on Thunderstore; local compatibility-probe candidate awai
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
-| Compatibility candidate | Build/deploy local feature branch on Windows; select Runtime 05; cycle every weapon. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. Normal pools retain proprietary/exact optics before fallback. |
+| Compatibility candidate | Deployed from `970ecba`; launch configured profile, select Runtime 05, cycle every weapon, then inspect log. | Each candidate either works with correct feed/optic behavior or is recorded with exact failure. `Slingshot` never appears. Normal pools retain proprietary/exact optics before fallback. |
 | Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Both tracked Vanilla pools match policy version `14` before any release. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
