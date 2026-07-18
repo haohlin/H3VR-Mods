@@ -906,11 +906,12 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, magnifier, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(magnifier, 5);
 
-        var scope = RuntimeEntry(entryType, "Y_PicatinnyScope", "Attachment", true);
+        var scope = RuntimeEntry(entryType, "Y_PicatinnyScope", "Attachment", false);
         SetRuntimeProperty(entryType, scope, "AttachmentMount", "Picatinny");
         SetRuntimeProperty(entryType, scope, "AttachmentFeature", "Magnification");
         SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, scope, "OpticMaxMagnification", 4f);
         entries.SetValue(scope, 6);
 
         var reflex = RuntimeEntry(entryType, "Z_RmrReflex", "Attachment", true);
@@ -957,8 +958,8 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(revolver, 0);
         entries.SetValue(RuntimeEntry(entryType, "RevolverSpeedloader", "Magazine", true, magazineType: 9), 1);
 
-        var scope = RuntimeEntry(entryType, "PicatinnyScope", "Attachment", true);
-        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        var scope = RuntimeEntry(entryType, "ReflexCom4", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Reflex");
         SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(scope, 2);
 
@@ -969,7 +970,7 @@ public sealed class GunGameGeneratorTests
             .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
         var gun = ReadObjects(modded, "Guns").Single();
 
-        Assert.Equal("PicatinnyScope", ReadString(gun, "Extra"));
+        Assert.Equal("ReflexCom4", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
@@ -1250,7 +1251,7 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(probeGun, 0);
         entries.SetValue(RuntimeEntry(entryType, "LegacyProbeMagazine", "Magazine", false, magazineType: 27), 1);
 
-        var picatinnyScope = RuntimeEntry(entryType, "ProbePicatinnyScope", "Attachment", false);
+        var picatinnyScope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
         SetRuntimeProperty(entryType, picatinnyScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(picatinnyScope, 2);
@@ -1270,7 +1271,7 @@ public sealed class GunGameGeneratorTests
         var gun = Assert.Single(ReadObjects(pool, "Guns"));
         Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
         Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
-        Assert.Equal("ProbePicatinnyScope", ReadString(gun, "Extra"));
+        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
@@ -1295,7 +1296,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "NonOpticMountA" });
         entries.SetValue(invalidScope, 2);
 
-        var fallbackScope = RuntimeEntry(entryType, "FallbackPicatinnyScope", "Attachment", false);
+        var fallbackScope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
         SetRuntimeProperty(entryType, fallbackScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, fallbackScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         SetRuntimeProperty(entryType, fallbackScope, "OpticMaxMagnification", 4f);
@@ -1309,7 +1310,7 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .Single();
 
-        Assert.Equal("FallbackPicatinnyScope", ReadString(gun, "Extra"));
+        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
@@ -1403,7 +1404,7 @@ public sealed class GunGameGeneratorTests
             entries.SetValue(firearm, index * 3);
 
             entries.SetValue(RuntimeEntry(entryType, "UnsafeMountMagazine" + index, "Magazine", true, magazineType: index + 1), index * 3 + 1);
-            var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", false);
+            var scope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
             SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
             SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
             SetRuntimeProperty(entryType, scope, "OpticMaxMagnification", 4f);
@@ -1417,7 +1418,7 @@ public sealed class GunGameGeneratorTests
             "Guns");
 
         Assert.Equal(mountTypes.Length, guns.Count);
-        Assert.All(guns, gun => Assert.Equal("UnsafeMountScope0", ReadString(gun, "Extra")));
+        Assert.All(guns, gun => Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra")));
     }
 
     [Fact]
@@ -1482,7 +1483,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(picatinnyScope, 2);
 
-        var proprietaryScope = RuntimeEntry(entryType, "Z_HandleMountScope", "Attachment", true);
+        var proprietaryScope = RuntimeEntry(entryType, "Z_HandleMountScope", "Attachment", false);
         SetRuntimeProperty(entryType, proprietaryScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, proprietaryScope, "PhysicalMountTypes", new List<string> { "M16HandleMount" });
         entries.SetValue(proprietaryScope, 3);
@@ -1520,7 +1521,7 @@ public sealed class GunGameGeneratorTests
         // physical mount through the attachment component at runtime, but old
         // capture data did not retain that field, so direct game compatibility
         // must still beat the generic Picatinny fallback.
-        var pythonScope = RuntimeEntry(entryType, "ScopePython", "Attachment", true);
+        var pythonScope = RuntimeEntry(entryType, "ScopePython", "Attachment", false);
         SetRuntimeProperty(entryType, pythonScope, "AttachmentFeature", "Magnification");
         SetRuntimeProperty(entryType, pythonScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, pythonScope, "PhysicalMountTypes", new List<string>());
@@ -1568,7 +1569,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, adapter, "ProvidedMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(adapter, 2);
 
-        var optic = RuntimeEntry(entryType, "PicatinnyVariableScope", "Attachment", true);
+        var optic = RuntimeEntry(entryType, "PicatinnyVariableScope", "Attachment", false);
         SetRuntimeProperty(entryType, optic, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
         SetRuntimeProperty(entryType, optic, "OpticMinMagnification", 1f);
@@ -1609,7 +1610,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, genericScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, genericScope, "PhysicalMountTypes", new List<string> { "Bespoke" });
         entries.SetValue(genericScope, 2);
-        var russianScope = RuntimeEntry(entryType, "Z_RussianSideRailScope", "Attachment", true);
+        var russianScope = RuntimeEntry(entryType, "Z_RussianSideRailScope", "Attachment", false);
         SetRuntimeProperty(entryType, russianScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, russianScope, "PhysicalMountTypes", new List<string> { "Russian" });
         entries.SetValue(russianScope, 3);
