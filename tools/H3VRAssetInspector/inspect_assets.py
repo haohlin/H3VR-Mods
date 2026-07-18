@@ -385,12 +385,13 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
 
         script: dict[str, str] | None = None
         game_object_name: str | None = None
-        if object_type == "MonoBehaviour" and isinstance(parsed, dict):
-            script = mono_scripts.get(pointer_path_id(parsed.get("m_Script")))
+        if isinstance(parsed, dict):
             game_object_name = game_object_names.get(pointer_path_id(parsed.get("m_GameObject")))
+            if object_type == "MonoBehaviour":
+                script = mono_scripts.get(pointer_path_id(parsed.get("m_Script")))
 
         script_text = " ".join(script.values()) if script else ""
-        if not (signals or is_interesting_text(name) or is_interesting_text(script_text) or object_type in {"Material", "MonoBehaviour", "GameObject"}):
+        if not (signals or is_interesting_text(name) or is_interesting_text(script_text) or object_type in INTEREST_OBJECT_TYPES):
             continue
         if script and isinstance(parsed, dict):
             for field in PIP_SCOPE_SCRIPT_FIELDS.get(script.get("className", ""), ()):
