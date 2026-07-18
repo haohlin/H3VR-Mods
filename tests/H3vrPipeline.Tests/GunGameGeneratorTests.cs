@@ -2012,13 +2012,13 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Advanced", root.GetProperty("WeaponPoolType").GetString());
         Assert.Equal(0, root.GetProperty("EnemyProgressionType").GetInt32());
         Assert.Equal(
-            new[] { "VanillaMagazineGun", "LeverSentinelGun", "PKM" },
+            new[] { "VanillaMagazineGun", "LeverSentinelGun", "PKM", "PotatoGun" },
             guns.Select(gun => gun.GetProperty("GunName").GetString()).ToArray());
         Assert.Equal(
-            new[] { "TestMagazine", "TestCartridge", "MagazinePKM" },
+            new[] { "MagazineMp515rnd", "TestCartridge", "MagazinePKM", "TestCartridge" },
             guns.Select(gun => gun.GetProperty("MagName").GetString()).ToArray());
         Assert.Equal(
-            new[] { "TestMagazine" },
+            new[] { "MagazineMp515rnd", "TestMagazine" },
             guns.Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun")
                 .GetProperty("MagNames")
                 .EnumerateArray()
@@ -2066,7 +2066,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Generator_discards_a_legacy_primary_from_a_lower_priority_feed_class()
+    public void Generator_discards_a_legacy_cartridge_primary_when_direct_magazine_exists()
     {
         using var workspace = TestWorkspace.Create();
         var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
@@ -2094,7 +2094,7 @@ public sealed class GunGameGeneratorTests
         var vanillaGun = document.RootElement.GetProperty("Guns").EnumerateArray()
             .Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun");
 
-        Assert.Equal("TestMagazine", vanillaGun.GetProperty("MagName").GetString());
+        Assert.Equal("MagazineMp515rnd", vanillaGun.GetProperty("MagName").GetString());
         Assert.Equal(0, vanillaGun.GetProperty("CategoryID").GetInt32());
     }
 
