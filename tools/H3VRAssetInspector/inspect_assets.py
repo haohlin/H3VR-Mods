@@ -395,8 +395,9 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
             continue
         if script and isinstance(parsed, dict):
             for field in PIP_SCOPE_SCRIPT_FIELDS.get(script.get("className", ""), ()):
-                if any(signal["path"] == field for signal in signals) or field not in parsed:
+                if field not in parsed:
                     continue
+                signals = [signal for signal in signals if signal["path"] != field]
                 value = (
                     normalize_pip_scope_components(parsed[field])
                     if field == "Components"

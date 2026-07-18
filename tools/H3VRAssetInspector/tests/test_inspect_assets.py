@@ -45,6 +45,12 @@ class InspectAssetsTests(unittest.TestCase):
             INSPECTOR.normalize_configuration_value({"time": 0.0, "value": 3.0}),
         )
         self.assertEqual(
+            {"m_Curve": [{"time": 0.0, "value": 3.0}]},
+            INSPECTOR.normalize_configuration_value(
+                {"m_Curve": [{"time": 0.0, "value": 3.0}], "m_RotationOrder": 4}
+            ),
+        )
+        self.assertEqual(
             [("Components[0].Geo", 123)],
             list(INSPECTOR.pointer_paths({"Components": [{"Geo": {"m_FileID": 0, "m_PathID": 123}}]})),
         )
