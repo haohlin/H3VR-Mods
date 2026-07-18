@@ -88,7 +88,7 @@ public sealed class RuntimeGenerationResult
 
 internal enum OpticSelectionMode
 {
-    ExactOnly,
+    VanillaFallback,
     ModdedUniversal,
 }
 
@@ -214,7 +214,7 @@ public static class RuntimeProfileBuilder
             random,
             skipped,
             noOptic,
-            OpticSelectionMode.ExactOnly);
+            OpticSelectionMode.VanillaFallback);
         var moddedWeapons = BuildWeapons(
             moddedFirearms,
             moddedIndex,
@@ -658,9 +658,9 @@ public static class RuntimeProfileBuilder
             }
         }
 
-        if (opticSelectionMode != OpticSelectionMode.ModdedUniversal)
+        if (opticSelectionMode == OpticSelectionMode.VanillaFallback)
         {
-            return null;
+            return SelectLegacyVanillaPicatinnyFallback(index, random);
         }
 
         return SelectUniversalVanillaFallback(index, firearm, random);
@@ -872,6 +872,17 @@ public static class RuntimeProfileBuilder
         return rifle.Count == 0
             ? null
             : SelectPreferredOptic(rifle, firearm, random, OpticSelectionMode.ModdedUniversal);
+    }
+
+    private static string SelectLegacyVanillaPicatinnyFallback(RuntimeProfileIndex index, Random random)
+    {
+        var picatinnyScopes = index.GetOptics(new[] { "Scope" })
+            .Where(attachment => HasMount(attachment.PhysicalMountTypes, "Picatinny"))
+            .OrderBy(attachment => attachment.ObjectID, StringComparer.Ordinal)
+            .ToList();
+        return picatinnyScopes.Count == 0
+            ? null
+            : picatinnyScopes[random.Next(picatinnyScopes.Count)].ObjectID;
     }
 
     // Shared with spawn safety. Profile capture stays catalog-only; after a
