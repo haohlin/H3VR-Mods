@@ -1103,6 +1103,9 @@ public sealed class Plugin : BaseUnityPlugin
         json.Append(",\n  \"contentFingerprint\": \"");
         AppendJsonString(json, contentFingerprint);
         json.Append('"');
+        json.Append(",\n  \"generationPolicyVersion\": \"");
+        AppendJsonString(json, RuntimePoolPersistence.CurrentGenerationPolicyVersion);
+        json.Append('"');
         json.Append(",\n  \"activeItems\": ");
         json.Append(entries.Count);
         json.Append(",\n  \"activeModdedItems\": ");
@@ -1274,11 +1277,15 @@ public sealed class Plugin : BaseUnityPlugin
                 eligibleWeaponsPerPool,
                 RuntimePoolPersistence.ReadEligibleWeaponsPerPool(receiptPath),
                 RuntimePoolPersistence.HasCompleteModdedPoolFiles(packagePath),
-                confirmedEmptySnapshot))
+                confirmedEmptySnapshot,
+                !string.Equals(
+                    RuntimePoolPersistence.ReadGenerationPolicyVersion(receiptPath),
+                    RuntimePoolPersistence.CurrentGenerationPolicyVersion,
+                    StringComparison.Ordinal)))
         {
             // Preserve a complete saved pair until a larger current snapshot
-            // arrives. An empty snapshot can clear it only after a loader
-            // explicitly confirms that content loading is complete.
+            // or newer policy arrives. An empty snapshot can clear it only
+            // after a loader explicitly confirms content loading is complete.
             return new RuntimeGenerationReport(
                 profileEntries.Count,
                 profileEntries.Count(entry => entry.IsModContent),

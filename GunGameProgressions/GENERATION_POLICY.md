@@ -256,4 +256,7 @@ When changing this algorithm:
 6. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
 7. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
 
-The policy version is included in the persistence fingerprint. A rule change therefore regenerates existing runtime pools instead of preserving old compatibility decisions.
+The policy version is recorded in the persistence receipt and fingerprint. A
+complete candidate from a newer version replaces existing Modded pools once,
+even when a safety rule makes it smaller; partial/empty candidates still cannot
+replace a usable pair.

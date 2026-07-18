@@ -554,7 +554,8 @@ public sealed class GunGameGeneratorTests
     {
         var assembly = LoadBuiltMetadataExporter();
         var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
-        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldPromoteModdedCandidate", BindingFlags.Public | BindingFlags.Static));
+        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 5));
 
         // Incomplete candidates and empty unconfirmed snapshots cannot write.
         Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 1, 24, null, false, false })!);
@@ -573,6 +574,19 @@ public sealed class GunGameGeneratorTests
         // Only an explicit completed-loader empty snapshot clears stale IDs.
         Assert.True((bool)shouldPromote.Invoke(null, new object?[] { 0, 0, 32, true, true })!);
 
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_modded_profiles_replace_a_complete_pair_after_a_generation_policy_change()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
+        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 6));
+
+        Assert.True((bool)shouldPromote.Invoke(null, new object?[] { 2, 24, 32, true, false, true })!);
+        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 1, 24, 32, true, false, true })!);
+        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 0, 0, 32, true, false, true })!);
     }
 
     [WindowsH3vrFact]

@@ -91,9 +91,10 @@ removes the saved Modded pair so disabled IDs cannot survive indefinitely.
 ### Replacement rule
 
 First complete non-empty pair writes immediately. Later Modded candidates
-replace a saved pair only when eligible weapon count is strictly larger. Equal,
-smaller, malformed, and unknown-count candidates retain saved pair. Only an
-explicit loader-complete empty snapshot removes stale pools.
+replace a saved pair only when eligible weapon count is strictly larger. A new
+complete generation-policy version also replaces once, even if it safely removes
+weapons. Equal, smaller, malformed, and unknown-count candidates retain saved
+pair. Only an explicit loader-complete empty snapshot removes stale pools.
 
 ## Compatibility and runtime safety
 

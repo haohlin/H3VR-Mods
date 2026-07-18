@@ -12,7 +12,7 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "17";
+    public const string CurrentGenerationPolicyVersion = "18";
     private const int ExpectedModdedPoolCount = 2;
 
     public static string CreateFingerprint(
@@ -21,7 +21,7 @@ public static class RuntimePoolPersistence
     {
         var content = new StringBuilder();
         content.Append("generationPolicy|");
-        AppendValue(content, GenerationPolicyVersion);
+        AppendValue(content, CurrentGenerationPolicyVersion);
         foreach (var entry in (entries ?? Enumerable.Empty<RuntimeMetadataEntry>())
                      .Where(entry => entry != null)
                      .OrderBy(entry => entry.ObjectID ?? string.Empty, StringComparer.Ordinal))
@@ -90,6 +90,25 @@ public static class RuntimePoolPersistence
         bool hasPersistedPair,
         bool confirmedEmptySnapshot)
     {
+        return ShouldPromoteModdedCandidate(
+            candidatePoolCount,
+            eligibleWeaponsPerPool,
+            persistedEligibleWeaponsPerPool,
+            hasPersistedPair,
+            confirmedEmptySnapshot,
+            false);
+    }
+
+    // A complete generation-policy upgrade replaces a saved pair even when
+    // its safe candidate is smaller. Count growth still governs normal scans.
+    public static bool ShouldPromoteModdedCandidate(
+        int candidatePoolCount,
+        int eligibleWeaponsPerPool,
+        int? persistedEligibleWeaponsPerPool,
+        bool hasPersistedPair,
+        bool confirmedEmptySnapshot,
+        bool generationPolicyChanged)
+    {
         if (candidatePoolCount == 0)
         {
             return hasPersistedPair && confirmedEmptySnapshot;
@@ -101,6 +120,11 @@ public static class RuntimePoolPersistence
         }
 
         if (!hasPersistedPair)
+        {
+            return true;
+        }
+
+        if (generationPolicyChanged)
         {
             return true;
         }
@@ -123,13 +147,23 @@ public static class RuntimePoolPersistence
 
     public static string ReadFingerprint(string receiptPath)
     {
+        return ReadReceiptString(receiptPath, "contentFingerprint");
+    }
+
+    public static string ReadGenerationPolicyVersion(string receiptPath)
+    {
+        return ReadReceiptString(receiptPath, "generationPolicyVersion");
+    }
+
+    private static string ReadReceiptString(string receiptPath, string propertyName)
+    {
         if (string.IsNullOrEmpty(receiptPath) || !File.Exists(receiptPath))
         {
             return null;
         }
 
         var receipt = File.ReadAllText(receiptPath);
-        const string marker = "\"contentFingerprint\"";
+        var marker = "\"" + propertyName + "\"";
         var markerIndex = receipt.IndexOf(marker, StringComparison.Ordinal);
         if (markerIndex < 0)
         {
