@@ -23,6 +23,7 @@ State: `1.0.5 published; H3VR-verified`
 | Pipeline wrapper | Windows `h3vr.ps1 -Action Test` passed `87/87`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
 | Windows Unity source | Editor closed; Unity source checkout is on release `main`. | Source synced. |
 | Headless package inspection | Hash-locked NightForce `1.0.5` archive produced two structural bundle manifests and two Unity `5.6.7f1` batch audits. Temporary bootstrap source and scratch bundles were removed after the audit. | Passed; research evidence only, no prefab/material change. |
+| Legacy inspection cleanup | New manifest/audit evidence replaced stale raw rips, obsolete extraction tools, and superseded generated NightForce package candidates. Pinned inspector tooling and manifest evidence remain ignored/local. | Completed. |
 
 ### Open blockers
 
