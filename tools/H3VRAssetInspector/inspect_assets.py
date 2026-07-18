@@ -159,6 +159,28 @@ def normalize_value(value: Any) -> Any:
     return str(value)[:MAX_SIGNAL_STRING_LENGTH]
 
 
+def pointer_path_id(value: Any) -> int | None:
+    if not isinstance(value, dict):
+        return None
+    path_id = value.get("m_PathID")
+    if isinstance(path_id, int):
+        return path_id
+    return None
+
+
+def script_identity(value: Any, fallback_name: str) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {"className": fallback_name}
+    result = {
+        "className": str(value.get("m_ClassName") or fallback_name),
+    }
+    for source_key, target_key in (("m_Namespace", "namespace"), ("m_AssemblyName", "assembly")):
+        detail = value.get(source_key)
+        if detail:
+            result[target_key] = str(detail)
+    return result
+
+
 def collect_signals(value: Any, path: str = "", depth: int = 0, result: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     signals = result if result is not None else []
     if depth > 8 or len(signals) >= MAX_SIGNALS_PER_OBJECT:
@@ -226,30 +248,53 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
     records: list[dict[str, Any]] = []
     versions: set[str] = set()
 
+    object_info: list[tuple[Any, str, str]] = []
+    mono_scripts: dict[int, dict[str, str]] = {}
+    game_object_names: dict[int, str] = {}
+
     for obj in environment.objects:
         object_type = getattr(getattr(obj, "type", None), "name", "Unknown")
+        try:
+            name = str(obj.peek_name() or "")
+        except Exception:
+            name = ""
+        object_info.append((obj, object_type, name))
+        if object_type == "GameObject":
+            game_object_names[getattr(obj, "path_id", 0)] = name[:MAX_SIGNAL_STRING_LENGTH]
+        if object_type != "MonoScript":
+            continue
+        try:
+            mono_scripts[getattr(obj, "path_id", 0)] = script_identity(obj.parse_as_dict(), name)
+        except Exception:
+            mono_scripts[getattr(obj, "path_id", 0)] = {"className": name}
+
+    for obj, object_type, name in object_info:
         type_counts[object_type] = type_counts.get(object_type, 0) + 1
         version = getattr(getattr(obj, "assets_file", None), "unity_version", None)
         if version:
             versions.add(str(version))
 
-        name = ""
-        try:
-            name = str(obj.peek_name() or "")
-        except Exception:
-            pass
         should_parse = object_type in INTEREST_OBJECT_TYPES or is_interesting_text(name)
         if not should_parse:
             continue
 
         signals: list[dict[str, Any]] = []
         parse_error: str | None = None
+        parsed: Any = None
         try:
-            signals = collect_signals(obj.parse_as_dict())
+            parsed = obj.parse_as_dict()
+            signals = collect_signals(parsed)
         except Exception as error:  # malformed or stripped data should not discard other objects
             parse_error = str(error)[:MAX_SIGNAL_STRING_LENGTH]
 
-        if not (signals or is_interesting_text(name) or object_type in {"Material", "MonoBehaviour", "GameObject"}):
+        script: dict[str, str] | None = None
+        game_object_name: str | None = None
+        if object_type == "MonoBehaviour" and isinstance(parsed, dict):
+            script = mono_scripts.get(pointer_path_id(parsed.get("m_Script")))
+            game_object_name = game_object_names.get(pointer_path_id(parsed.get("m_GameObject")))
+
+        script_text = " ".join(script.values()) if script else ""
+        if not (signals or is_interesting_text(name) or is_interesting_text(script_text) or object_type in {"Material", "MonoBehaviour", "GameObject"}):
             continue
         record: dict[str, Any] = {
             "type": object_type,
@@ -257,6 +302,10 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
             "pathId": getattr(obj, "path_id", None),
             "signals": signals,
         }
+        if script:
+            record["script"] = script
+        if game_object_name:
+            record["gameObjectName"] = game_object_name
         if parse_error:
             record["parseError"] = parse_error
         records.append(record)

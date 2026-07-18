@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -9,9 +10,33 @@ from pathlib import Path
 
 
 TOOL = Path(__file__).resolve().parents[1] / "inspect_assets.py"
+TOOL_SPEC = importlib.util.spec_from_file_location("h3vr_asset_inspector", TOOL)
+assert TOOL_SPEC and TOOL_SPEC.loader
+INSPECTOR = importlib.util.module_from_spec(TOOL_SPEC)
+TOOL_SPEC.loader.exec_module(INSPECTOR)
 
 
 class InspectAssetsTests(unittest.TestCase):
+    def test_mono_behaviour_links_resolve_without_unitypy(self):
+        self.assertEqual(42, INSPECTOR.pointer_path_id({"m_FileID": 0, "m_PathID": 42}))
+        self.assertIsNone(INSPECTOR.pointer_path_id({"m_FileID": 0}))
+        self.assertIsNone(INSPECTOR.pointer_path_id(None))
+        self.assertEqual(
+            {
+                "className": "PIPScope",
+                "namespace": "FistVR",
+                "assembly": "Assembly-CSharp.dll",
+            },
+            INSPECTOR.script_identity(
+                {
+                    "m_ClassName": "PIPScope",
+                    "m_Namespace": "FistVR",
+                    "m_AssemblyName": "Assembly-CSharp.dll",
+                },
+                "fallback",
+            ),
+        )
+
     def test_list_candidates_records_hashes_without_unitypy(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
