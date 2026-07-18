@@ -182,7 +182,7 @@ writes turn a transient loader problem into a stutter.
 | `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
-| `profile-rules.json` | Runtime Modded/05 firearm exclusions, Runtime 05 candidates, and five explicit Runtime 05-only unsafe-test overrides. |
+| `profile-rules.json` | Global offline blacklist (`Slingshot`), `runtimeFirearmBlacklist` for Runtime 02/04/05 only, Runtime 05 candidates, and five explicit Runtime 05-only unsafe-test overrides. |
 | Package README | Player-facing installation and use guidance. |
 
 Never package a player's captured Modded pool, private paths, credentials,

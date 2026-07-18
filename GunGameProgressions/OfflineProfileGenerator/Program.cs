@@ -97,8 +97,9 @@ internal static class Program
     {
         var inputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.InputPath)) ?? ".";
         var rules = ProfileRules.Load(inputDirectory);
+        var runtimeEntries = entries.Where(entry => entry != null && !rules.IsBlacklisted(entry)).ToList();
         var result = RuntimeProfileBuilder.BuildCompatibilityProbe(
-            entries,
+            runtimeEntries,
             ProbeEnemies,
             rules.CompatibilityProbeFirearms,
             rules.CompatibilityProbeForceIncludeFirearms,

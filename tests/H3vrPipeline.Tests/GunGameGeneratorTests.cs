@@ -242,8 +242,19 @@ public sealed class GunGameGeneratorTests
             $"Runtime 05 metadata audit failed:{Environment.NewLine}{standardOutput}{standardError}");
         using var pool = JsonDocument.Parse(File.ReadAllText(outputPath));
         var guns = pool.RootElement.GetProperty("Guns").EnumerateArray().ToArray();
+        var gunNames = guns.Select(gun => gun.GetProperty("GunName").GetString()).ToArray();
+        using var rules = JsonDocument.Parse(File.ReadAllText(rulesPath));
+        var runtimeBlacklist = rules.RootElement
+            .GetProperty("runtimeFirearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
         Assert.NotEmpty(guns);
         Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
+        Assert.DoesNotContain(gunNames, gunName => runtimeBlacklist.Contains(gunName));
+        Assert.Equal(
+            new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
+            gunNames.Where(gunName => new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" }.Contains(gunName)).ToArray());
     }
 
     [WindowsH3vrFact]
@@ -289,7 +300,7 @@ public sealed class GunGameGeneratorTests
             "profile-rules.json"));
         using var rules = JsonDocument.Parse(File.ReadAllText(rulesPath));
         var firearmBlacklist = rules.RootElement
-            .GetProperty("firearmBlacklist")
+            .GetProperty("runtimeFirearmBlacklist")
             .EnumerateArray()
             .Select(item => item.GetString())
             .ToArray();
@@ -308,6 +319,13 @@ public sealed class GunGameGeneratorTests
                 "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding",
             },
             firearmBlacklist);
+        Assert.Equal(
+            new[] { "Slingshot" },
+            rules.RootElement
+                .GetProperty("firearmBlacklist")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+                .ToArray());
         Assert.Equal(
             new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
             forceIncludes);

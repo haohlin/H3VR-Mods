@@ -146,7 +146,9 @@ objects materialized during play. Fallback never changes feed selection.
 
 ### Compatibility Probe
 
-`profile-rules.json` excludes these IDs from Runtime 02/04 and Runtime 05:
+`profile-rules.json` keeps `firearmBlacklist` for the packaged offline Vanilla
+fallback and uses `runtimeFirearmBlacklist` to exclude these IDs from Runtime
+02/04 and Runtime 05:
 `Slingshot`, `GrappleGun`, `M224Mortar`, `LadiesPepperbox`, `M6Survival`,
 `MF_LongShot`, `PlungerLauncher`, `PotatoGun`, `SustenanceCrossbow`, and the
 19 listed MP5/SP5 variants. The known-good tracked Vanilla fallback remains

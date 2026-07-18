@@ -8,6 +8,7 @@ namespace HLin.GunGameProgressions;
 public sealed class ProfileRules
 {
     public string[] FirearmBlacklist { get; set; }
+    public string[] RuntimeFirearmBlacklist { get; set; }
     public string[] FeedBlacklist { get; set; }
     public string[] CompatibilityProbeFirearms { get; set; }
     public string[] CompatibilityProbeForceIncludeFirearms { get; set; }
@@ -21,9 +22,14 @@ public sealed class ProfileRules
         }
 
         var json = File.ReadAllText(path);
+        var firearmBlacklist = ReadStringArray(json, "firearmBlacklist");
+        var runtimeFirearmBlacklist = ReadStringArray(json, "runtimeFirearmBlacklist");
         return new ProfileRules
         {
-            FirearmBlacklist = ReadStringArray(json, "firearmBlacklist"),
+            FirearmBlacklist = firearmBlacklist,
+            RuntimeFirearmBlacklist = runtimeFirearmBlacklist.Length == 0
+                ? firearmBlacklist
+                : runtimeFirearmBlacklist,
             FeedBlacklist = ReadStringArray(json, "feedBlacklist"),
             CompatibilityProbeFirearms = ReadStringArray(json, "compatibilityProbeFirearms"),
             CompatibilityProbeForceIncludeFirearms = ReadStringArray(json, "compatibilityProbeForceIncludeFirearms"),
@@ -33,7 +39,7 @@ public sealed class ProfileRules
     public bool IsBlacklisted(RuntimeMetadataEntry entry)
     {
         return entry.Category == "Firearm"
-            ? Contains(FirearmBlacklist, entry.ObjectID)
+            ? Contains(RuntimeFirearmBlacklist, entry.ObjectID)
             : Contains(FeedBlacklist, entry.ObjectID);
     }
 
