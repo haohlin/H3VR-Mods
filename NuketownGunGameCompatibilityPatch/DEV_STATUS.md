@@ -15,13 +15,13 @@ State: `active`
 | Test / verify | Windows `h3vr.ps1 -Action Test`: 87 passed, 0 failed. `Verify` passed. | Verified |
 | Build / package | Windows Release build: 0 warnings, 0 errors. Package `1.0.0` SHA-256: `86FCFF9632E8722087E71EAE4928498571011C4A02B0A288D434BD0956135009`. | Verified |
 | Deploy | Wrapper deployed package and created a rollback-capable receipt. | Verified |
-| Launch / VR | All loader and map prerequisites are installed, but Windows has no interactive user session for a VR-valid scheduled launch. | Blocked externally |
+| Launch / VR | Active Windows desktop, Steam, loader, and map prerequisites verified. Three interactive-task Steam-URI dispatch variants produced no `h3vr.exe` or BepInEx output; direct Explorer task returned exit code `1`. | Blocked externally |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| BepInEx startup proof | An interactive Windows user session, then a profile-scoped game launch and log inspection. | User / Codex |
+| BepInEx startup proof | Start H3VR from the active Windows Steam desktop, then inspect the profile log. The remote task dispatcher cannot currently trigger the Steam URI despite a valid user session. | User / Codex |
 | Full map gameplay acceptance | Runtime load and GunGame progression test in H3VR. | Codex + player VR acceptance |
 
 ## Plan
@@ -31,7 +31,7 @@ Keep one item active.
 | State | Item | Acceptance condition |
 | --- | --- | --- |
 | `[x]` | Implement, package, and deploy compatibility plugin. | Package contains only the compatibility DLL and metadata; Windows build, package, and deploy passed. |
-| `[>]` | Launch and inspect BepInEx registration. | An interactive Windows session permits the profile-scoped launch; log shows one compatibility registration and Atlas scene registration. |
+| `[>]` | Launch and inspect BepInEx registration. | A Steam-desktop launch creates `h3vr.exe`; log shows one compatibility registration and Atlas scene registration. |
 | `[ ]` | Perform manual VR gameplay acceptance. | Start, progression, death, respawn, and exit work normally. |
 | `[ ]` | Publish with explicit user approval. | Versioned package passes release checks. |
 
@@ -55,7 +55,7 @@ Keep one item active.
 
 | Case | Expected result | Evidence |
 | --- | --- | --- |
-| Startup | Compatibility plugin loads once and Atlas registers BO1 Nuketown. | Pending interactive Windows session. |
+| Startup | Compatibility plugin loads once and Atlas registers BO1 Nuketown. | Pending Steam-desktop launch. |
 | Map selector | BO1 Nuketown appears and loads. | Pending |
 | Gameplay | Start, kill promotion, death demotion, respawn, and exit work. | Pending |
 
