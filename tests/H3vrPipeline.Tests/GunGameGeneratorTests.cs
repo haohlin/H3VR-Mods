@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Collections;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
 using Xunit;
 
@@ -128,7 +129,7 @@ public sealed class GunGameGeneratorTests
         var pipeline = File.ReadAllText(H3vrScriptPath);
         Assert.Contains("[string]$GunGameBuildConfiguration = 'Release'", pipeline, StringComparison.Ordinal);
         Assert.Contains("[ValidateSet('Release', 'Debug')]", pipeline, StringComparison.Ordinal);
-        Assert.Contains("bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll", pipeline, StringComparison.Ordinal);
+        Assert.Contains("bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll", File.ReadAllText(ModsConfigPath), StringComparison.Ordinal);
         Assert.Contains("function Assert-GunGameReleasePackage", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGame release package must not contain Runtime 05 pool files.", pipeline, StringComparison.Ordinal);
         Assert.Contains("GunGame Debug packages are local-only and cannot be published.", pipeline, StringComparison.Ordinal);
@@ -2804,7 +2805,8 @@ public sealed class GunGameGeneratorTests
         Directory.CreateDirectory(loadDirectory);
         var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
         File.Copy(originalPath, loadPath);
-        return Assembly.LoadFrom(loadPath);
+        return new AssemblyLoadContext(Guid.NewGuid().ToString("N"), isCollectible: true)
+            .LoadFromAssemblyPath(loadPath);
     }
 
     private static string BuildMetadataExporterConfiguration(string configuration)
