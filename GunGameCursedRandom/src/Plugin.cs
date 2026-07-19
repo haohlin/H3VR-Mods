@@ -9,6 +9,7 @@ using FistVR;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace HLin.GunGameCursedRandom;
@@ -22,6 +23,7 @@ public sealed class Plugin : BaseUnityPlugin
     private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
+    private const int StartupToggleWaitFrames = 120;
 
     private static Plugin instance;
     private readonly List<GameObject> activeRandomEquipment = new List<GameObject>();
@@ -44,11 +46,18 @@ public sealed class Plugin : BaseUnityPlugin
         var harmony = new Harmony(HarmonyId);
         Patch(harmony, "GunGame.Scripts.Options.GameSettings", "Start", "GameSettingsStartPostfix", false);
         Patch(harmony, "GunGame.Scripts.Progression", "SpawnAndEquip", "SpawnAndEquipPrefix", true);
+        SceneManager.sceneLoaded += OnSceneLoaded;
         Logger.LogInfo("GunGame Cursed Random ready. Toggle RANDOM CURSED GUNS in GunGame settings.");
+    }
+
+    private void Start()
+    {
+        StartCoroutine(AddStartupToggleWhenReady());
     }
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         DestroyTrackedEquipment();
         if (instance == this)
         {
@@ -90,6 +99,31 @@ public sealed class Plugin : BaseUnityPlugin
         {
             instance.AddStartupToggle(__instance);
         }
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        StartCoroutine(AddStartupToggleWhenReady());
+    }
+
+    private IEnumerator AddStartupToggleWhenReady()
+    {
+        var settingsType = AccessTools.TypeByName("GunGame.Scripts.Options.GameSettings");
+        for (var frame = 0; frame < StartupToggleWaitFrames; frame++)
+        {
+            var settings = settingsType == null
+                ? null
+                : UnityEngine.Object.FindObjectOfType(settingsType) as Component;
+            if (settings != null)
+            {
+                AddStartupToggle(settings);
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        Logger.LogWarning("GunGame settings were not available for RANDOM CURSED GUNS.");
     }
 
     private static bool SpawnAndEquipPrefix(object __instance)
@@ -409,14 +443,14 @@ public sealed class Plugin : BaseUnityPlugin
     private void AddStartupToggle(object settings)
     {
         var component = settings as Component;
-        if (component == null || component.transform.Find("HLin_RandomCursedGuns") != null)
+        if (component == null || component.GetComponentsInChildren<RandomToggleMarker>(true).Length > 0)
         {
             return;
         }
 
         var sourceImage = settings.GetType().GetField(
             "DisabledAutoLoadingImage",
-            BindingFlags.Instance | BindingFlags.NonPublic);
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         var image = sourceImage == null ? null : sourceImage.GetValue(settings) as Image;
         var sourceButton = image == null ? null : image.GetComponentInParent<Button>();
         if (sourceButton == null)
@@ -441,6 +475,7 @@ public sealed class Plugin : BaseUnityPlugin
         var marker = markerTransform == null ? null : markerTransform.GetComponent<Image>();
         clone.AddComponent<RandomToggleMarker>().EnabledImage = marker;
         RefreshOptionVisual();
+        Logger.LogInfo("Added RANDOM CURSED GUNS startup toggle.");
     }
 
     private static string GetRelativePath(Transform root, Transform child)
