@@ -6233,22 +6233,13 @@
       "Extra": "ScopeLT3x9Scope"
     },
     {
-      "GunName": "PlungerLauncher",
-      "MagName": "Cartridge_PlungerShell",
-      "MagNames": [
-        "Cartridge_PlungerShell"
-      ],
-      "CategoryID": 2,
-      "Extra": "EC79"
-    },
-    {
       "GunName": "Pocket1906",
       "MagName": "MagazinePocket1906",
       "MagNames": [
         "MagazinePocket1906"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "EC79"
     },
     {
       "GunName": "PocketHammer1903",
@@ -6257,7 +6248,7 @@
         "MagazinePocketHammer1903"
       ],
       "CategoryID": 0,
-      "Extra": "DeagleScope"
+      "Extra": "Periscopescope"
     },
     {
       "GunName": "PotatoGun",
@@ -6266,7 +6257,7 @@
         "Cartridge_50mmPotato"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "Python",
@@ -6275,7 +6266,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePNV57E"
+      "Extra": "ScopeVRZ_6_36x56mmBronze"
     },
     {
       "GunName": "QBZ95",
@@ -6284,7 +6275,7 @@
         "MagazineQBZ95"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexVSPrism1x"
+      "Extra": "ScopePNV57E"
     },
     {
       "GunName": "QC9",
@@ -6295,7 +6286,7 @@
         "MagazineQC9Waffle"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexPK120"
+      "Extra": "ReflexHolosightLong"
     },
     {
       "GunName": "QLB06",
@@ -6316,7 +6307,7 @@
         "Cartridge22LongTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeSusat"
+      "Extra": "ScopePNV57E"
     },
     {
       "GunName": "QuadrupleTap",
@@ -6330,7 +6321,7 @@
         "762x51mmCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeSusat"
     },
     {
       "GunName": "R1022_Classic",
@@ -6340,7 +6331,7 @@
         "MagazineR102225rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexArco"
+      "Extra": "ReflexYolographic"
     },
     {
       "GunName": "R1022_Sport",
@@ -6352,7 +6343,7 @@
         "MagazineR102250rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexMT2"
+      "Extra": "ReflexArco"
     },
     {
       "GunName": "R6000SP1",
@@ -6445,7 +6436,7 @@
         "MagazineR700"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "R8",
@@ -6454,7 +6445,7 @@
         "SpeedloaderR8"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexElevatedMRO"
+      "Extra": "ReflexArco"
     },
     {
       "GunName": "RG6",
@@ -6467,7 +6458,7 @@
         "Cartridge_40mmCaseless_TPM"
       ],
       "CategoryID": 2,
-      "Extra": "EC79"
+      "Extra": "Periscopescope"
     },
     {
       "GunName": "RGM40_Kastet",
@@ -6480,7 +6471,7 @@
         "Cartridge_40mmCaseless_TPM"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeST6T16x24mmBlack"
+      "Extra": "EC79"
     },
     {
       "GunName": "RK95TP",
@@ -6504,7 +6495,7 @@
         "MagazineStanagUSGI5rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeST6T16x24mmBlack"
+      "Extra": "ScopeEVU110x28mm"
     },
     {
       "GunName": "RPD",
@@ -6513,7 +6504,7 @@
         "MagazineRPD"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeLT3x9Scope"
+      "Extra": "ScopeHAMComboScope4x24"
     },
     {
       "GunName": "RPG7",
@@ -6542,7 +6533,7 @@
         "Speedloader22WM6Shot"
       ],
       "CategoryID": 2,
-      "Extra": "T12Scope"
+      "Extra": "ScopePVS30"
     },
     {
       "GunName": "RailTater",
@@ -6551,7 +6542,7 @@
         "CartridgeRailPotateFMJ"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "T12Scope"
     },
     {
       "GunName": "RayGun",
@@ -6560,7 +6551,7 @@
         "36MosesCartridgeFMJ"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS14"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "RemingtonRollingBlockNavy",
@@ -6571,7 +6562,7 @@
         "50RemingtonBlackPowderCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "Telescopescope"
+      "Extra": "ScopePVS14"
     },
     {
       "GunName": "RemoteMissileLauncher",
@@ -6580,7 +6571,7 @@
         "RemoteMissile"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS30"
+      "Extra": "Telescopescope"
     },
     {
       "GunName": "Rhino 20DS",
@@ -6589,7 +6580,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS14"
+      "Extra": "ScopePVS30"
     },
     {
       "GunName": "Rhino 40",
@@ -6598,7 +6589,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexPK23"
+      "Extra": "ReflexPyramus3"
     },
     {
       "GunName": "Rhino 50",
@@ -6607,7 +6598,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexCom4"
+      "Extra": "ReflexPK23"
     },
     {
       "GunName": "Rhino 60",
@@ -6616,7 +6607,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexPK23"
+      "Extra": "ReflexCom4"
     },
     {
       "GunName": "RioBigBore",
@@ -6642,7 +6633,7 @@
         "45_70Govt_Tracer"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopePNV57E"
     },
     {
       "GunName": "RollingBlockRifle",
@@ -6675,7 +6666,7 @@
         "RubberBand"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexSROSlideMount"
+      "Extra": "ReflexH507CSlideMount"
     },
     {
       "GunName": "Ruby",
@@ -6684,7 +6675,7 @@
         "MagazineRuby"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeSusat"
     },
     {
       "GunName": "S99",
@@ -6707,7 +6698,7 @@
         "MagazineS9R"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "EC79"
     },
     {
       "GunName": "SC-ICMkII",
@@ -6717,7 +6708,7 @@
         "MagazineSC-IC25rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexYolographic"
+      "Extra": "ReflexElevatedMRO"
     },
     {
       "GunName": "SCRPistol",
@@ -6732,7 +6723,7 @@
         "MagazineStanagUSGI5rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexSRS2"
+      "Extra": "ReflexYolographic"
     },
     {
       "GunName": "SCX",
@@ -6741,7 +6732,7 @@
         "MagazineSCX"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexHolosightLongFDE"
+      "Extra": "ReflexSRS2"
     },
     {
       "GunName": "SG550",
@@ -6770,7 +6761,7 @@
         "MagazineSKSModern20rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeEVU110x28mm"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "SP5K",
@@ -6836,7 +6827,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeG36"
+      "Extra": "ScopePVS14"
     },
     {
       "GunName": "SPAS12Tactical",
@@ -6854,7 +6845,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexSRO2"
+      "Extra": "ReflexMRS"
     },
     {
       "GunName": "SPAS15",
@@ -6866,7 +6857,7 @@
         "MagazineSPAS15_6rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeG36"
+      "Extra": "ScopeST6T16x24mmBlack"
     },
     {
       "GunName": "SPAS15Compact",
@@ -6878,7 +6869,7 @@
         "MagazineSPAS15_6rnd"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeG36"
     },
     {
       "GunName": "SPAS15Tactical",
@@ -6890,7 +6881,7 @@
         "MagazineSPAS15_6rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexArco"
+      "Extra": "ReflexEG1"
     },
     {
       "GunName": "SPS9",
@@ -6899,7 +6890,7 @@
         "MagazineSPS9"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeEVU110x28mm"
+      "Extra": "AGRattle19Scope"
     },
     {
       "GunName": "SR3M",
@@ -6917,7 +6908,7 @@
         "MagazineST2111"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexH507CSlideMount"
+      "Extra": "ReflexRMRSlideMount"
     },
     {
       "GunName": "STENOF",
@@ -6927,7 +6918,7 @@
         "MagazineSTENOFDrum"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "STX357",
@@ -6945,7 +6936,7 @@
         "MagazineSV98"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeClassic3-12x42mm"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "SVT40",
@@ -6963,7 +6954,7 @@
         "SpeedloaderSW29"
       ],
       "CategoryID": 2,
-      "Extra": "T12Scope"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "SW41Classic",
@@ -6973,7 +6964,7 @@
         "MagazineSW41_12rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexEG1"
+      "Extra": "SustenanceMp7Reflex"
     },
     {
       "GunName": "SW41Heavy",
@@ -6983,7 +6974,7 @@
         "MagazineSW41_12rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexVUH1"
+      "Extra": "ReflexEG1"
     },
     {
       "GunName": "SW41Modern",
@@ -6993,7 +6984,7 @@
         "MagazineSW41_12rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexLCO"
+      "Extra": "ReflexVUH1"
     },
     {
       "GunName": "SW500",
@@ -7002,7 +6993,7 @@
         "Speedloader500SW"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeVRZ_6_36x56mmBronze"
+      "Extra": "ScopeBR4"
     },
     {
       "GunName": "SW500Junior",
@@ -7011,7 +7002,7 @@
         "Speedloader500SW"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeLion2-5x"
+      "Extra": "ScopeVRZ_6_36x56mmBronze"
     },
     {
       "GunName": "SW629",
@@ -7020,7 +7011,7 @@
         "SpeedloaderSW29"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeLion2-5x"
     },
     {
       "GunName": "SWModel10",
@@ -7038,7 +7029,7 @@
         "SpeedloaderSW29"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexHolosightShort"
+      "Extra": "ReflexYolographic"
     },
     {
       "GunName": "Saiga12k",
@@ -7058,7 +7049,7 @@
         "MagazineSako85"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeVRZ_6_36x56mmBlack"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "Sako85Obrez",
@@ -7067,7 +7058,7 @@
         "MagazineSako85"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeVRZ_6_36x56mmBlack"
     },
     {
       "GunName": "Sawnoff16",
@@ -7085,7 +7076,7 @@
         "Cartridge_16Gauge_TripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePNV57E"
+      "Extra": "EC79"
     },
     {
       "GunName": "ScalpelLE",
@@ -7094,7 +7085,7 @@
         "MagazineScalpelLE"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexSRS2"
+      "Extra": "ReflexPK23"
     },
     {
       "GunName": "SchofieldModel3",
@@ -7107,7 +7098,7 @@
         "Cartridge_44_40_Tracer"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeACOSTA31Picatinny"
+      "Extra": "ScopeSusat"
     },
     {
       "GunName": "Scout",
@@ -7140,7 +7131,7 @@
         "Cartridge22ShortTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS30"
+      "Extra": "EC79A2"
     },
     {
       "GunName": "SingleActionArmy",
@@ -7150,7 +7141,7 @@
         "45LongColtCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeLT3x9Scope"
+      "Extra": "ScopePVS30"
     },
     {
       "GunName": "SjogrenInertial",
@@ -7168,7 +7159,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeClassic3-12x42mm"
+      "Extra": "ScopeLT3x9Scope"
     },
     {
       "GunName": "SjogrenShorty",
@@ -7186,7 +7177,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeG36"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "SpectreM4",
@@ -7195,7 +7186,7 @@
         "MagazineSpectreM4"
       ],
       "CategoryID": 0,
-      "Extra": "AGRattle19Scope"
+      "Extra": "ScopeG36"
     },
     {
       "GunName": "SportACR",
@@ -7212,7 +7203,7 @@
         "MagazineStanagUSGI5rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeEVU110x28mm"
+      "Extra": "ScopeClassic3-12x42mm"
     },
     {
       "GunName": "Springfield1903",
@@ -7230,7 +7221,7 @@
         "MagazineStG44"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeACOSTA31Picatinny"
     },
     {
       "GunName": "StenMk2",
@@ -7240,7 +7231,7 @@
         "MagazineStenMk2_16rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeG36"
+      "Extra": "Periscopescope"
     },
     {
       "GunName": "StenMk5",
@@ -7250,7 +7241,7 @@
         "MagazineStenMk2_16rnd"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeG36"
     },
     {
       "GunName": "StenMk6",
@@ -7260,7 +7251,7 @@
         "MagazineStenMk2_16rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeVRZ_6_36x56mmBlack"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "StenMk9",
@@ -7270,7 +7261,7 @@
         "MagazineStenMk2_16rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopePNV57E"
+      "Extra": "ScopeVRZ_6_36x56mmBlack"
     },
     {
       "GunName": "SterlingBullpupMockup",
@@ -7299,7 +7290,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "T12Scope"
+      "Extra": "ScopePVS30"
     },
     {
       "GunName": "Stoner63AR",
@@ -7308,7 +7299,7 @@
         "MagazineStoner63AR"
       ],
       "CategoryID": 0,
-      "Extra": "EC79A2"
+      "Extra": "T12Scope"
     },
     {
       "GunName": "Stoner63LMG",
@@ -7317,7 +7308,7 @@
         "MagazineStoner63LMG"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "EC79A2"
     },
     {
       "GunName": "SturmPistole",
@@ -7326,7 +7317,7 @@
         "SturmGrenade"
       ],
       "CategoryID": 2,
-      "Extra": "AGRattle19Scope"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "Sulfur_Arbiter2",
@@ -7344,7 +7335,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeVRZ_1_6x24mm"
+      "Extra": "AGRattle19Scope"
     },
     {
       "GunName": "Sulfur_Balthazar",
@@ -7353,7 +7344,7 @@
         "SpeedloaderBalthazar"
       ],
       "CategoryID": 2,
-      "Extra": "Hunt35Scope"
+      "Extra": "ScopeVRZ_1_6x24mm"
     },
     {
       "GunName": "SuperShorty",
@@ -7371,7 +7362,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeG36Combo"
+      "Extra": "Hunt35Scope"
     },
     {
       "GunName": "SuperShortyTactical",
@@ -7389,7 +7380,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexMRS"
+      "Extra": "ReflexMT2"
     },
     {
       "GunName": "SustenanceAR3",
@@ -7398,7 +7389,7 @@
         "Magazine_AR3_30rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeACOSTA31Picatinny"
+      "Extra": "ScopeEVU110x28mm"
     },
     {
       "GunName": "SustenanceCrossbow",
@@ -7407,7 +7398,7 @@
         "HCBBolt"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeST6T16x24mmBlack"
+      "Extra": "ScopeLT3x9Scope"
     },
     {
       "GunName": "T14Custom",
@@ -7425,7 +7416,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexPK23"
+      "Extra": "ReflexMT2"
     },
     {
       "GunName": "TAThunderer",
@@ -7438,7 +7429,7 @@
         "50BMGCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexHolosightLongFDE"
+      "Extra": "ReflexPK23"
     },
     {
       "GunName": "TT33",
@@ -7465,7 +7456,7 @@
         "MagazineTactical8400"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeClassic3-12x42mm"
+      "Extra": "ScopeLT3x9Scope"
     },
     {
       "GunName": "TankGewehr",
@@ -7483,7 +7474,7 @@
         "MagazineTec9"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeG36Combo"
+      "Extra": "ScopeBR4"
     },
     {
       "GunName": "Tec9IllegalFullAutoMod",
@@ -7492,7 +7483,7 @@
         "MagazineTec9"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexVSPrism1x"
+      "Extra": "ScopeG36Combo"
     },
     {
       "GunName": "Thompson30CarbinePrototype",
@@ -7501,7 +7492,7 @@
         "MagazineThompson30Carbine"
       ],
       "CategoryID": 0,
-      "Extra": "Hunt35Scope"
+      "Extra": "ReflexVSPrism1x"
     },
     {
       "GunName": "ThompsonM1928",
@@ -7523,7 +7514,7 @@
         "MagazineThompsonDrum50"
       ],
       "CategoryID": 0,
-      "Extra": "Telescopescope"
+      "Extra": "Hunt35Scope"
     },
     {
       "GunName": "ThompsonMk2",
@@ -7532,7 +7523,7 @@
         "MagazineThompsonMk2"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeEVU110x28mm"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "ThrowbackSingleshot12g",
@@ -7550,7 +7541,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeBR4"
+      "Extra": "SKTIRScope"
     },
     {
       "GunName": "ThrowbackSingleshot20g",
@@ -7562,7 +7553,7 @@
         "Cartridge20GaugeSlug"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeVRZ_1_6x24mm"
+      "Extra": "ScopeBR4"
     },
     {
       "GunName": "Tomacuzi",
@@ -7571,7 +7562,7 @@
         "MagazineTomacuziDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexLCO"
+      "Extra": "ReflexSRS2"
     },
     {
       "GunName": "Toz106",
@@ -7592,7 +7583,7 @@
         "Cartridge_16Gauge_Slug"
       ],
       "CategoryID": 2,
-      "Extra": "AGRattle19Scope"
+      "Extra": "T12Scope"
     },
     {
       "GunName": "Toz81",
@@ -7604,7 +7595,7 @@
         "Cartridge410BoreSlug"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeHAMComboScope4x24"
+      "Extra": "AGRattle19Scope"
     },
     {
       "GunName": "TriplePunch",
@@ -7615,7 +7606,7 @@
         "Cartridge12GaugeBeltedSlug"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexVSPrism1x"
+      "Extra": "ScopeHAMComboScope4x24"
     },
     {
       "GunName": "TripleRegret",
@@ -7629,7 +7620,7 @@
         "50BMGCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeBR4"
+      "Extra": "ReflexVSPrism1x"
     },
     {
       "GunName": "Tulyak",
@@ -7642,7 +7633,7 @@
         "23x75mmR_Shrap25"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS30"
+      "Extra": "ScopeBR4"
     },
     {
       "GunName": "TwelveGlouge",
@@ -7652,7 +7643,7 @@
         "MagazineTwelveGlougeDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexCom4"
+      "Extra": "ReflexPyramus3"
     },
     {
       "GunName": "Type100",
@@ -7661,7 +7652,7 @@
         "MagazineType100"
       ],
       "CategoryID": 0,
-      "Extra": "SKTIRScope"
+      "Extra": "EC79"
     },
     {
       "GunName": "UMP45",
@@ -7670,7 +7661,7 @@
         "MagazineUMP45"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexPK23"
+      "Extra": "ReflexHolosightLong"
     },
     {
       "GunName": "UMP9",
@@ -7679,7 +7670,7 @@
         "MagazineUMP9"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexElevatedMRO"
+      "Extra": "ReflexPK23"
     },
     {
       "GunName": "USAS12",
@@ -7689,7 +7680,7 @@
         "MagazineUSAS20rndDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeACOSHandleMount"
+      "Extra": "M16_3x20Scope"
     },
     {
       "GunName": "USPMatch",
@@ -7698,7 +7689,7 @@
         "MagazineUSP"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexH507CSlideMount"
+      "Extra": "ReflexRMRSlideMount"
     },
     {
       "GunName": "USPMatch9mm",
@@ -7707,7 +7698,7 @@
         "MagazineUSP9mm"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexRMRSlideMount"
+      "Extra": "ReflexH507CSlideMount"
     },
     {
       "GunName": "USPSAECIAL",
@@ -7717,7 +7708,7 @@
         "Cartridge20x82mmHE"
       ],
       "CategoryID": 2,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeST6T16x24mmFDE"
     },
     {
       "GunName": "USPTactical",
@@ -7726,7 +7717,7 @@
         "MagazineUSP"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexH507CSlideMount"
+      "Extra": "ReflexSROSlideMount"
     },
     {
       "GunName": "UltimaxMark3",
@@ -7735,7 +7726,7 @@
         "MagazineUltimax"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeSusat"
+      "Extra": "Periscopescope"
     },
     {
       "GunName": "Unica6",
@@ -7744,7 +7735,7 @@
         "Speedloader3576Shot"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexPK23"
+      "Extra": "ReflexSRS2"
     },
     {
       "GunName": "UnionFrench",
@@ -7753,7 +7744,7 @@
         "MagazineUnionFrench"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeAcog4x32"
+      "Extra": "ScopePNV57E"
     },
     {
       "GunName": "UziPro",
@@ -7764,7 +7755,7 @@
         "MagazineUzi72rndDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexArco"
+      "Extra": "ReflexHolosightShort"
     },
     {
       "GunName": "Uzi_Classic",
@@ -7775,7 +7766,7 @@
         "MagazineUzi72rndDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeSusat"
+      "Extra": "DeagleScope"
     },
     {
       "GunName": "Uzi_Compact",
@@ -7786,7 +7777,7 @@
         "MagazineUzi72rndDrum"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeSusat"
     },
     {
       "GunName": "Uzi_Mini",
@@ -7797,7 +7788,7 @@
         "MagazineUzi72rndDrum"
       ],
       "CategoryID": 0,
-      "Extra": "ScopePVS30"
+      "Extra": "Periscopescope"
     },
     {
       "GunName": "Uzi_Nano",
@@ -7806,7 +7797,7 @@
         "MagazineUziNano"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeVRZ_1_6x24mm"
+      "Extra": "ScopePVS30"
     },
     {
       "GunName": "VP9",
@@ -7815,7 +7806,7 @@
         "MagazineVP9"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexH507CSlideMount"
+      "Extra": "ReflexSROSlideMount"
     },
     {
       "GunName": "VSSVintorez",
@@ -7842,7 +7833,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "SustenanceMp7Reflex"
+      "Extra": "ReflexSRO2"
     },
     {
       "GunName": "VZ61Skorpion",
@@ -7851,7 +7842,7 @@
         "MagazineVZ61"
       ],
       "CategoryID": 0,
-      "Extra": "ScopePVS14"
+      "Extra": "T12Scope"
     },
     {
       "GunName": "Vector45",
@@ -7861,7 +7852,7 @@
         "MagazineVector45Drum"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexSRO2"
+      "Extra": "ReflexPyramus3"
     },
     {
       "GunName": "Vector45Carbine",
@@ -7871,7 +7862,7 @@
         "MagazineVector45Drum"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexMRS"
+      "Extra": "ReflexSRO2"
     },
     {
       "GunName": "Vigneron",
@@ -7880,7 +7871,7 @@
         "MagazineVigneron"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeST6T16x24mmBlack"
+      "Extra": "ScopeG36"
     },
     {
       "GunName": "ViperMk1",
@@ -7889,7 +7880,7 @@
         "MagazineViperMk1"
       ],
       "CategoryID": 0,
-      "Extra": "ScopePVS14"
+      "Extra": "ScopeST6T16x24mmBlack"
     },
     {
       "GunName": "VolcanicPistol",
@@ -7898,7 +7889,7 @@
         "41VolcanicSP"
       ],
       "CategoryID": 2,
-      "Extra": "ScopePVS30"
+      "Extra": "ScopePVS14"
     },
     {
       "GunName": "WA2000",
@@ -7907,7 +7898,7 @@
         "MagazineWA2000"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeClassic3-12x42mm"
+      "Extra": "ScopeST6T16x24mmFDE"
     },
     {
       "GunName": "WaspShotgun",
@@ -7916,7 +7907,7 @@
         "MagazineWaspShotgun"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeLion2-5x"
+      "Extra": "EC79A2"
     },
     {
       "GunName": "Webley1913",
@@ -7925,7 +7916,7 @@
         "MagazineWebley1913"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeVRZ_6_36x56mmBlack"
+      "Extra": "ScopeLion2-5x"
     },
     {
       "GunName": "WebleyFosbery",
@@ -7934,7 +7925,7 @@
         "Speedloader455Webley6Shot"
       ],
       "CategoryID": 2,
-      "Extra": "Hunt35Scope"
+      "Extra": "ScopeVRZ_6_36x56mmBlack"
     },
     {
       "GunName": "WebleyRevolver",
@@ -7943,7 +7934,7 @@
         "Speedloader455Webley6Shot"
       ],
       "CategoryID": 2,
-      "Extra": "Telescopescope"
+      "Extra": "Hunt35Scope"
     },
     {
       "GunName": "Wells1864",
@@ -7961,7 +7952,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexVSPrism1x"
+      "Extra": "Telescopescope"
     },
     {
       "GunName": "WelrodMkIIa",
@@ -7970,7 +7961,7 @@
         "MagazineWelrod"
       ],
       "CategoryID": 0,
-      "Extra": "T12Scope"
+      "Extra": "ReflexVSPrism1x"
     },
     {
       "GunName": "Whizzbanger",
@@ -7984,7 +7975,7 @@
         "50BMGCartridgeTracer"
       ],
       "CategoryID": 2,
-      "Extra": "ReflexSRS2"
+      "Extra": "ReflexYolographic"
     },
     {
       "GunName": "WorstShotgunEverMade",
@@ -8002,7 +7993,7 @@
         "12GaugeShellTripleHit"
       ],
       "CategoryID": 2,
-      "Extra": "ScopeLT3x9Scope"
+      "Extra": "ScopeVRZ_1_6x24mm"
     },
     {
       "GunName": "XAR1501",
@@ -8044,7 +8035,7 @@
         "MagazineStoner63AR"
       ],
       "CategoryID": 0,
-      "Extra": "DeagleScope"
+      "Extra": "ScopeLT3x9Scope"
     },
     {
       "GunName": "XM177e2",
@@ -8095,7 +8086,7 @@
         "MagazineXM500"
       ],
       "CategoryID": 0,
-      "Extra": "Periscopescope"
+      "Extra": "ScopeVRZ_6_36x56mmBlack"
     },
     {
       "GunName": "Zip22",
@@ -8107,7 +8098,7 @@
         "MagazineR102250rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexMT2"
+      "Extra": "ReflexCom4"
     },
     {
       "GunName": "gl",
@@ -8120,7 +8111,7 @@
         "MagazineG19_33rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ReflexElevatedMRO"
+      "Extra": "ReflexMT2"
     },
     {
       "GunName": "ll",
@@ -8130,7 +8121,7 @@
         "MagazineP08LugerDrum"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ReflexVSPrism1x"
     },
     {
       "GunName": "vz58Compact",
@@ -8141,7 +8132,7 @@
         "MagazineVZ58_30Rnd"
       ],
       "CategoryID": 0,
-      "Extra": "SKTIRScope"
+      "Extra": "Scope_WA2000"
     },
     {
       "GunName": "vz58Custom",
@@ -8152,7 +8143,7 @@
         "MagazineVZ58_30Rnd"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeEVU110x28mm"
     },
     {
       "GunName": "vz58P",
@@ -8163,7 +8154,7 @@
         "MagazineVZ58_30Rnd"
       ],
       "CategoryID": 0,
-      "Extra": "ScopeAcog4x32"
+      "Extra": "T12Scope"
     },
     {
       "GunName": "vz58Sport",
@@ -8185,7 +8176,7 @@
         "MagazineVZ58_30Rnd"
       ],
       "CategoryID": 0,
-      "Extra": "Scope_WA2000"
+      "Extra": "ScopeAcog4x32"
     }
   ],
   "Name": "Runtime 01 - Vanilla Rot",
