@@ -48,6 +48,10 @@ public sealed class Plugin : BaseUnityPlugin
         ScheduleStartupProfileWarmup();
         StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
         Trace("plugin awake.");
+        if (RuntimeBuildFeatures.CompatibilityProbeEnabled)
+        {
+            Trace("local Debug build: Runtime 05 compatibility probe enabled.");
+        }
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
@@ -408,27 +412,12 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
-        var probeJob = new RuntimeGenerationJob(
+#if GUNGAME_COMPATIBILITY_PROBE
+        yield return StartCoroutine(GenerateCompatibilityProbe(
             packagePath,
             combinedMetadata,
-            enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
-            RuntimeGenerationPhase.CompatibilityProbe,
-            false,
-            false);
-        probeJob.Start();
-        while (!probeJob.IsCompleted)
-        {
-            yield return null;
-        }
-
-        if (probeJob.Error != null)
-        {
-            Logger.LogDebug("GunGame compatibility probe generation failed: " + probeJob.Error);
-        }
-        else if (probeJob.Report.WasWritten)
-        {
-            Trace("compatibility probe updated: " + probeJob.Report.EligibleWeaponsPerPool + " test firearms.");
-        }
+            enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries));
+#endif
         if (report.PoolCount == 0 && report.WasWritten)
         {
             Logger.LogInfo(RuntimeStatusMessages.NoModdedPools);
@@ -459,6 +448,36 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
+#if GUNGAME_COMPATIBILITY_PROBE
+    private IEnumerator GenerateCompatibilityProbe(
+        string packagePath,
+        List<RuntimeMetadataEntry> metadata,
+        List<RuntimeEnemyEntry> enemyEntries)
+    {
+        var probeJob = new RuntimeGenerationJob(
+            packagePath,
+            metadata,
+            enemyEntries,
+            RuntimeGenerationPhase.CompatibilityProbe,
+            false,
+            false);
+        probeJob.Start();
+        while (!probeJob.IsCompleted)
+        {
+            yield return null;
+        }
+
+        if (probeJob.Error != null)
+        {
+            Logger.LogDebug("GunGame compatibility probe generation failed: " + probeJob.Error);
+        }
+        else if (probeJob.Report.WasWritten)
+        {
+            Trace("compatibility probe updated: " + probeJob.Report.EligibleWeaponsPerPool + " test firearms.");
+        }
+    }
+#endif
+
     private static string RuntimePoolDisplayName(string poolFileName)
     {
         if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
@@ -471,9 +490,13 @@ public sealed class Plugin : BaseUnityPlugin
             return "Runtime 04 - Modded Mixed Enemy";
         }
 
+#if GUNGAME_COMPATIBILITY_PROBE
         return poolFileName != null && poolFileName.IndexOf("_05_Compatibility_Probe_", StringComparison.Ordinal) >= 0
             ? "Runtime 05 - Compatibility Probe"
             : string.Empty;
+#else
+        return string.Empty;
+#endif
     }
 
     private int AddPersistedRuntimePoolChoices(object loader)
@@ -486,8 +509,11 @@ public sealed class Plugin : BaseUnityPlugin
 
         var poolFileNames = Directory.GetFiles(packagePath, "GunGameWeaponPool_Runtime_*.json")
             .Select(Path.GetFileName)
-            .Where(fileName => RuntimeProfileFamily.IsModdedPoolFile(fileName) ||
-                RuntimeProfileFamily.IsCompatibilityProbePoolFile(fileName))
+            .Where(fileName => RuntimeProfileFamily.IsModdedPoolFile(fileName)
+#if GUNGAME_COMPATIBILITY_PROBE
+                || RuntimeProfileFamily.IsCompatibilityProbePoolFile(fileName)
+#endif
+            )
             .OrderBy(fileName => fileName, StringComparer.Ordinal)
             .ToList();
         return AddPoolChoices(loader, poolFileNames);

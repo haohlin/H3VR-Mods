@@ -10,6 +10,8 @@ param(
     [string]$Query,
     [switch]$Publish,
     [switch]$VrApproved,
+    [ValidateSet('Release', 'Debug')]
+    [string]$GunGameBuildConfiguration = 'Release',
     [switch]$ReuseExistingUnityPackage
 )
 
@@ -493,7 +495,11 @@ function Test-GunGamePools {
 }
 
 function Invoke-GunGameBuild {
-    param([object]$ModConfig)
+    param(
+        [object]$ModConfig,
+        [ValidateSet('Release', 'Debug')]
+        [string]$BuildConfiguration = 'Release'
+    )
 
     $stagingPath = Get-GunGameStagingPath
     if (Test-Path -LiteralPath $stagingPath) {
@@ -501,7 +507,7 @@ function Invoke-GunGameBuild {
     }
     Ensure-Directory $stagingPath
 
-    Invoke-CheckedNative { & dotnet build (Join-Path $RepoRoot $ModConfig.metadataExporterCsproj) -c Release }
+    Invoke-CheckedNative { & dotnet build (Join-Path $RepoRoot $ModConfig.metadataExporterCsproj) -c $BuildConfiguration }
 
     $sourcePath = Join-Path $RepoRoot 'GunGameProgressions'
     $profileSourcePath = Join-Path $RepoRoot $ModConfig.profileSource
@@ -530,7 +536,11 @@ function Invoke-GunGameBuild {
 }
 
 function Invoke-Build {
-    param([object]$ModConfig)
+    param(
+        [object]$ModConfig,
+        [ValidateSet('Release', 'Debug')]
+        [string]$BuildConfiguration = 'Release'
+    )
 
     if ($ModConfig.kind -eq 'dotnet') {
         Invoke-DotNetBuild $ModConfig
@@ -538,7 +548,7 @@ function Invoke-Build {
     }
 
     if ($ModConfig.kind -eq 'python') {
-        Invoke-GunGameBuild $ModConfig | Out-Null
+        Invoke-GunGameBuild -ModConfig $ModConfig -BuildConfiguration $BuildConfiguration | Out-Null
         return
     }
 
@@ -586,15 +596,18 @@ function Copy-PackageMetadata {
 function Copy-Payload {
     param(
         [object]$ModConfig,
-        [string]$PackageRoot
+        [string]$PackageRoot,
+        [ValidateSet('Release', 'Debug')]
+        [string]$BuildConfiguration = 'Release'
     )
 
     foreach ($payload in @($ModConfig.payload)) {
-        if ($payload.from -eq 'generated') {
+        $payloadSource = ([string]$payload.from).Replace('{configuration}', $BuildConfiguration)
+        if ($payloadSource -eq 'generated') {
             $source = Get-GunGameStagingPath
         }
         else {
-            $source = Join-Path $RepoRoot $payload.from
+            $source = Join-Path $RepoRoot $payloadSource
         }
 
         if (-not (Test-Path -LiteralPath $source)) {
@@ -602,7 +615,7 @@ function Copy-Payload {
         }
 
         if ((Get-Item -LiteralPath $source).PSIsContainer) {
-            $files = if ($payload.from -eq 'generated') {
+            $files = if ($payloadSource -eq 'generated') {
                 @(Get-ChildItem -LiteralPath $source -File -Filter 'GunGameWeaponPool_Runtime_*.json') +
                 @(Get-Item -LiteralPath (Join-Path $source 'profile-rules.json'))
             }
@@ -618,6 +631,39 @@ function Copy-Payload {
             Ensure-Directory (Split-Path -Parent $destination)
             Copy-Item -LiteralPath $source -Destination $destination
         }
+    }
+}
+
+function Get-EffectiveBuildConfiguration {
+    param([object]$ModConfig)
+
+    if ($ModConfig.projectDir -eq 'GunGameProgressions') {
+        return $GunGameBuildConfiguration
+    }
+
+    return 'Release'
+}
+
+function Assert-GunGameReleasePackage {
+    param(
+        [object]$ModConfig,
+        [string]$PackagePath,
+        [string]$BuildConfiguration
+    )
+
+    if ($ModConfig.projectDir -ne 'GunGameProgressions' -or $BuildConfiguration -ne 'Release') {
+        return
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+    try {
+        if (@($archive.Entries | Where-Object { $_.FullName -like '*_05_Compatibility_Probe_*' }).Count -ne 0) {
+            throw 'GunGame release package must not contain Runtime 05 pool files.'
+        }
+    }
+    finally {
+        $archive.Dispose()
     }
 }
 
@@ -674,22 +720,25 @@ function New-Package {
         return New-UnityPackage $ModConfig
     }
 
-    Invoke-Build $ModConfig | Out-Null
+    $buildConfiguration = Get-EffectiveBuildConfiguration $ModConfig
+    Invoke-Build -ModConfig $ModConfig -BuildConfiguration $buildConfiguration | Out-Null
     $version = Get-ProjectVersion $ModConfig
-    $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
+    $artifactVersion = if ($buildConfiguration -eq 'Debug') { $version + '-debug' } else { $version }
+    $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $artifactVersion
     $stagingDirectory = Join-Path (Join-Path $BuildRoot 'staging') ("package-" + $Mod)
     $packageRoot = Join-Path $stagingDirectory 'payload'
     Remove-Item -LiteralPath $stagingDirectory -Recurse -Force -ErrorAction SilentlyContinue
     Ensure-Directory $packageRoot
 
     Copy-PackageMetadata -ModConfig $ModConfig -PackageRoot $packageRoot -Version $version
-    Copy-Payload -ModConfig $ModConfig -PackageRoot $packageRoot
+    Copy-Payload -ModConfig $ModConfig -PackageRoot $packageRoot -BuildConfiguration $buildConfiguration
 
     Ensure-Directory $artifactDirectory
-    $zipPath = Join-Path $artifactDirectory ("$($ModConfig.namespace)-$($ModConfig.packageName)-$version.zip")
+    $zipPath = Join-Path $artifactDirectory ("$($ModConfig.namespace)-$($ModConfig.packageName)-$artifactVersion.zip")
     Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::CreateFromDirectory($packageRoot, $zipPath)
+    Assert-GunGameReleasePackage -ModConfig $ModConfig -PackagePath $zipPath -BuildConfiguration $buildConfiguration
 
     Push-Location $RepoRoot
     try {
@@ -706,12 +755,13 @@ function New-Package {
         mod = $Mod
         version = $version
         commit = Get-CurrentCommit
+        buildConfiguration = $buildConfiguration
         packagePath = $zipPath
         sha256 = Get-FileSha256 $zipPath
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
     })
 
-    return [PSCustomObject]@{ Version = $version; ZipPath = $zipPath; Sha256 = Get-FileSha256 $zipPath }
+    return [PSCustomObject]@{ Version = $version; BuildConfiguration = $buildConfiguration; ZipPath = $zipPath; Sha256 = Get-FileSha256 $zipPath }
 }
 
 function New-VrReceipt {
@@ -823,6 +873,10 @@ function Invoke-Publish {
         throw 'Publishing requires both -Publish and -VrApproved.'
     }
 
+    if ($ModConfig.projectDir -eq 'GunGameProgressions' -and $GunGameBuildConfiguration -ne 'Release') {
+        throw 'GunGame Debug packages are local-only and cannot be published.'
+    }
+
     $version = Get-ProjectVersion $ModConfig
     $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
     $zipPath = @(Get-ChildItem -LiteralPath $artifactDirectory -Filter '*.zip' -File | Sort-Object LastWriteTime -Descending)[0].FullName
@@ -885,7 +939,10 @@ switch ($Action) {
     }
     'GrepSource' { if ([string]::IsNullOrWhiteSpace($Query)) { throw 'GrepSource requires -Query.' }; Find-SourceText $Query }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
-    'Build' { Invoke-Build (Get-ModConfig $Mod) }
+    'Build' {
+        $modConfig = Get-ModConfig $Mod
+        Invoke-Build -ModConfig $modConfig -BuildConfiguration (Get-EffectiveBuildConfiguration -ModConfig $modConfig)
+    }
     'Test' { Invoke-Test }
     'Package' { New-Package (Get-ModConfig $Mod) | Format-List }
     'Deploy' { Invoke-Deploy (Get-ModConfig $Mod) }

@@ -37,6 +37,12 @@ public sealed class GunGameGeneratorTests
             payload =>
                 payload.GetProperty("from").GetString() == "GunGameProgressions\\ObjectData.json" &&
                 payload.GetProperty("to").GetString() == "ObjectData.json");
+        Assert.Contains(
+            gunGame.GetProperty("payload").EnumerateArray(),
+            payload =>
+                payload.GetProperty("from").GetString() ==
+                    "GunGameProgressions\\MetadataExporter\\bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll" &&
+                payload.GetProperty("to").GetString() == "GunGameProgressionsMetadataExporter.dll");
         var externalTargets = gunGame.GetProperty("externalPatchTargets").EnumerateArray().ToArray();
         Assert.Contains(
             externalTargets,
@@ -59,7 +65,10 @@ public sealed class GunGameGeneratorTests
         var changelogPath = Path.Combine(packageSource, "CHANGELOG.md");
 
         Assert.True(File.Exists(changelogPath));
-        Assert.Contains("Count mode", File.ReadAllText(readmePath), StringComparison.Ordinal);
+        var readme = File.ReadAllText(readmePath);
+        Assert.Contains("Count mode", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Runtime 05", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Compatibility Probe", readme, StringComparison.Ordinal);
         Assert.Contains("## 1.3.3", File.ReadAllText(changelogPath), StringComparison.Ordinal);
         Assert.Contains("'CHANGELOG.md'", File.ReadAllText(H3vrScriptPath), StringComparison.Ordinal);
     }
@@ -83,11 +92,46 @@ public sealed class GunGameGeneratorTests
         _ = LoadBuiltMetadataExporter();
     }
 
+    [WindowsH3vrFact]
+    public void GunGame_release_exporter_disables_runtime_05_and_debug_exporter_compiles()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var features = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeBuildFeatures"));
+        var enabled = Assert.IsAssignableFrom<PropertyInfo>(features.GetProperty("CompatibilityProbeEnabled", BindingFlags.Public | BindingFlags.Static));
+        Assert.False((bool)enabled.GetValue(null)!);
+
+        var debugAssembly = LoadBuiltMetadataExporter("Debug");
+        var debugFeatures = Assert.IsAssignableFrom<Type>(debugAssembly.GetType("HLin.GunGameProgressions.RuntimeBuildFeatures"));
+        var debugEnabled = Assert.IsAssignableFrom<PropertyInfo>(debugFeatures.GetProperty("CompatibilityProbeEnabled", BindingFlags.Public | BindingFlags.Static));
+        Assert.True((bool)debugEnabled.GetValue(null)!);
+    }
+
     [Fact]
     public void GunGame_windows_pipeline_enables_runtime_metadata_exporter_tests()
     {
         var pipeline = File.ReadAllText(H3vrScriptPath);
         Assert.Contains("$env:H3VR_METADATA_EXPORTER_TESTS = '1'", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GunGame_runtime_05_is_debug_only_and_release_packages_reject_it()
+    {
+        var project = File.ReadAllText(MetadataExporterProjectPath);
+        Assert.Contains("Condition=\"'$(Configuration)' == 'Debug'\"", project, StringComparison.Ordinal);
+        Assert.Contains("GUNGAME_COMPATIBILITY_PROBE", project, StringComparison.Ordinal);
+
+        var source = File.ReadAllText(PluginSourcePath);
+        Assert.Contains("#if GUNGAME_COMPATIBILITY_PROBE", source, StringComparison.Ordinal);
+        Assert.Contains("private IEnumerator GenerateCompatibilityProbe(", source, StringComparison.Ordinal);
+        Assert.Contains("RuntimeBuildFeatures.CompatibilityProbeEnabled", source, StringComparison.Ordinal);
+
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+        Assert.Contains("[string]$GunGameBuildConfiguration = 'Release'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("[ValidateSet('Release', 'Debug')]", pipeline, StringComparison.Ordinal);
+        Assert.Contains("bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll", pipeline, StringComparison.Ordinal);
+        Assert.Contains("function Assert-GunGameReleasePackage", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGame release package must not contain Runtime 05 pool files.", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGame Debug packages are local-only and cannot be published.", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2750,10 +2794,25 @@ public sealed class GunGameGeneratorTests
 
     private static Assembly BuildMetadataExporter()
     {
+        return LoadBuiltMetadataExporter("Release");
+    }
+
+    private static Assembly LoadBuiltMetadataExporter(string configuration)
+    {
+        var originalPath = BuildMetadataExporterConfiguration(configuration);
+        var loadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(loadDirectory);
+        var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
+        File.Copy(originalPath, loadPath);
+        return Assembly.LoadFrom(loadPath);
+    }
+
+    private static string BuildMetadataExporterConfiguration(string configuration)
+    {
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c {configuration}",
             WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -2770,14 +2829,11 @@ public sealed class GunGameGeneratorTests
         var originalPath = Path.Combine(
             Path.GetDirectoryName(MetadataExporterProjectPath)!,
             "bin",
-            "Release",
+            configuration,
             "net35",
             "GunGameProgressionsMetadataExporter.dll");
-        var loadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(loadDirectory);
-        var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
-        File.Copy(originalPath, loadPath);
-        return Assembly.LoadFrom(loadPath);
+        Assert.True(File.Exists(originalPath), $"Metadata exporter output missing: {originalPath}");
+        return originalPath;
     }
 
     private static object RuntimeEntry(

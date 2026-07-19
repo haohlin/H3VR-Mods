@@ -21,10 +21,12 @@ The approved store wording lives in [BRANDING.md](BRANDING.md).
 ```text
 H3VR registry ──> catalog capture ──> shared builder ──> Runtime 01 + 03
       │
-      └─> Modded refresh request ──> immediate catalog snapshot ──> shared builder ──> Runtime 02 + 04 + 05
+      └─> Modded refresh request ──> immediate catalog snapshot ──> shared builder ──> Runtime 02 + 04
                                              │                                  │
                                              │                                  └─> atomic persisted files
                                              └─> no registry-wide prefab loading
+
+Local Debug build only ──> Compatibility Probe builder ──> Runtime 05
 
 GunGame WeaponPoolLoader event ──> restore saved Modded choices
                                 └─> request background refresh if needed
@@ -44,17 +46,17 @@ same integration; no map-specific patch is the normal design.
 | 02 | Modded Rot | Active mod firearms | Rotwieners |
 | 03 | Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
 | 04 | Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
-| 05 | Compatibility Probe | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
+| 05 | Compatibility Probe — Debug only | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
 
 The names and order are compatibility contracts. The two tracked offline
 Vanilla files are the safe packaged fallback; user-specific Modded files are
 created only at runtime and are never published in a package.
 
-Runtime 05 is only an unconfirmed-worklist. After a firearm passes human VR
-testing, remove it from `compatibilityProbeFirearms`; do not add a firearm
-allowlist or special Vanilla path. The normal shared resolver already controls
-its Vanilla eligibility. Runtime 05 fingerprints its candidate list, so a
-changed worklist replaces the prior probe without rebuilding unchanged pools.
+Runtime 05 is an unconfirmed-worklist available only in a local Debug build.
+Release builds neither generate nor restore it, and release packaging rejects
+its pool files. After a firearm passes human VR testing, remove it from
+`compatibilityProbeFirearms`; do not add a firearm allowlist or special Vanilla
+path. The normal shared resolver already controls its Vanilla eligibility.
 
 ## Lifecycle
 
@@ -63,7 +65,7 @@ changed worklist replaces the prior probe without rebuilding unchanged pools.
 | Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
-| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded and Compatibility Probe choices once, request fresh background snapshot. |
+| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded choices once, request fresh background snapshot. A local Debug build also restores its saved Compatibility Probe choice. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
 | One and five minutes after plugin startup | Request non-blocking rescans for late-loading content. Each complete candidate follows strict count-growth replacement. |
 | Ten minutes after plugin startup | Request another non-blocking rescan and permit one complete candidate from a newer generation-policy version to replace a saved pair even when its count is smaller. |
@@ -151,7 +153,7 @@ then clears and promotes past any rejected or throwing loadout on next frame.
 | `no modded pools available` | No compatible active Modded firearms were found. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
-| `compatibility probe updated` | Runtime 05 wrote configured compatibility candidates for manual testing. |
+| `compatibility probe updated` | Debug-only: Runtime 05 wrote configured compatibility candidates for manual testing. |
 | `skipping invalid GunGame loadout` | Spawn safety rejected/failed a loadout; log includes gun, feed, optic, and reason. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
@@ -192,14 +194,24 @@ writes turn a transient loader problem into a stutter.
 | Artifact | Role |
 | --- | --- |
 | `ObjectData.json` | Versioned vanilla-only metadata snapshot. |
-| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for maintainer review. |
+| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for local maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
-| `profile-rules.json` | Global blacklist for every generated profile, Runtime 02/04/05-only curation, and Runtime 05 candidates. |
+| `profile-rules.json` | Global blacklist for generated profiles, Runtime 02/04 curation, and Debug-only Runtime 05 candidates. |
 | Package README | Player-facing installation and use guidance. |
 
 Never package a player's captured Modded pool, private paths, credentials,
 machine details, or game assemblies.
+
+### Debug/release build boundary
+
+`h3vr.ps1` defaults `GunGameProgressions` to `-GunGameBuildConfiguration
+Release`. This builds and packages only Runtime 01/03 fallbacks plus Runtime
+02/04 runtime support. For a local compatibility investigation only, use
+`-GunGameBuildConfiguration Debug`; that compiler configuration defines
+`GUNGAME_COMPATIBILITY_PROBE`, enables Runtime 05 generation/restoration, and
+writes artifacts under a `-debug` directory. Debug packages are deployment-only
+and the publish command rejects them.
 
 ## Verification and change protocol
 

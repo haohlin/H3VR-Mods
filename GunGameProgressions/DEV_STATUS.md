@@ -59,11 +59,13 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Policy replacement | A newer policy version keeps strict count growth through immediate/one-/five-minute scans. The ten-minute startup scan may replace once with a smaller complete pair; partial/empty safeguards remain. | Focused persistence and scheduler regressions; Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed. |
 | Current build candidate | Feature-branch package remains version `1.4.0`; deployed for private VR validation, not a public release. | Windows `Verify`, `Test` `95/95`, `Build`, `Package`, and `Deploy` passed; SHA-256 `EDAF4ACE56C297422A27B2980DF2CD08CDFB0D6B5AA90FD49749B921536BBD56`. |
 | Global startup warmup | Immediate and 1/5/10-minute Modded refreshes have one idempotent owner in plugin `Awake()`; `Start()` is only a no-op fallback. It does not depend on a GunGame scene. Only the ten-minute callback opens policy-version replacement eligibility. | Source-level lifecycle regression; Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed. Runtime ten-minute observation remains pending. |
+| Runtime 05 boundary | Runtime 05 is local Debug-only. Release build/package must neither generate nor restore it, and must reject any packaged Runtime 05 pool file. | Implementation and Windows validation pending. |
 
 ## Plan
 
 | State | Next item | Acceptance |
 | --- | --- | --- |
+| In progress | Split Runtime 05 by Debug/Release build configuration. | Release DLL disables probe; Release package has no Runtime 05 pool; Debug DLL compiles with probe enabled; Debug package cannot publish. |
 | Complete | Validate ten-minute policy-version promotion gate. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed; focused tests prove early retention and complete ten-minute eligibility. |
 | Complete | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, `Package`, and `Deploy`. | All checks passed; Windows test suite `83/83`. |
 | Complete | Validate one-minute rescan and timing log in the real Modded profile. | Initial and one-minute scan logs recorded; capture remains frame-budgeted and profiles are valid. |
@@ -93,6 +95,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Startup scheduler runs from `Awake()` once; initial and one-minute scans run without selector interaction; selector restores generated pair after reload. |
 | Policy-version replacement gate | `h3vr.ps1 -Action Test`; then retain a saved Modded receipt from an older policy and observe early plus ten-minute scans. | Passed static/worker guard: early snapshots keep equal/smaller pair; runtime observation remains required for ten-minute timing. |
+| Runtime 05 release boundary | `h3vr.ps1 -Action Test`, then `Build`/`Package`/`Deploy` default Release; optionally `Build -GunGameBuildConfiguration Debug`. | Release reports feature disabled and package contains no Runtime 05 file; Debug compiler output succeeds; no Debug package can publish. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
