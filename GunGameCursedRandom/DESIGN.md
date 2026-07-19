@@ -12,7 +12,7 @@ Spawner firearm while retaining GunGame's Sosig, kill, and run lifecycle.
 | Clone one GunGame startup-toggle row for `RANDOM CURSED GUNS`. | Edit GunGame maps, prefabs, or profiles. |
 | Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` when enabled. | Reimplement H3VR random-gun, ammo, or attachment selection. |
 | Replace only `Progression.SpawnAndEquip`; retain GunGame promotion/demotion and Sosig behavior. | Change GunGame progression counts, enemies, or selected quickbelt slots. |
-| Give spawned firearm to configured GunGame hand; load first compatible feed; put spare generated feed in GunGame ammo quickbelt slot. | Guarantee compatibility for every modded Item Spawner object. |
+| Give spawned firearm to configured GunGame hand; load first compatible feed; put up to two spares in GunGame Ammo and Extra quickbelt slots. | Guarantee compatibility for every modded Item Spawner object. |
 
 ## Architecture
 
@@ -25,7 +25,7 @@ GunGame SpawnAndEquip when enabled
   -> ItemSpawnerV2 BTN_TryToSpawnRandomGun
   -> wait for vanilla random result
   -> remove previous GunGame/random equipment
-  -> load, hand-equip, quickbelt spare feed, log loadout
+  -> load, hand-equip, quickbelt up to two spare feeds, log loadout
 ```
 
 ## Invariants

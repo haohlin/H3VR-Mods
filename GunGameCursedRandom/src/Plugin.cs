@@ -186,9 +186,10 @@ public sealed class Plugin : BaseUnityPlugin
 
         var looseFeeds = spawned
             .Where(item => item != gun && !item.transform.IsChildOf(gun.transform) && IsFeed(item))
+            .OrderBy(FeedSortOrder)
             .ToList();
         var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
-        MoveSpareFeedToQuickbelt(looseFeeds, loadedFeed);
+        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed);
         EquipInGunGameHand(gun);
         NotifyWeaponChanged(progression);
         LogRandomLoadout(gun, looseFeeds, loadedFeed);
@@ -252,24 +253,45 @@ public sealed class Plugin : BaseUnityPlugin
         return null;
     }
 
-    private static void MoveSpareFeedToQuickbelt(
+    private static int FeedSortOrder(FVRPhysicalObject feed)
+    {
+        if (feed is FVRFireArmMagazine)
+        {
+            return 0;
+        }
+
+        if (feed is Speedloader)
+        {
+            return 1;
+        }
+
+        return 2;
+    }
+
+    private static void MoveSpareFeedsToQuickbelt(
         IEnumerable<FVRPhysicalObject> feeds,
         FVRPhysicalObject loadedFeed)
     {
-        var spare = feeds.FirstOrDefault(feed => feed != null && feed != loadedFeed);
-        var slot = GetQuickbeltSlot("AmmoQuickbeltSlot", 0);
-        if (spare == null || slot == null)
+        var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
+        var slots = new[]
+            {
+                GetQuickbeltSlot("AmmoQuickbeltSlot", 0),
+                GetQuickbeltSlot("ExtraQuickbeltSlot", 1)
+            }
+            .Where(slot => slot != null)
+            .Distinct()
+            .ToList();
+        for (var index = 0; index < spares.Count && index < slots.Count; index++)
         {
-            return;
-        }
+            var slot = slots[index];
+            if (slot.CurObject != null)
+            {
+                slot.CurObject.ClearQuickbeltState();
+            }
 
-        if (slot.CurObject != null)
-        {
-            slot.CurObject.ClearQuickbeltState();
+            spares[index].ForceObjectIntoInventorySlot(slot);
+            spares[index].m_isSpawnLock = true;
         }
-
-        spare.ForceObjectIntoInventorySlot(slot);
-        spare.m_isSpawnLock = true;
     }
 
     private static FVRQuickBeltSlot GetQuickbeltSlot(string fieldName, int fallbackIndex)

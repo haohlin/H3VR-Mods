@@ -12,6 +12,8 @@ public sealed class GunGameCursedRandomTests
         var source = File.ReadAllText(Path.Combine(root, "GunGameCursedRandom", "src", "Plugin.cs"));
 
         Assert.Contains("BTN_TryToSpawnRandomGun", source);
+        Assert.Contains("AmmoQuickbeltSlot", source);
+        Assert.Contains("ExtraQuickbeltSlot", source);
         Assert.Contains("GunGame.Scripts.Progression", source);
         Assert.Contains("SpawnAndEquip", source);
         Assert.Contains("GameSettingsStartPostfix", source);
