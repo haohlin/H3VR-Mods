@@ -23,6 +23,18 @@ For explicit paths, copy `build/environment.local.example.json` to the ignored
 `build/environment.local.json` and fill it in privately. `tools/h3vr.ps1`
 prefers that file and otherwise expands the environment variables.
 
+On macOS, invoke Windows pipeline actions from an H3VR-Mods checkout through
+`h3vr-remote run <Action> [Mod]`; it delegates to
+`tools/h3vr-remote.sh <Action> [arguments]`, never an assumed interactive
+shell variable. It loads the user-only, mode-`600`
+`${XDG_CONFIG_HOME:-~/.config}/h3vr-mods/remote.env` (or
+`H3VR_PRIVATE_CONFIG`) containing `H3VR_WINDOWS_HOST` and
+`H3VR_WINDOWS_REPOSITORY`. Bootstrap from
+`tools/h3vr-remote.env.example`; only variable names are tracked. If either
+private configuration layer is absent, report its missing key and stop. Never
+scan, print, commit, package, or publish local paths, hostnames, account IDs,
+or credentials.
+
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.

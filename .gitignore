@@ -69,6 +69,7 @@ artifacts/
 /build/artifacts/
 /build/receipts/
 /build/environment.local.json
+/tools/h3vr-remote.env
 
 # Generated release payloads are built into build/artifacts, not versioned with
 # their Thunderstore metadata.
