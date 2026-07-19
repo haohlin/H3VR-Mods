@@ -60,7 +60,8 @@ for an alternate host or checkout and do not print private values.
 
 Use `h3vr-remote status` for remote Git inspection and
 `h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
-Do not use raw SSH in normal H3VR workflow.
+Use `h3vr-remote git <arguments>` only for scoped remote Git work. Do not use
+raw SSH in normal H3VR workflow.
 
 Do not treat a macOS build as an H3VR compatibility check.
 

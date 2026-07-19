@@ -28,7 +28,8 @@ current machine without entering Git:
 
 Use `h3vr-remote status` to inspect remote Git state and
 `h3vr-remote sync <branch>` for its guarded fetch/fast-forward sync. Do not
-use raw SSH for normal H3VR Git or pipeline work.
+use raw SSH for normal H3VR Git or pipeline work. Use
+`h3vr-remote git <arguments>` only for scoped remote Git work.
 
 The tracked `tools/h3vr-remote.env.example` contains variable names only;
 private values belong only in the per-user file above.

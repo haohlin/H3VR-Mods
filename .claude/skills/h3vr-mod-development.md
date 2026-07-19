@@ -15,6 +15,7 @@ reported only by key/file name.
 
 Use `h3vr-remote status` for remote Git inspection and
 `h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+Use `h3vr-remote git <arguments>` only for scoped remote Git work.
 
 The private Windows checkout configured through `H3VR_WINDOWS_REPOSITORY` is
 authoritative for H3VR builds, deployment, VR testing, and Thunderstore

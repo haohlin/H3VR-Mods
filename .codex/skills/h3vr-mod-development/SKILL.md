@@ -37,6 +37,7 @@ or credentials.
 
 Use `h3vr-remote status` for remote Git inspection and
 `h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+Use `h3vr-remote git <arguments>` only for scoped remote Git work.
 
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
