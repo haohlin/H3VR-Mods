@@ -125,7 +125,7 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
-            Assert.All(pools, pool => Assert.Equal(661, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(pools, pool => Assert.Equal(660, pool.RootElement.GetProperty("Guns").GetArrayLength()));
             Assert.All(
                 pools,
                 pool => Assert.DoesNotContain(
@@ -136,8 +136,10 @@ public sealed class GunGameGeneratorTests
                 .EnumerateArray()
                 .Select(gun => gun.GetProperty("GunName").GetString())
                 .ToArray();
-            Assert.Equal(661, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
-            Assert.DoesNotContain("Slingshot", goldenWeaponIds);
+            Assert.Equal(660, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(
+                new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
+                weaponId => Assert.DoesNotContain(weaponId, goldenWeaponIds));
             Assert.All(
                 new[] { "GravitonBeamer", "HiroEnki", "PlungerLauncher", "RailTater", "SustenanceCrossbow" },
                 weaponId => Assert.Contains(weaponId, goldenWeaponIds));

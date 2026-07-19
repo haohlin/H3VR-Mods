@@ -75,7 +75,7 @@ Rules:
 | A compatible-object list is authoritative. | It is the game’s explicit relationship. |
 | Magazine/clip type is an exact fallback. | Those types encode their matching interface. |
 | Modded loose cartridges require a direct compatible-object entry. | Shared `RoundType` does not prove a mod firearm accepts that cartridge. |
-| Vanilla may use its versioned exact-`RoundType` cartridge fallback. | Preserves validated 661-gun offline baseline. |
+| Vanilla may use its versioned exact-`RoundType` cartridge fallback. | Preserves the versioned offline baseline. |
 | A speedloader is never inferred from round type. | Equal caliber does not prove compatible geometry. |
 | A non-box shotgun gets shells, not a generic magazine or rotary loader. | Prevents P6-12/Jackhammer-style cross-assignment. |
 | A revolver shotgun keeps only its direct loader. | Preserves real compatible rotary/revolver feeds. |
