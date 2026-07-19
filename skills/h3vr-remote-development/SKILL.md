@@ -7,9 +7,12 @@ description: Use for any H3VR-Mods change reviewed on macOS and built, tested, d
 
 ## Purpose
 
-The macOS checkout is a portable review and Git workspace. The private Windows
-checkout is authoritative: it builds against installed H3VR assemblies,
-packages releases, deploys to r2modman, and is the only H3VR runtime.
+The macOS checkout is only for source inspection, editing, and normal Git
+review. Never build, test, package, deploy, run Unity, or run H3VR locally on
+macOS. The private Windows checkout is authoritative: it builds against
+installed H3VR assemblies, packages releases, deploys to r2modman, and is the
+only H3VR runtime. Invoke every validation and pipeline action from macOS with
+`h3vr-remote run <Action> [Mod]`; local command results are not H3VR evidence.
 
 Never commit game assemblies, decompiled source, generated artifacts,
 credentials, local paths, host names, account names, machine IDs, or connection

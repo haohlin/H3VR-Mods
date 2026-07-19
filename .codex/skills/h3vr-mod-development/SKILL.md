@@ -41,6 +41,14 @@ Use `h3vr-remote git <arguments>` only for scoped remote Git work.
 
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
+## macOS/Windows Execution Boundary
+
+Use the macOS checkout only to inspect, edit, and commit source (plus normal Git
+review). Never run `dotnet build`, `dotnet test`, Unity, `tools/h3vr.ps1`, or
+any H3VR `Verify`, `Build`, `Test`, `Package`, `Deploy`, or runtime command
+locally. Run every validation and pipeline action on Windows through
+`h3vr-remote run <Action> [Mod]`. A local command result is not H3VR evidence.
+
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
 
 ## Cross-session mod state
