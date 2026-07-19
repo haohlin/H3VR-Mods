@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-19`
 
-State: `1.4.0 released on Thunderstore; candidate restores stable Modded builder path and awaits Windows validation`
+State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modded-file proof pending`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -37,7 +37,9 @@ State: `1.4.0 released on Thunderstore; candidate restores stable Modded builder
 | Live Modded generation | Runtime 02 and 04 are absent in current session. Startup captured `2` Modded entries; one-, five-, and ten-minute rescans each captured `1,124` entries but wrote no Modded pair. | Live Windows file audit: only Runtime 01, 03, and 05 exist; no Modded receipt exists. |
 | Failure boundary | Each `1,124`-entry Modded capture enters background generation then logs `using packaged fallback pools.` Runtime 05 still writes its five-gun probe. This message is reached only when Modded `RuntimeGenerationJob.Error` is non-null. | Live BepInEx log plus `GenerateModdedPoolCandidate` source path. Exact exception is Debug-level only and was not emitted by current BepInEx logging configuration. |
 | Root cause | Post-1.4.0 `BuildModdedWithDiagnostics` skipped Vanilla work and set `rot` to `null`; Runtime 02 then dereferenced `enemies[0].EnemyNameString`, throwing inside background job. | Source trace: Modded-only builder sets `rot = null`; `CreateScenarioPool` dereferences `enemies[0]`; exception is caught by `RuntimeGenerationJob`. |
-| Candidate repair | Global blacklist includes PlungerLauncher. Modded capture pre-merges plain catalog metadata and uses 1.4.0 shared `BuildWithDiagnostics`; specialized Modded-only builder removed. | Local source diff and focused regression updated; Windows build/test/deploy still required. |
+| Candidate repair | Global blacklist includes PlungerLauncher. Modded capture pre-merges plain catalog metadata and uses 1.4.0 shared `BuildWithDiagnostics`; specialized Modded-only builder removed. | Windows `SourceStatus`, `Test` `95/95`, `Verify`, `Build`, `Package`, and private `Deploy` passed. |
+| Policy 20 fallback | Both tracked Vanilla fallback pools contain `659` firearms and omit PlungerLauncher. | Windows `OfflineProfileGenerator`, `--verify`, and focused fallback test. |
+| Candidate deployment | Private `1.4.0` package deployed with policy 20 fallback. No Thunderstore upload occurred. | Windows `Deploy`; package SHA-256 `DA97AE536346F5FE9B7B7F88CF33AEDDA71A05A89769BCB51832BB2D1A339950`. |
 | Current deployment | `1.4.0` package built and deployed with five Runtime 05 candidates. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, `Deploy`; post-deploy installed `profile-rules.json` and generated-pool audit. |
 | Offline fallback | Both tracked Vanilla pools remain byte-equivalent after shared policy version `18`; known-good Vanilla content did not change. | Windows `Verify`, `Test` `95/95`, `Build`, and `Package`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
@@ -68,7 +70,7 @@ State: `1.4.0 released on Thunderstore; candidate restores stable Modded builder
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
 | Pending | Human VR-test narrowed Runtime 05. | Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 each spawn, load, fire, and advance without error. |
-| In progress | Validate stable Modded builder restoration and Plunger blacklist on Windows. | `Test`, `Verify`, fallback regeneration/verify, build/package/deploy pass; H3VR writes Runtime 02/04 receipt instead of fallback. |
+| In progress | Capture H3VR runtime proof for stable Modded builder restoration. | H3VR writes Runtime 02/04 plus Modded receipt after a Modded capture, logs `pools ready`, and no longer logs packaged fallback for that job. |
 | Pending decision | Classify remaining Runtime 05 failures from spawn-safety log. | Add only confirmed broken IDs to shared global blacklist with focused regression. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 | Complete | Build/deploy metadata-only Modded optic route. | Windows SourceStatus, Test `90/90`, Verify, Build, Package, Deploy passed. |
@@ -93,7 +95,7 @@ State: `1.4.0 released on Thunderstore; candidate restores stable Modded builder
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
 | Live Modded profile | Start H3VR and wait through a background rescan. | Runtime 02 and 04 files plus `runtime-generation-modded-receipt.json` appear; log reports pools ready, not `using packaged fallback pools.` |
-| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Candidate expectation: both tracked Vanilla pools match policy version `20`; count is `659`. |
+| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Passed: both tracked Vanilla pools match policy version `20`; count is `659`. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
