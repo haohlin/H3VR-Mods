@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-19`
 
-State: `1.4.0 released on Thunderstore; narrowed Runtime 05 candidate deployed for VR testing`
+State: `1.4.0 released on Thunderstore; live Modded-pool generation failure blocks next release`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -34,6 +34,8 @@ State: `1.4.0 released on Thunderstore; narrowed Runtime 05 candidate deployed f
 | Policy 19 package | Version `1.4.0` package built from `8c88569`. | Windows `Verify`, `Build`, `Package`; SHA-256 `942A97C7C553B6EDDD53704EA3EE7BE9CB3F480B27E6923B43B131A42D24403B`. |
 | Runtime 05 promotion | GravitonBeamer, Jackhammer, M320GrenadeLauncher, M72A7, MF_Signaler, MF_Syringegun, OTS38, P11, P6Twelve, PocketHammer1903, and Whizzbanger passed human testing and already occur in both standard Vanilla profiles through the shared resolver. They need no blacklist or allowlist change. | Generated Vanilla pool audit. |
 | Runtime 05 worklist | Remaining test candidates: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Probe-list fingerprinting refreshes this profile only; Vanilla/Modded cache keys stay unchanged. | Windows `Test` `95/95`; post-deploy source and installed-package audit. |
+| Live Modded generation | Runtime 02 and 04 are absent in current session. Startup captured `2` Modded entries; one-, five-, and ten-minute rescans each captured `1,124` entries but wrote no Modded pair. | Live Windows file audit: only Runtime 01, 03, and 05 exist; no Modded receipt exists. |
+| Failure boundary | Each `1,124`-entry Modded capture enters background generation then logs `using packaged fallback pools.` Runtime 05 still writes its five-gun probe. This message is reached only when Modded `RuntimeGenerationJob.Error` is non-null. | Live BepInEx log plus `GenerateModdedPoolCandidate` source path. Exact exception is Debug-level only and was not emitted by current BepInEx logging configuration. |
 | Current deployment | `1.4.0` package built and deployed with five Runtime 05 candidates. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, `Deploy`; post-deploy installed `profile-rules.json` and generated-pool audit. |
 | Offline fallback | Both tracked Vanilla pools remain byte-equivalent after shared policy version `18`; known-good Vanilla content did not change. | Windows `Verify`, `Test` `95/95`, `Build`, and `Package`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
@@ -64,6 +66,7 @@ State: `1.4.0 released on Thunderstore; narrowed Runtime 05 candidate deployed f
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
 | Pending | Human VR-test narrowed Runtime 05. | Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 each spawn, load, fire, and advance without error. |
+| In progress | Diagnose live Modded generation exception. | Capture exact background `RuntimeGenerationJob` exception without adding hot-path work; then reproduce with current runtime catalog before changing generation code. |
 | Pending decision | Classify remaining Runtime 05 failures from spawn-safety log. | Add only confirmed broken IDs to shared global blacklist with focused regression. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 | Complete | Build/deploy metadata-only Modded optic route. | Windows SourceStatus, Test `90/90`, Verify, Build, Package, Deploy passed. |
@@ -87,6 +90,7 @@ State: `1.4.0 released on Thunderstore; narrowed Runtime 05 candidate deployed f
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
+| Live Modded profile | Start H3VR and wait through a background rescan. | Runtime 02 and 04 files plus `runtime-generation-modded-receipt.json` appear; log reports pools ready, not `using packaged fallback pools.` |
 | Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Passed: both tracked Vanilla pools match policy version `19`; count is `660`. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
 
