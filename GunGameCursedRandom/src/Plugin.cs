@@ -19,12 +19,14 @@ namespace HLin.GunGameCursedRandom;
 public sealed class Plugin : BaseUnityPlugin
 {
     private const string HarmonyId = "HLin.GunGameCursedRandom";
+    private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
 
     private static Plugin instance;
     private readonly List<GameObject> activeRandomEquipment = new List<GameObject>();
     private ConfigEntry<bool> randomGunsEnabled;
+    private MethodInfo randomGunMethod;
     private FieldInfo randomGunField;
     private bool spawningRandomGun;
     private bool missingSpawnerLogged;
@@ -114,12 +116,15 @@ public sealed class Plugin : BaseUnityPlugin
             return false;
         }
 
-        randomGunField = randomGunField ?? typeof(ItemSpawnerV2).GetField(
+        randomGunMethod = randomGunMethod ?? spawner.GetType().GetMethod(
+            RandomGunMethodName,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        randomGunField = randomGunField ?? spawner.GetType().GetField(
             RandomGunFieldName,
-            BindingFlags.Instance | BindingFlags.NonPublic);
-        if (randomGunField == null)
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (randomGunMethod == null || randomGunField == null)
         {
-            Logger.LogError("Item Spawner random-gun result field is unavailable; using GunGame profile weapon.");
+            Logger.LogError("Item Spawner random-gun API is unavailable; using GunGame profile weapon.");
             return false;
         }
 
@@ -129,7 +134,7 @@ public sealed class Plugin : BaseUnityPlugin
         var before = CapturePhysicalObjects();
         try
         {
-            spawner.BTN_TryToSpawnRandomGun();
+            randomGunMethod.Invoke(spawner, null);
             StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before));
             return true;
         }
@@ -279,9 +284,31 @@ public sealed class Plugin : BaseUnityPlugin
             return slot;
         }
 
-        return GM.CurrentPlayerBody == null || GM.CurrentPlayerBody.QBSlots_Internal.Count <= fallbackIndex
+        return GetInternalQuickbeltSlots().Skip(fallbackIndex).FirstOrDefault();
+    }
+
+    private static IEnumerable<FVRQuickBeltSlot> GetInternalQuickbeltSlots()
+    {
+        var body = GM.CurrentPlayerBody;
+        var field = body == null
             ? null
-            : GM.CurrentPlayerBody.QBSlots_Internal[fallbackIndex];
+            : body.GetType().GetField(
+                "QBSlots_Internal",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var slots = field == null ? null : field.GetValue(body) as IEnumerable;
+        if (slots == null)
+        {
+            yield break;
+        }
+
+        foreach (var value in slots)
+        {
+            var slot = value as FVRQuickBeltSlot;
+            if (slot != null)
+            {
+                yield return slot;
+            }
+        }
     }
 
     private static void EquipInGunGameHand(FVRPhysicalObject gun)
