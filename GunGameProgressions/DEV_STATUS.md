@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-19`
 
-State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modded-file proof pending`
+State: `1.4.1 release candidate; Windows validation/publish pending. Public release remains 1.4.0.`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -85,6 +85,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Pending | Human VR-test policy 20 Runtime 05 and Modded refresh. | Airgun appears; PlungerLauncher is absent from every profile; Runtime 02/04 write after Modded capture; a bad loadout advances instead of stalling/crashing. |
 | Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
 | In progress | Diversify equal-rank compatible optic choices. | Policy `21` balances only equal-rank candidates; Windows generator/test/verify/build/package must prove retained mount/role routes, regenerated fallback pools, and no lifecycle diff. |
+| In progress | Release 1.4.1. | Windows source sync, offline fallback regeneration, Verify, Test, Build, Package, Deploy, package receipt audit, and explicit Thunderstore publish must pass before main receives release commit. |
 | Pending | Human/runtime-observe game-wide startup warmup. | Start H3VR, remain outside GunGame through ten minutes, then open/reload GunGame. BepInEx shows initial and scheduled scans; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
 
 ## Testing

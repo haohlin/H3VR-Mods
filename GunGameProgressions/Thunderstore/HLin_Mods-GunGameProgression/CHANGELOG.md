@@ -2,6 +2,13 @@
 
 All notable changes to GunGame Progressions are documented here.
 
+## 1.4.1
+
+- Diversify compatible scope selection within each generated profile family.
+- Keep direct/proprietary mount, Russian scope, RMR, and firearm-role priority unchanged.
+- Expand verified vanilla Picatinny reflex and low-power fallback choices.
+- Keep startup warmup, background refresh, persistence, and selector restore flow unchanged.
+
 ## 1.4.0
 
 - Add one-minute Modded rescan for earlier late-loader coverage; five- and ten-minute rescans remain.

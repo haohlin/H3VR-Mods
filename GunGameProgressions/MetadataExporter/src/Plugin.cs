@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace HLin.GunGameProgressions;
 
-[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.4.0")]
+[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.4.1")]
 [BepInDependency("Kodeman.GunGame", BepInDependency.DependencyFlags.HardDependency)]
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
