@@ -96,6 +96,17 @@ Requested change
    └─ Unity/MeatKit route — human in the loop
 ```
 
+## Design guardrail — minimal, reusable changes
+
+For every H3VR mod, prefer the smallest change that fixes the root cause and
+fits the existing architecture. Extend one shared policy, resolver, lifecycle,
+or framework before adding a second path. Do not add per-item exceptions,
+duplicate generators, speculative features, or large rewrites when metadata or
+an existing general mechanism can express the rule. Every new rule needs a
+focused positive and negative regression test plus its owning design/policy
+record. Keep runtime work bounded; no new hot polling, prefab materialization,
+or repeated allocation on the play path unless the live API requires it.
+
 ### Code/data route
 
 Use this route for BepInEx/Harmony plugins, data generators, configuration, and

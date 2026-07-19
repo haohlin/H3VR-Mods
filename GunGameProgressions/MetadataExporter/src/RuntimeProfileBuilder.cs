@@ -316,23 +316,6 @@ public static class RuntimeProfileBuilder
         IEnumerable<string> probeFirearmIds,
         Random random)
     {
-        return BuildCompatibilityProbe(
-            sourceEntries,
-            sourceEnemies,
-            probeFirearmIds,
-            new string[0],
-            random);
-    }
-
-    // Explicit force-includes are diagnostic only. They may bypass ordinary
-    // catalog proof for Runtime 05, but never enter normal progression pools.
-    public static RuntimeGenerationResult BuildCompatibilityProbe(
-        IEnumerable<RuntimeMetadataEntry> sourceEntries,
-        IEnumerable<RuntimeEnemyEntry> sourceEnemies,
-        IEnumerable<string> probeFirearmIds,
-        IEnumerable<string> forceIncludeFirearmIds,
-        Random random)
-    {
         if (sourceEntries == null)
         {
             throw new ArgumentNullException("sourceEntries");
@@ -350,10 +333,6 @@ public static class RuntimeProfileBuilder
 
         var probeIds = new HashSet<string>(
             (probeFirearmIds ?? Enumerable.Empty<string>())
-                .Where(objectId => !string.IsNullOrEmpty(objectId)),
-            StringComparer.Ordinal);
-        var forceIncludeIds = new HashSet<string>(
-            (forceIncludeFirearmIds ?? Enumerable.Empty<string>())
                 .Where(objectId => !string.IsNullOrEmpty(objectId)),
             StringComparer.Ordinal);
         var entries = sourceEntries
@@ -381,8 +360,7 @@ public static class RuntimeProfileBuilder
             random,
             skipped,
             noOptic,
-            OpticSelectionMode.ModdedUniversal,
-            forceIncludeIds);
+            OpticSelectionMode.ModdedUniversal);
         var pools = new List<RuntimeWeaponPool>();
         if (weapons.Count > 0)
         {
@@ -410,22 +388,20 @@ public static class RuntimeProfileBuilder
         Random random,
         List<string> skipped,
         List<string> noOptic,
-        OpticSelectionMode opticSelectionMode,
-        ICollection<string> forceIncludeFirearmIds = null)
+        OpticSelectionMode opticSelectionMode)
     {
         var weapons = new List<RuntimeGun>();
         foreach (var firearm in firearms)
         {
-            var isForceIncluded = forceIncludeFirearmIds != null && forceIncludeFirearmIds.Contains(firearm.ObjectID);
             if (ExplicitFirearmBlacklist.Contains(firearm.ObjectID ?? string.Empty) ||
-                (!isForceIncluded && !IsSupportedGunGameFirearm(firearm)))
+                !IsSupportedGunGameFirearm(firearm))
             {
                 skipped.Add(firearm.ObjectID);
                 continue;
             }
 
             var feeds = GetCompatibleFeeds(index, firearm);
-            if (feeds.Count == 0 && !isForceIncluded && !AllowsFeedlessLoadout(firearm))
+            if (feeds.Count == 0 && !AllowsFeedlessLoadout(firearm))
             {
                 skipped.Add(firearm.ObjectID);
                 continue;

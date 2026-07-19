@@ -64,7 +64,9 @@ public sealed class GunGameSpawnSafety
         var spawnPostfix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAndEquipPostfix");
         var spawnFinalizer = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAndEquipFinalizer");
         var bufferPrefix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAsyncPrefix");
-        if (spawnAndEquip == null || spawnAsync == null || spawnPrefix == null || spawnPostfix == null || spawnFinalizer == null || bufferPrefix == null)
+        var bufferPostfix = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAsyncPostfix");
+        var bufferFinalizer = AccessTools.Method(typeof(GunGameSpawnSafety), "SpawnAsyncFinalizer");
+        if (spawnAndEquip == null || spawnAsync == null || spawnPrefix == null || spawnPostfix == null || spawnFinalizer == null || bufferPrefix == null || bufferPostfix == null || bufferFinalizer == null)
         {
             return false;
         }
@@ -77,7 +79,11 @@ public sealed class GunGameSpawnSafety
                 prefix: new HarmonyMethod(spawnPrefix),
                 postfix: new HarmonyMethod(spawnPostfix),
                 finalizer: new HarmonyMethod(spawnFinalizer));
-            harmony.Patch(spawnAsync, prefix: new HarmonyMethod(bufferPrefix));
+            harmony.Patch(
+                spawnAsync,
+                prefix: new HarmonyMethod(bufferPrefix),
+                postfix: new HarmonyMethod(bufferPostfix),
+                finalizer: new HarmonyMethod(bufferFinalizer));
 
             var spawnPatchInfo = Harmony.GetPatchInfo(spawnAndEquip);
             var bufferPatchInfo = Harmony.GetPatchInfo(spawnAsync);
@@ -132,7 +138,7 @@ public sealed class GunGameSpawnSafety
         }
     }
 
-    private static bool SpawnAsyncPrefix(object __1, ref IEnumerator __result)
+    private static bool SpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)
     {
         if (active == null)
         {
@@ -145,9 +151,30 @@ public sealed class GunGameSpawnSafety
             return true;
         }
 
+        active.QueueSkipFromWeaponBuffer(__instance, "invalid pre-buffer: " + reason);
         active.trace("ignored invalid GunGame pre-buffer: " + reason);
         __result = EmptyEnumerator();
         return false;
+    }
+
+    private static void SpawnAsyncPostfix(object __instance, ref IEnumerator __result)
+    {
+        if (active != null && __result != null)
+        {
+            __result = GuardSpawnAsync(__instance, __result);
+        }
+    }
+
+    private static Exception SpawnAsyncFinalizer(object __instance, Exception __exception, ref IEnumerator __result)
+    {
+        if (__exception == null || active == null)
+        {
+            return __exception;
+        }
+
+        active.QueueSkipFromWeaponBuffer(__instance, "buffer spawn exception " + __exception.GetType().Name);
+        __result = EmptyEnumerator();
+        return null;
     }
 
     private bool TryValidateCurrentLoadout(object progression, out int weaponId, out string reason)
@@ -419,8 +446,102 @@ public sealed class GunGameSpawnSafety
         queuedProgression = progression;
         queuedWeaponId = weaponId;
         ClearWeaponBuffer(progression);
-        trace("skipping invalid GunGame loadout " + weaponId + ": " + reason);
+        trace("skipping invalid GunGame loadout " + DescribeCurrentLoadout(progression, weaponId) + ": " + reason);
         host.StartCoroutine(AdvancePastInvalidWeapon());
+    }
+
+    private void QueueSkipFromWeaponBuffer(object weaponBuffer, string reason)
+    {
+        var progression = FindProgressionForWeaponBuffer(weaponBuffer);
+        if (progression == null)
+        {
+            trace("could not advance invalid GunGame pre-buffer: " + reason);
+            return;
+        }
+
+        QueueSkip(progression, ReadCurrentWeaponId(progression), reason);
+    }
+
+    private static object FindProgressionForWeaponBuffer(object weaponBuffer)
+    {
+        try
+        {
+            var progressionType = AccessTools.TypeByName("GunGame.Scripts.Progression");
+            if (progressionType == null)
+            {
+                return null;
+            }
+
+            var bufferComponent = weaponBuffer as Component;
+            var progression = bufferComponent == null
+                ? null
+                : bufferComponent.GetComponentInParent(progressionType);
+            return progression ?? UnityEngine.Object.FindObjectOfType(progressionType);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static IEnumerator GuardSpawnAsync(object weaponBuffer, IEnumerator original)
+    {
+        var disposable = original as IDisposable;
+        try
+        {
+            while (true)
+            {
+                object current;
+                Exception exception;
+                if (!TryMoveNext(original, out current, out exception))
+                {
+                    if (exception != null && active != null)
+                    {
+                        active.QueueSkipFromWeaponBuffer(weaponBuffer, "buffer spawn exception " + exception.GetType().Name);
+                    }
+
+                    yield break;
+                }
+
+                yield return current;
+            }
+        }
+        finally
+        {
+            if (disposable != null)
+            {
+                disposable.Dispose();
+            }
+        }
+    }
+
+    private static bool TryMoveNext(IEnumerator original, out object current, out Exception exception)
+    {
+        current = null;
+        exception = null;
+        try
+        {
+            if (original == null || !original.MoveNext())
+            {
+                return false;
+            }
+
+            current = original.Current;
+            return true;
+        }
+        catch (Exception caught)
+        {
+            exception = caught;
+            return false;
+        }
+    }
+
+    private static string DescribeCurrentLoadout(object progression, int weaponId)
+    {
+        var gunData = GetCurrentGunData(GetCurrentPool(), weaponId);
+        return "weapon " + weaponId + " (gun=" + ReadField(gunData, "GunName") +
+            ", feed=" + ReadField(gunData, "MagName") +
+            ", optic=" + ReadField(gunData, "Extra") + ")";
     }
 
     private IEnumerator AdvancePastInvalidWeapon()

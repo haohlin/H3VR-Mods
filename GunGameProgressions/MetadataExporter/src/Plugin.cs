@@ -1247,7 +1247,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         var rules = ProfileRules.Load(packagePath);
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
-            ? entries
+            ? entries.Where(entry => !rules.IsGloballyBlacklisted(entry)).ToList()
             : entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
         var phaseName = phase.ToString().ToLowerInvariant();
         var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
@@ -1257,7 +1257,6 @@ public sealed class Plugin : BaseUnityPlugin
                 profileEntries,
                 enemyEntries,
                 rules.CompatibilityProbeFirearms,
-                rules.CompatibilityProbeForceIncludeFirearms,
                 new System.Random(randomSeed))
             : phase == RuntimeGenerationPhase.Modded
                 ? RuntimeProfileBuilder.BuildModdedWithDiagnostics(

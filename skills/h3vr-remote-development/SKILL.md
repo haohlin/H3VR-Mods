@@ -136,7 +136,11 @@ Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 
 ## Implement and Test
 
-1. Keep changes narrow; add focused tests for changed shared behavior.
+1. Keep changes narrow. Prefer extending one shared policy/resolver/framework
+   over new per-item branches, duplicate generators, or large rewrites. Add a
+   focused positive and negative test for changed shared behavior. Keep new
+   runtime work bounded: no hot polling, prefab materialization, or repeated
+   allocation on the play path unless the live API requires it.
 2. Run the repository suite on Windows:
 
    ```bash

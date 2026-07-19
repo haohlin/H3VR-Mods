@@ -24,7 +24,7 @@ Your last complete Modded profiles remain available after restarting H3VR. The m
 | Runtime 02 - Modded Rot | Currently enabled mod firearms only | Rotwieners only | Practice your active mod collection without mixing in vanilla guns. |
 | Runtime 03 - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
 | Runtime 04 - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
-| Runtime 05 - Compatibility Probe | Formerly excluded firearms that pass feed checks | Rotwieners only | Test profile; report weapon, feed, or optic failures. |
+| Runtime 05 - Compatibility Probe | Curated firearms passing normal safety checks | Rotwieners only | Test profile; report weapon, feed, or optic failures. |
 
 Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents.
 
@@ -65,11 +65,11 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 
 ## Compatibility Probe
 
-`Runtime 05 - Compatibility Probe` tests former blacklist candidates with same
-magazine, clip, speedloader, cartridge, and scope rules as every other pool.
-`Slingshot` remains excluded because firing it can freeze GunGame. If a probe
-weapon fails, record its gun, feed, and optic IDs from the log before reporting
-it; other pools remain usable.
+`Runtime 05 - Compatibility Probe` uses same magazine, clip, speedloader,
+cartridge, and scope rules as every other pool. Known unsafe content is
+excluded. If an object is missing or GunGame rejects a loadout, GunGame skips
+to next progression entry and logs its gun, feed, and optic IDs; other pools
+remain usable.
 
 ## Your Enabled Content
 

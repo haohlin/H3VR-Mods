@@ -44,7 +44,7 @@ same integration; no map-specific patch is the normal design.
 | 02 | Modded Rot | Active mod firearms | Rotwieners |
 | 03 | Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
 | 04 | Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
-| 05 | Compatibility Probe | Configured test candidates; direct-safe feeds plus explicit diagnostic overrides only | Rotwieners |
+| 05 | Compatibility Probe | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
 
 The names and order are compatibility contracts. The two tracked offline
 Vanilla files are the safe packaged fallback; user-specific Modded files are
@@ -129,8 +129,8 @@ negative coverage.
 | Game source | Read-only API/Harmony-target discovery only. |
 
 The spawn-safety overlay protects GunGame progression spawning and its weapon
-buffer. It validates generated categories and attachment compatibility before
-letting a bad loadout derail a session.
+buffer. It validates IDs/categories before spawn, wraps the buffer iterator,
+then clears and promotes past any rejected or throwing loadout on next frame.
 
 ## Observability and performance
 
@@ -143,6 +143,7 @@ letting a bad loadout derail a session.
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
 | `compatibility probe updated` | Runtime 05 wrote configured compatibility candidates for manual testing. |
+| `skipping invalid GunGame loadout` | Spawn safety rejected/failed a loadout; log includes gun, feed, optic, and reason. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
 Capture yields after a two-millisecond frame budget. Metadata merge,
@@ -183,7 +184,7 @@ writes turn a transient loader problem into a stutter.
 | `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
-| `profile-rules.json` | Global offline blacklist (`Slingshot`), `runtimeFirearmBlacklist` for Runtime 02/04/05 only, Runtime 05 candidates, and five explicit Runtime 05-only unsafe-test overrides. |
+| `profile-rules.json` | Global blacklist for every generated profile, Runtime 02/04/05-only curation, and Runtime 05 candidates. |
 | Package README | Player-facing installation and use guidance. |
 
 Never package a player's captured Modded pool, private paths, credentials,
@@ -207,5 +208,5 @@ playtest report
 | --- | --- | --- |
 | P0 | Validate background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
 | P0 | Verify catalog-only release candidate. | Windows runtime restores golden vanilla weapons and includes catalog-proven Modded firearms without prefab materialization. |
-| P1 | Classify Runtime 05 results. | Record each former blacklist candidate as works, lacks feed proof, lacks physical optic mount, or crashes. Keep only confirmed-broken entries excluded. |
+| P1 | Classify Runtime 05 results. | Use spawn-safety log gun/feed/optic IDs to classify each failure. Add only confirmed broken entries to the shared global blacklist. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |

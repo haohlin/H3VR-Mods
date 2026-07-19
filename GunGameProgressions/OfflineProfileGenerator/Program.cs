@@ -46,7 +46,11 @@ internal static class Program
                 return WriteCompatibilityProbeReport(entries, options);
             }
 
-            var vanillaEntries = entries.Where(entry => entry != null && !entry.IsModContent).ToList();
+            var rules = ProfileRules.Load(
+                Path.GetDirectoryName(Path.GetFullPath(options.InputPath)) ?? ".");
+            var vanillaEntries = entries
+                .Where(entry => entry != null && !entry.IsModContent && !rules.IsGloballyBlacklisted(entry))
+                .ToList();
             var pools = RuntimeProfileBuilder.Build(vanillaEntries, new Random(OfflineSeed));
 
             var rot = FindPool(pools, "01_Vanilla_Rot");
@@ -102,7 +106,6 @@ internal static class Program
             runtimeEntries,
             ProbeEnemies,
             rules.CompatibilityProbeFirearms,
-            rules.CompatibilityProbeForceIncludeFirearms,
             new Random(OfflineSeed));
         var pool = result.Pools.SingleOrDefault(candidate => candidate.Family == "05_Compatibility_Probe");
         if (pool == null)

@@ -11,7 +11,6 @@ public sealed class ProfileRules
     public string[] RuntimeFirearmBlacklist { get; set; }
     public string[] FeedBlacklist { get; set; }
     public string[] CompatibilityProbeFirearms { get; set; }
-    public string[] CompatibilityProbeForceIncludeFirearms { get; set; }
 
     public static ProfileRules Load(string packageDirectory)
     {
@@ -32,14 +31,19 @@ public sealed class ProfileRules
                 : runtimeFirearmBlacklist,
             FeedBlacklist = ReadStringArray(json, "feedBlacklist"),
             CompatibilityProbeFirearms = ReadStringArray(json, "compatibilityProbeFirearms"),
-            CompatibilityProbeForceIncludeFirearms = ReadStringArray(json, "compatibilityProbeForceIncludeFirearms"),
         };
     }
 
     public bool IsBlacklisted(RuntimeMetadataEntry entry)
     {
+        return IsGloballyBlacklisted(entry) ||
+            (entry.Category == "Firearm" && Contains(RuntimeFirearmBlacklist, entry.ObjectID));
+    }
+
+    public bool IsGloballyBlacklisted(RuntimeMetadataEntry entry)
+    {
         return entry.Category == "Firearm"
-            ? Contains(RuntimeFirearmBlacklist, entry.ObjectID)
+            ? Contains(FirearmBlacklist, entry.ObjectID)
             : Contains(FeedBlacklist, entry.ObjectID);
     }
 

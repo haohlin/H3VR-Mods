@@ -249,12 +249,16 @@ public sealed class GunGameGeneratorTests
             .EnumerateArray()
             .Select(item => item.GetString())
             .ToArray();
+        var globalBlacklist = rules.RootElement
+            .GetProperty("firearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
         Assert.NotEmpty(guns);
         Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
         Assert.DoesNotContain(gunNames, gunName => runtimeBlacklist.Contains(gunName));
-        Assert.Equal(
-            new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
-            gunNames.Where(gunName => new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" }.Contains(gunName)).ToArray());
+        Assert.DoesNotContain(gunNames, gunName => globalBlacklist.Contains(gunName));
+        Assert.Contains("Airgun", gunNames);
     }
 
     [WindowsH3vrFact]
@@ -265,6 +269,7 @@ public sealed class GunGameGeneratorTests
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
         var load = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static));
         var isBlacklisted = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("IsBlacklisted", BindingFlags.Public | BindingFlags.Instance));
+        var isGloballyBlacklisted = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("IsGloballyBlacklisted", BindingFlags.Public | BindingFlags.Instance));
 
         using var workspace = TestWorkspace.Create();
         File.WriteAllText(
@@ -280,18 +285,17 @@ public sealed class GunGameGeneratorTests
         var rules = load.Invoke(null, new object[] { workspace.Path });
         Assert.NotNull(rules);
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
+        Assert.True((bool)isGloballyBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedMagazine", "Magazine", false) })!);
         Assert.False((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "AllowedMagazine", "Magazine", false) })!);
         var probeIds = Assert.IsAssignableFrom<IEnumerable>(
             rulesType.GetProperty("CompatibilityProbeFirearms")!.GetValue(rules));
         Assert.Equal(new[] { "ProbeFirearm" }, probeIds.Cast<string>().ToArray());
-        var forceIncludeIds = Assert.IsAssignableFrom<IEnumerable>(
-            rulesType.GetProperty("CompatibilityProbeForceIncludeFirearms")!.GetValue(rules));
-        Assert.Empty(forceIncludeIds.Cast<string>());
+        Assert.Null(rulesType.GetProperty("CompatibilityProbeForceIncludeFirearms"));
     }
 
     [Fact]
-    public void Production_profile_rules_keep_requested_runtime_exclusions_and_probe_overrides()
+    public void Production_profile_rules_keep_requested_runtime_and_global_exclusions()
     {
         var rulesPath = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(PluginSourcePath)!,
@@ -304,31 +308,23 @@ public sealed class GunGameGeneratorTests
             .EnumerateArray()
             .Select(item => item.GetString())
             .ToArray();
-        var forceIncludes = rules.RootElement
-            .GetProperty("compatibilityProbeForceIncludeFirearms")
-            .EnumerateArray()
-            .Select(item => item.GetString())
-            .ToArray();
-
         Assert.Equal(
             new[]
             {
-                "Slingshot", "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
+                "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
                 "PlungerLauncher", "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
                 "MP5A3", "MP5A4", "MP5K", "MP5KA2", "MP5KA3", "MP5KN", "MP5SD1", "MP5SD2",
                 "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding",
             },
             firearmBlacklist);
         Assert.Equal(
-            new[] { "Slingshot" },
+            new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
             rules.RootElement
                 .GetProperty("firearmBlacklist")
                 .EnumerateArray()
                 .Select(item => item.GetString())
                 .ToArray());
-        Assert.Equal(
-            new[] { "BrownBess", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
-            forceIncludes);
+        Assert.False(rules.RootElement.TryGetProperty("compatibilityProbeForceIncludeFirearms", out _));
         Assert.Equal(0, rules.RootElement.GetProperty("feedBlacklist").GetArrayLength());
     }
 
@@ -657,7 +653,10 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipPostfix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
-        Assert.Contains("SpawnAsyncPrefix(object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPostfix", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncFinalizer", source, StringComparison.Ordinal);
+        Assert.Contains("GuardSpawnAsync", source, StringComparison.Ordinal);
         Assert.Contains("TryValidateCurrentLoadout", source, StringComparison.Ordinal);
         Assert.Contains("TryMountGeneratedOptic", source, StringComparison.Ordinal);
         Assert.Contains("IsTopSightingMount", source, StringComparison.Ordinal);
@@ -683,6 +682,9 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("id has category", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
         Assert.Contains("QueueSkip", source, StringComparison.Ordinal);
+        Assert.Contains("QueueSkipFromWeaponBuffer", source, StringComparison.Ordinal);
+        Assert.Contains("DescribeCurrentLoadout", source, StringComparison.Ordinal);
+        Assert.Contains("buffer spawn exception ", source, StringComparison.Ordinal);
         Assert.Contains("ClearWeaponBuffer", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("return null;", source, StringComparison.Ordinal);
@@ -1414,14 +1416,14 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_compatibility_probe_force_includes_only_explicit_unsafe_test_firearms()
+    public void Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
         var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 5));
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
         var entries = Array.CreateInstance(entryType, 3);
         var unsafeProbe = RuntimeEntry(entryType, "UnsafeProbe", "Firearm", false);
         SetRuntimeProperty(entryType, unsafeProbe, "CompatibleMagazines", new List<string> { "UnsafeProbeMagazine" });
@@ -1436,19 +1438,10 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
-        var withoutOverride = buildProbe.Invoke(
+        var result = buildProbe.Invoke(
             null,
-            new object[] { entries, enemies, new[] { "UnsafeProbe" }, Array.Empty<string>(), new SequenceRandom(0d) });
-        Assert.Empty(ReadObjects(withoutOverride!, "Pools"));
-
-        var withOverride = buildProbe.Invoke(
-            null,
-            new object[] { entries, enemies, new[] { "UnsafeProbe" }, new[] { "UnsafeProbe" }, new SequenceRandom(0d) });
-        var pool = Assert.Single(ReadObjects(withOverride!, "Pools"));
-        var gun = Assert.Single(ReadObjects(pool, "Guns"));
-        Assert.Equal("UnsafeProbe", ReadString(gun, "GunName"));
-        Assert.Equal("UnsafeProbeMagazine", ReadString(gun, "MagName"));
-        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
+            new object[] { entries, enemies, new[] { "UnsafeProbe" }, new SequenceRandom(0d) });
+        Assert.Empty(ReadObjects(result!, "Pools"));
     }
 
     [WindowsH3vrFact]
