@@ -144,6 +144,20 @@ does not inspect its prefab and runtime does not materialize/instantiate an
 adapter or replacement optic. The normal GunGame loadout objects are the only
 objects materialized during play. Fallback never changes feed selection.
 
+### Equal-rank optic diversity
+
+After mount route and firearm-role rank select valid candidates, one per-family
+ledger chooses a least-used optic with deterministic seeded tie-breaking. This
+prevents one otherwise-valid optic, such as `ScopeLion2-5x` or `ScopeG36`, from
+dominating generated profiles.
+
+- Never replace a direct/bespoke or proprietary result with another mount.
+- Never cross role rank or allow a Modded magnified scope.
+- A unique compatible candidate may repeat; that is correct compatibility
+  behavior, not a diversity failure.
+- Curated vanilla Picatinny reflex and low-power fallback sets contain multiple
+  verified choices; unsafe/high-power fallback scopes stay excluded.
+
 ### Compatibility Probe
 
 `firearmBlacklist` excludes known broken content from every generated profile:
@@ -237,6 +251,7 @@ with coverage for the same condition.
 | Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
 | Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
 | CQC, rifle, and sniper receive indiscriminate optic power | Modded profiles permit vanilla red-dot/low-power/LPVO choices only; sniper scopes are excluded. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| One valid scope dominates equal-rank compatible choices | Balance only equal-rank compatible candidates within each generated family; preserve direct/proprietary/mount/role priority. | `Runtime_profile_builder_balances_equal_rank_compatible_optics` |
 | M4-style Picatinny-only rifle carbine receives a reflex sight | Prefer a compatible variable scope; retain reflex priority for pistol-caliber carbines. | `Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines` |
 | Modded magnified scope is offered as a universal fallback | Never select it. Exact Modded reflex/RMR remains valid; magnified fallback comes from curated vanilla low-power/LPVO IDs. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
 | Otherwise-valid Modded firearm has no direct/proprietary/exact-mount optic | Handgun gets vanilla RMR reflex. CQC gets vanilla Picatinny reflex/low-power. Rifle/carbine/unknown gets vanilla LPVO/low-power/reflex. | `Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists`; `Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms`; `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |

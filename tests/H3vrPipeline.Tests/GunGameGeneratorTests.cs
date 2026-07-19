@@ -1288,6 +1288,45 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
+    public void Runtime_profile_builder_balances_equal_rank_compatible_optics()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        for (var index = 0; index < 6; index++)
+        {
+            var firearm = RuntimeEntry(entryType, "BalancedCarbine" + index, "Firearm", true, magazineType: 1);
+            SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "BalancedMagazine" });
+            SetRuntimeProperty(entryType, firearm, "FirearmSize", "Carbine");
+            SetRuntimeProperty(entryType, firearm, "FirearmRoundPower", "Intermediate");
+            SetRuntimeProperty(entryType, firearm, "FirearmAction", "Automatic");
+            SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "Picatinny" });
+            entries.SetValue(firearm, index);
+        }
+
+        entries.SetValue(RuntimeEntry(entryType, "BalancedMagazine", "Magazine", false, magazineType: 1), 6);
+        entries.SetValue(Optic(entryType, "ScopeLion2-5x", "Scope", 1f, 5f, true), 7);
+        entries.SetValue(Optic(entryType, "ScopeST6T16x24mmBlack", "Scope", 1f, 6f, true), 8);
+        entries.SetValue(Optic(entryType, "ScopeVRZ_1_6x24mm", "Scope", 1f, 6f, true), 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var useCounts = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .GroupBy(gun => ReadString(gun, "Extra"), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+
+        Assert.Equal(3, useCounts.Count);
+        Assert.All(useCounts.Values, count => Assert.Equal(2, count));
+    }
+
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -1727,6 +1766,7 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_uses_a_declared_mp5_adapter_mount_without_prefab_materialization",
             "Runtime_profile_builder_uses_the_default_pso1_scope_when_no_modded_scope_is_available",
             "Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role",
+            "Runtime_profile_builder_balances_equal_rank_compatible_optics",
             "Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines",
             "Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists",
             "Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms",

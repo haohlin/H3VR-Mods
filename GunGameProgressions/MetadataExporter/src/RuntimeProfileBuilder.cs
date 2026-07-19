@@ -92,6 +92,43 @@ internal enum OpticSelectionMode
     ModdedUniversal,
 }
 
+// Tracks only one generated weapon family at a time. It balances equal-rank,
+// already compatible choices without changing mount, proprietary, or role
+// selection. This runs inside the background/offline profile builder only.
+internal sealed class OpticSelectionLedger
+{
+    private readonly Dictionary<string, int> useCounts =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+
+    public string SelectLeastUsed(IEnumerable<RuntimeMetadataEntry> candidates, Random random)
+    {
+        var candidateList = (candidates ?? Enumerable.Empty<RuntimeMetadataEntry>())
+            .Where(candidate => candidate != null && !string.IsNullOrEmpty(candidate.ObjectID))
+            .GroupBy(candidate => candidate.ObjectID, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(candidate => candidate.ObjectID, StringComparer.Ordinal)
+            .ToList();
+        if (candidateList.Count == 0)
+        {
+            return null;
+        }
+
+        var smallestUseCount = candidateList.Min(GetUseCount);
+        var leastUsed = candidateList
+            .Where(candidate => GetUseCount(candidate) == smallestUseCount)
+            .ToList();
+        var selected = leastUsed[random.Next(leastUsed.Count)];
+        useCounts[selected.ObjectID] = smallestUseCount + 1;
+        return selected.ObjectID;
+    }
+
+    private int GetUseCount(RuntimeMetadataEntry candidate)
+    {
+        int count;
+        return useCounts.TryGetValue(candidate.ObjectID, out count) ? count : 0;
+    }
+}
+
 public static class RuntimeProfileBuilder
 {
     // The one deliberate object-ID exclusion. Slingshot can freeze a GunGame
@@ -116,15 +153,31 @@ public static class RuntimeProfileBuilder
     {
         "ReflexArco",
         "ReflexCom4",
+        "ReflexEG1",
+        "ReflexElevatedMRO",
+        "ReflexHolosightLong",
+        "ReflexHolosightLongFDE",
+        "ReflexHolosightShort",
+        "ReflexLCO",
         "ReflexMRS",
+        "ReflexMT2",
+        "ReflexPK120",
+        "ReflexPK23",
+        "ReflexPyramus3",
+        "ReflexSRO2",
         "ReflexSRS2",
         "ReflexVUH1",
+        "ReflexYolographic",
     };
 
     private static readonly string[] VanillaPicatinnyLowPowerScopeFallbackIds =
     {
         "ScopeAcog4x32",
+        "ScopeACOSECOSTA31Picatinny",
+        "ScopeACOSTA31Picatinny",
+        "ScopeBR4",
         "ScopeG36",
+        "ScopeG36Combo",
         "ScopeHAMComboScope4x24",
         "ScopeSusat",
     };
@@ -361,6 +414,7 @@ public static class RuntimeProfileBuilder
         OpticSelectionMode opticSelectionMode)
     {
         var weapons = new List<RuntimeGun>();
+        var opticLedger = new OpticSelectionLedger();
         foreach (var firearm in firearms)
         {
             if (ExplicitFirearmBlacklist.Contains(firearm.ObjectID ?? string.Empty) ||
@@ -377,7 +431,7 @@ public static class RuntimeProfileBuilder
                 continue;
             }
 
-            var extra = SelectOptic(index, firearm, random, opticSelectionMode);
+            var extra = SelectOptic(index, firearm, random, opticSelectionMode, opticLedger);
             if (string.IsNullOrEmpty(extra))
             {
                 noOptic.Add(firearm.ObjectID);
@@ -635,14 +689,15 @@ public static class RuntimeProfileBuilder
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
         Random random,
-        OpticSelectionMode opticSelectionMode)
+        OpticSelectionMode opticSelectionMode,
+        OpticSelectionLedger opticLedger)
     {
         var directCandidates = GetDirectOptics(index, firearm, opticSelectionMode);
         if (directCandidates.Count > 0)
         {
             // BespokeAttachments is the game's direct compatibility list. A
             // verified optic there is the authoritative proprietary choice.
-            return SelectPreferredOptic(directCandidates, firearm, random, opticSelectionMode);
+            return SelectPreferredOptic(directCandidates, firearm, random, opticSelectionMode, opticLedger);
         }
 
         foreach (var rule in OpticMountPolicy.Rank(firearm.PhysicalMountTypes))
@@ -654,13 +709,13 @@ public static class RuntimeProfileBuilder
                 .ToList();
             if (candidates.Count > 0)
             {
-                return SelectPreferredOptic(candidates, firearm, random, opticSelectionMode);
+                return SelectPreferredOptic(candidates, firearm, random, opticSelectionMode, opticLedger);
             }
 
             var adapterCandidates = GetAdapterCompatibleOptics(index, rule, opticSelectionMode);
             if (adapterCandidates.Count > 0)
             {
-                return SelectPreferredOptic(adapterCandidates, firearm, random, opticSelectionMode);
+                return SelectPreferredOptic(adapterCandidates, firearm, random, opticSelectionMode, opticLedger);
             }
         }
 
@@ -673,16 +728,16 @@ public static class RuntimeProfileBuilder
             var declaredAdapterCandidates = GetDeclaredBespokeAdapterOptics(index, firearm, opticSelectionMode);
             if (declaredAdapterCandidates.Count > 0)
             {
-                return SelectPreferredOptic(declaredAdapterCandidates, firearm, random, opticSelectionMode);
+                return SelectPreferredOptic(declaredAdapterCandidates, firearm, random, opticSelectionMode, opticLedger);
             }
         }
 
         if (opticSelectionMode == OpticSelectionMode.VanillaFallback)
         {
-            return SelectLegacyVanillaPicatinnyFallback(index, random);
+            return SelectLegacyVanillaPicatinnyFallback(index, random, opticLedger);
         }
 
-        return SelectUniversalVanillaFallback(index, firearm, random);
+        return SelectUniversalVanillaFallback(index, firearm, random, opticLedger);
     }
 
     private static List<RuntimeMetadataEntry> GetDeclaredBespokeAdapterOptics(
@@ -757,7 +812,8 @@ public static class RuntimeProfileBuilder
         IEnumerable<RuntimeMetadataEntry> candidates,
         RuntimeMetadataEntry firearm,
         Random random,
-        OpticSelectionMode opticSelectionMode)
+        OpticSelectionMode opticSelectionMode,
+        OpticSelectionLedger opticLedger)
     {
         var candidateList = candidates
             .Where(candidate => candidate != null)
@@ -772,7 +828,7 @@ public static class RuntimeProfileBuilder
             .Where(candidate => OpticFitRank(firearm, candidate, opticSelectionMode) == bestRank)
             .OrderBy(candidate => candidate.ObjectID, StringComparer.Ordinal)
             .ToList();
-        return bestCandidates[random.Next(bestCandidates.Count)].ObjectID;
+        return opticLedger.SelectLeastUsed(bestCandidates, random);
     }
 
     // This is a selection preference only. Physical mount verification and
@@ -881,14 +937,15 @@ public static class RuntimeProfileBuilder
     private static string SelectUniversalVanillaFallback(
         RuntimeProfileIndex index,
         RuntimeMetadataEntry firearm,
-        Random random)
+        Random random,
+        OpticSelectionLedger opticLedger)
     {
         if (HasMount(firearm.PhysicalMountTypes, "Russian"))
         {
             var russian = GetKnownVanillaFallbackOptics(index, VanillaRussianScopeFallbackIds, "Russian");
             if (russian.Count > 0)
             {
-                return SelectPreferredOptic(russian, firearm, random, OpticSelectionMode.ModdedUniversal);
+                return SelectPreferredOptic(russian, firearm, random, OpticSelectionMode.ModdedUniversal, opticLedger);
             }
         }
 
@@ -897,7 +954,7 @@ public static class RuntimeProfileBuilder
             var rmr = GetKnownVanillaFallbackOptics(index, VanillaRmrReflexFallbackIds, "RMR");
             if (rmr.Count > 0)
             {
-                return SelectRandomOptic(rmr, random);
+                return SelectRandomOptic(rmr, random, opticLedger);
             }
         }
 
@@ -909,7 +966,7 @@ public static class RuntimeProfileBuilder
                 "Picatinny");
             if (closeRange.Count > 0)
             {
-                return SelectPreferredOptic(closeRange, firearm, random, OpticSelectionMode.ModdedUniversal);
+                return SelectPreferredOptic(closeRange, firearm, random, OpticSelectionMode.ModdedUniversal, opticLedger);
             }
         }
 
@@ -921,10 +978,13 @@ public static class RuntimeProfileBuilder
             "Picatinny");
         return rifle.Count == 0
             ? null
-            : SelectPreferredOptic(rifle, firearm, random, OpticSelectionMode.ModdedUniversal);
+            : SelectPreferredOptic(rifle, firearm, random, OpticSelectionMode.ModdedUniversal, opticLedger);
     }
 
-    private static string SelectLegacyVanillaPicatinnyFallback(RuntimeProfileIndex index, Random random)
+    private static string SelectLegacyVanillaPicatinnyFallback(
+        RuntimeProfileIndex index,
+        Random random,
+        OpticSelectionLedger opticLedger)
     {
         var picatinnyScopes = index.GetOptics(new[] { "Scope" })
             .Where(attachment => HasMount(attachment.PhysicalMountTypes, "Picatinny"))
@@ -932,7 +992,7 @@ public static class RuntimeProfileBuilder
             .ToList();
         return picatinnyScopes.Count == 0
             ? null
-            : picatinnyScopes[random.Next(picatinnyScopes.Count)].ObjectID;
+            : opticLedger.SelectLeastUsed(picatinnyScopes, random);
     }
 
     private static List<RuntimeMetadataEntry> GetKnownVanillaFallbackOptics(
@@ -956,9 +1016,12 @@ public static class RuntimeProfileBuilder
         return candidates;
     }
 
-    private static string SelectRandomOptic(IList<RuntimeMetadataEntry> candidates, Random random)
+    private static string SelectRandomOptic(
+        IEnumerable<RuntimeMetadataEntry> candidates,
+        Random random,
+        OpticSelectionLedger opticLedger)
     {
-        return candidates[random.Next(candidates.Count)].ObjectID;
+        return opticLedger.SelectLeastUsed(candidates, random);
     }
 
     private static bool IsAllowedOpticCandidate(

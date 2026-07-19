@@ -107,6 +107,14 @@ replacement even when it safely removes weapons. Equal, smaller, malformed, and
 unknown-count candidates otherwise retain the saved pair. Only an explicit
 loader-complete empty snapshot removes stale pools.
 
+### Golden lifecycle boundary
+
+This lifecycle is release baseline. Scope/feed/blacklist policy work may change
+only shared builder and generated profiles. It must not change startup
+scheduling, one/five/ten-minute rescans, selector restore behavior, background
+worker ownership, loader-read cadence, persistence replacement, or GunGame-close
+refresh behavior without separate lifecycle design and test change.
+
 ## Compatibility and runtime safety
 
 One `RuntimeProfileBuilder` serves runtime Vanilla, runtime Modded, and the

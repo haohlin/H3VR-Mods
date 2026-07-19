@@ -61,6 +61,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Global startup warmup | Immediate and 1/5/10-minute Modded refreshes have one idempotent owner in plugin `Awake()`; `Start()` is only a no-op fallback. It does not depend on a GunGame scene. Only the ten-minute callback opens policy-version replacement eligibility. | Source-level lifecycle regression; Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed. Runtime ten-minute observation remains pending. |
 | Runtime 05 boundary | Runtime 05 is local Debug-only. Release build/package neither generates nor restores it; Release package contains no Runtime 05 pool. Debug has isolated `-debug` artifacts and cannot publish. | Windows `Test` `97/97`; `Verify`; Release build/package/deploy; Release ZIP audit `0` Runtime 05 entries; installed exporter reports `CompatibilityProbeEnabled=False`; Debug build/package passed; Debug publish guard passed. |
 | Live background generation | Outside GunGame, startup generated all four player pools without selector interaction: Vanilla `659` each; Modded `60` each. | Live BepInEx: early capture `2` in `809 ms`; one-minute capture `1,124` in `1,033 ms`, then `pools ready`. Modded receipt: policy `20`, `1,124` modded catalog entries, `60` eligible weapons; no exporter failures or Runtime 05 trace. |
+| Lifecycle baseline | Startup warmup, one/five/ten-minute rescans, selector restore-only path, persistence replacement, and GunGame-close refresh are frozen as golden lifecycle. | `DESIGN.md` Golden lifecycle boundary; scope/feed/blacklist work must not change lifecycle source. |
 
 ## Plan
 
@@ -83,6 +84,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Complete | Apply release-policy Runtime 02/04/05 exclusions and Runtime 05 forced tests. | Windows `95/95`, Verify, Build, Package, Deploy; historical policy 18 evidence only. |
 | Pending | Human VR-test policy 20 Runtime 05 and Modded refresh. | Airgun appears; PlungerLauncher is absent from every profile; Runtime 02/04 write after Modded capture; a bad loadout advances instead of stalling/crashing. |
 | Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
+| In progress | Diversify equal-rank compatible optic choices. | Policy `21` balances only equal-rank candidates; Windows generator/test/verify/build/package must prove retained mount/role routes, regenerated fallback pools, and no lifecycle diff. |
 | Pending | Human/runtime-observe game-wide startup warmup. | Start H3VR, remain outside GunGame through ten minutes, then open/reload GunGame. BepInEx shows initial and scheduled scans; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
 
 ## Testing
