@@ -8,7 +8,7 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-19`
 
-State: `1.4.0 released on Thunderstore; policy-19 candidate passed Windows validation/package; deployment waits for H3VR to close`
+State: `1.4.0 released on Thunderstore; narrowed Runtime 05 candidate deployed for VR testing`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
@@ -33,8 +33,8 @@ State: `1.4.0 released on Thunderstore; policy-19 candidate passed Windows valid
 | Spawn safety | Invalid pre-buffer data, immediate spawn errors, and iterator-time buffer errors now clear the loadout, log gun/feed/optic IDs, and promote next frame. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`; H3VR VR runtime validation pending. |
 | Policy 19 package | Version `1.4.0` package built from `8c88569`. | Windows `Verify`, `Build`, `Package`; SHA-256 `942A97C7C553B6EDDD53704EA3EE7BE9CB3F480B27E6923B43B131A42D24403B`. |
 | Runtime 05 promotion | GravitonBeamer, Jackhammer, M320GrenadeLauncher, M72A7, MF_Signaler, MF_Syringegun, OTS38, P11, P6Twelve, PocketHammer1903, and Whizzbanger passed human testing and already occur in both standard Vanilla profiles through the shared resolver. They need no blacklist or allowlist change. | Generated Vanilla pool audit. |
-| Runtime 05 worklist | Remaining test candidates: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Probe-list fingerprinting refreshes this profile only after deployment. | Source change; Windows validation pending. |
-| Deployment blocker | H3VR process remains open on Windows. | Live process check before deployment. |
+| Runtime 05 worklist | Remaining test candidates: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Probe-list fingerprinting refreshes this profile only; Vanilla/Modded cache keys stay unchanged. | Windows `Test` `95/95`; post-deploy source and installed-package audit. |
+| Current deployment | `1.4.0` package built and deployed with five Runtime 05 candidates. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, `Deploy`; post-deploy installed `profile-rules.json` and generated-pool audit. |
 | Offline fallback | Both tracked Vanilla pools remain byte-equivalent after shared policy version `18`; known-good Vanilla content did not change. | Windows `Verify`, `Test` `95/95`, `Build`, and `Package`. |
 | Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
 | Prior live Compatibility Probe | Before runtime exclusions, Runtime 05 generated `46` test firearms from a `1,148`-entry Modded capture. | Historical BepInEx receipt and trace. |
@@ -63,7 +63,7 @@ State: `1.4.0 released on Thunderstore; policy-19 candidate passed Windows valid
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
 | Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
 | Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
-| In progress | Validate and deploy narrowed Runtime 05. | H3VR is closed; Runtime 05 contains only five untested candidates. Confirmed firearms stay in ordinary Vanilla output; no Vanilla/Modded rebuild occurs solely from probe-list change. |
+| Pending | Human VR-test narrowed Runtime 05. | Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 each spawn, load, fire, and advance without error. |
 | Pending decision | Classify remaining Runtime 05 failures from spawn-safety log. | Add only confirmed broken IDs to shared global blacklist with focused regression. |
 | Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 | Complete | Build/deploy metadata-only Modded optic route. | Windows SourceStatus, Test `90/90`, Verify, Build, Package, Deploy passed. |
@@ -86,7 +86,7 @@ State: `1.4.0 released on Thunderstore; policy-19 candidate passed Windows valid
 | Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Startup scheduler runs from `Awake()` once; initial and one-minute scans run without selector interaction; selector restores generated pair after reload. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
-| Compatibility candidate | Deploy policy 19, select Runtime 05, then inspect log. | Airgun appears; global/runtime blacklists absent; each emitted entry has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
+| Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
 | Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Passed: both tracked Vanilla pools match policy version `19`; count is `660`. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
 
