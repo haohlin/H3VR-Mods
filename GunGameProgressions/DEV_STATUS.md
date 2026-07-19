@@ -8,11 +8,11 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-19`
 
-State: `1.4.1 release candidate; Windows validation passed. Main merge, final package/deploy, and Thunderstore publish pending. Public release remains 1.4.0.`
+State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore publish passed.`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
-| Public release | `1.4.0` is published. | Exact Thunderstore download URL returned HTTP `200`. |
+| Public release | `1.4.1` is published. | Exact Thunderstore download URL returned HTTP `200` after publish. |
 | Golden Vanilla | Policy 19 tracked offline Rot and Mixed files contain `660` unique firearms. BrownBess is removed by the new global blacklist. | Windows generator, `--verify`, and focused baseline test. |
 | Installed runtime before candidate | Vanilla profiles contain `657`; Modded profiles contain `47`. | Windows installed profile inspection. |
 | Vanilla count root cause | Five golden weapons were rejected by catalog identity gate; one newer valid firearm was present, yielding net `657`. | Installed-vs-golden diff. |
@@ -64,6 +64,7 @@ State: `1.4.1 release candidate; Windows validation passed. Main merge, final pa
 | Lifecycle baseline | Startup warmup, one/five/ten-minute rescans, selector restore-only path, persistence replacement, and GunGame-close refresh are frozen as golden lifecycle. | `DESIGN.md` Golden lifecycle boundary; scope/feed/blacklist work must not change lifecycle source. |
 | Policy 21 fallback refresh | Scope diversity changed the deterministic shared-builder output. Windows regenerated both tracked Vanilla fallback profiles from `4,331` Vanilla metadata entries; shared-builder verification then passed. | Windows `OfflineProfileGenerator`; full `Test` `98/98`. |
 | 1.4.1 release validation | Source cache current; Harmony targets resolved; Release build and package passed after fallback refresh. | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test` `98/98`; Release package SHA-256 `21DBD53CCD6ED6F253716B2E4485247674429DE15DA1DCB21AA0BC6A6E8A8E75`. |
+| 1.4.1 release | Release source was fast-forwarded to `main`; Windows fast-forwarded to the same `main`, then rebuilt, packaged, and deployed Release payload. Thunderstore upload finalized. | Windows `SourceStatus`, `Verify`, `Test` `98/98`, Build, Package, Deploy; exact `1.4.1` download returned HTTP `200`. |
 
 ## Plan
 
@@ -87,7 +88,7 @@ State: `1.4.1 release candidate; Windows validation passed. Main merge, final pa
 | Pending | Human VR-test policy 20 Runtime 05 and Modded refresh. | Airgun appears; PlungerLauncher is absent from every profile; Runtime 02/04 write after Modded capture; a bad loadout advances instead of stalling/crashing. |
 | Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
 | In progress | Diversify equal-rank compatible optic choices. | Policy `21` balances only equal-rank candidates; Windows generator/test/verify/build/package must prove retained mount/role routes, regenerated fallback pools, and no lifecycle diff. |
-| In progress | Release 1.4.1. | Fallback refresh, SourceStatus, Verify, Test `98/98`, Build, and feature-branch package passed. Fast-forward `main`, then rebuild/package/deploy from `main`, audit receipt, publish, and verify exact Thunderstore download. |
+| Complete | Release 1.4.1. | Fallback refresh, SourceStatus, Verify, Test `98/98`, main Release rebuild/package/deploy, Thunderstore publish, and exact-download HTTP `200` passed. |
 | Pending | Human/runtime-observe game-wide startup warmup. | Start H3VR, remain outside GunGame through ten minutes, then open/reload GunGame. BepInEx shows initial and scheduled scans; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
 
 ## Testing
@@ -98,7 +99,7 @@ State: `1.4.1 release candidate; Windows validation passed. Main merge, final pa
 | Focused/full pipeline | `h3vr.ps1 -Action Test` | Passed `95/95`: global/runtime blacklist, no Runtime 05 bypass, Airgun audit, iterator skip, and existing regressions. |
 | Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Kodeman targets resolve. |
 | Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | Passed: `1.4.0` package with no player Modded pool. |
-| 1.4.1 release candidate | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test`; shared-generator fallback refresh; `Build`; `Package`. | Passed: cache current; Harmony targets resolve; `98/98`; both fallback profiles match policy 21 shared resolver; Release package built. Final package/deploy/publish must run from `main`. |
+| 1.4.1 release | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test`; shared-generator fallback refresh; `Build`; `Package`; `Deploy`; `Publish`; exact download. | Passed from `main`: cache current; Harmony targets resolve; `98/98`; both fallback profiles match policy 21 shared resolver; Release package deployed and published; exact download returned HTTP `200`. |
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Live partial pass: initial and one-minute scans ran without selector interaction and wrote Runtime 02/04. Five-/ten-minute runtime observations and selector restore remain pending. |
 | Policy-version replacement gate | `h3vr.ps1 -Action Test`; then retain a saved Modded receipt from an older policy and observe early plus ten-minute scans. | Passed static/worker guard: early snapshots keep equal/smaller pair; runtime observation remains required for ten-minute timing. |
