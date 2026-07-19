@@ -30,10 +30,10 @@ is packaged beside those two profiles for repeatable offline validation.
 > never repaired by scanning prefabs.
 
 > **Runtime-cost rule:** capture reads plain catalog metadata in two-millisecond
-> frame slices. Merge, resolver work, serialization, and file writes run on a
-> below-normal worker. No `Update`/`FixedUpdate` loop may scan registry,
-> instantiate weapon assets, or rebuild Vanilla weapon lists during a Modded
-> refresh.
+> frame slices. One deterministic merge of captured plain metadata restores the
+> stable 1.4.0 shared-builder input route; resolver work, serialization, and
+> file writes run on a below-normal worker. No `Update`/`FixedUpdate` loop may
+> scan registry or instantiate weapon assets during a Modded refresh.
 
 ## Safety gate
 
@@ -149,12 +149,13 @@ objects materialized during play. Fallback never changes feed selection.
 `firearmBlacklist` excludes known broken content from every generated profile:
 offline Vanilla, Runtime 01/03, Runtime 02/04, and Runtime 05. It currently
 contains `Slingshot`, `BrownBess`, `Degle`, `JunkyardFlameThrower`,
-`LaserPistol`, `MF_Flamethrower`, and `Stinger`. `Slingshot` can freeze a run;
-the others either fail GunGame spawn safety or have a live damage failure.
+`LaserPistol`, `MF_Flamethrower`, `Stinger`, and `PlungerLauncher`.
+`Slingshot` can freeze a run; `PlungerLauncher` and the others either fail
+GunGame spawn safety or have a live damage failure.
 
 `runtimeFirearmBlacklist` is additional Runtime 02/04/05-only curation:
 `GrappleGun`, `M224Mortar`, `LadiesPepperbox`, `M6Survival`, `MF_LongShot`,
-`PlungerLauncher`, `PotatoGun`, `SustenanceCrossbow`, and the 19 listed
+`PotatoGun`, `SustenanceCrossbow`, and the 19 listed
 MP5/SP5 variants. It does not change the versioned offline fallback.
 
 `compatibilityProbeFirearms` is a test-candidate list, not a bypass. It builds
@@ -214,8 +215,8 @@ with coverage for the same condition.
 | Never reintroduce | Required outcome | Regression test |
 | --- | --- | --- |
 | `Slingshot` | Explicitly blacklist it; firing it can freeze GunGame. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot`; `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
-| Known broken content | Exclude BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, and Stinger from every generated profile. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
-| Requested Runtime 05 removals | Exclude GrappleGun, M224Mortar, LadiesPepperbox, M6Survival, MF_LongShot, PlungerLauncher, PotatoGun, SustenanceCrossbow, and 19 MP5/SP5 variants from Runtime 02/04 and 05. Keep tracked Vanilla unchanged. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Known broken content | Exclude BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, Stinger, and PlungerLauncher from every generated profile. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Requested Runtime 05 removals | Exclude GrappleGun, M224Mortar, LadiesPepperbox, M6Survival, MF_LongShot, PotatoGun, SustenanceCrossbow, and 19 MP5/SP5 variants from Runtime 02/04 and 05. Keep tracked Vanilla unchanged. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
 | Unsafe test candidate | Runtime 05 never bypasses firearm/feed safety gates. | `Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates` |
 | Airgun | Its direct pellet cartridge is a catalog-proven feed, so it stays eligible for Runtime 05. | `Offline_generator_emits_a_metadata_only_runtime_05_scope_audit` |
 | Confirmed Runtime 05 firearm | Remove it from `compatibilityProbeFirearms`; retain normal shared Vanilla eligibility. Never add a firearm-specific allowlist or second generator path. | `Offline_generator_emits_a_metadata_only_runtime_05_scope_audit` |
@@ -244,7 +245,8 @@ with coverage for the same condition.
 | Generic magnifier is treated as a scope | Exclude it; only legacy `MagnifierPSO1` normalizes to H3VR's real PSO-1 scope. | `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |
-| Runtime scan regresses into a hot loop or main-thread resolver | Retry selector-event reflection at most every ten seconds until subscribed; keep merge/build/write on below-normal worker; no registry scan in `Update`/`FixedUpdate`. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread` |
+| Modded-only fast path drops Rot enemy | Use stable shared builder for Runtime 02/04; it always resolves the Rot enemy before creating Runtime 02. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread`; `Runtime_profile_families_partition_vanilla_and_modded_outputs` |
+| Runtime scan regresses into a hot loop or prefab work | Retry selector-event reflection at most every ten seconds until subscribed; one post-capture metadata merge is allowed; keep resolver/write on below-normal worker; no registry scan in `Update`/`FixedUpdate`. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread` |
 | Packaged local metadata produces a scope-less emitted gun | Both tracked Vanilla pools and every generated local Runtime 05 candidate must have nonempty `Extra`. | `Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
 | H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |

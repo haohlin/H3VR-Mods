@@ -152,17 +152,18 @@ then clears and promotes past any rejected or throwing loadout on next frame.
 | `skipping invalid GunGame loadout` | Spawn safety rejected/failed a loadout; log includes gun, feed, optic, and reason. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
-Capture yields after a two-millisecond frame budget. Metadata merge,
-generation, serialization, and disk writes run on below-normal background
-workers. A Modded build retains vanilla entries only as feed/optic lookup data;
-it does not rebuild Vanilla weapon lists. Each request has one cached loader
-status read and one catalog snapshot; it never waits for a global loader
-completion signal or polls registry. If GunGame's selector type arrives late,
-its event subscription retries only every ten seconds and stops after success.
-Startup does one immediate snapshot plus one-, five-, and ten-minute rescans.
-The event log records each completed scan's wall-clock duration for live
-measurement. Design goal is responsive game, not a fixed artificial loading
-delay.
+Capture yields after a two-millisecond frame budget. After capture, one
+deterministic merge of plain metadata restores the stable 1.4.0 shared-builder
+input route; it never materializes a prefab. The shared builder, serialization,
+and disk writes run on a below-normal background worker. A Modded refresh may
+resolve Vanilla entries for feed/optic compatibility, but persists only Runtime
+02/04. Each request has one cached loader-status read and one catalog snapshot;
+it never waits for a global loader-completion signal or polls registry. If
+GunGame's selector type arrives late, event subscription retries only every ten
+seconds and stops after success. Startup does one immediate snapshot plus one-,
+five-, and ten-minute rescans. The event log records each completed scan's
+wall-clock duration for live measurement. Design goal is responsive game, not a
+fixed artificial loading delay.
 
 ### Prefab-materialization boundary
 

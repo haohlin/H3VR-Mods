@@ -125,7 +125,7 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
-            Assert.All(pools, pool => Assert.Equal(660, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(pools, pool => Assert.Equal(659, pool.RootElement.GetProperty("Guns").GetArrayLength()));
             Assert.All(
                 pools,
                 pool => Assert.DoesNotContain(
@@ -136,12 +136,12 @@ public sealed class GunGameGeneratorTests
                 .EnumerateArray()
                 .Select(gun => gun.GetProperty("GunName").GetString())
                 .ToArray();
-            Assert.Equal(660, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(659, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
             Assert.All(
-                new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
+                new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger", "PlungerLauncher" },
                 weaponId => Assert.DoesNotContain(weaponId, goldenWeaponIds));
             Assert.All(
-                new[] { "GravitonBeamer", "HiroEnki", "PlungerLauncher", "RailTater", "SustenanceCrossbow" },
+                new[] { "GravitonBeamer", "HiroEnki", "RailTater", "SustenanceCrossbow" },
                 weaponId => Assert.Contains(weaponId, goldenWeaponIds));
 
             var metadataPath = Path.Combine(profileDirectory, "ObjectData.json");
@@ -319,13 +319,13 @@ public sealed class GunGameGeneratorTests
             new[]
             {
                 "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
-                "PlungerLauncher", "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
+                "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
                 "MP5A3", "MP5A4", "MP5K", "MP5KA2", "MP5KA3", "MP5KN", "MP5SD1", "MP5SD2",
                 "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding",
             },
             firearmBlacklist);
         Assert.Equal(
-            new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger" },
+            new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger", "PlungerLauncher" },
             rules.RootElement
                 .GetProperty("firearmBlacklist")
                 .EnumerateArray()
@@ -887,8 +887,7 @@ public sealed class GunGameGeneratorTests
         Assert.True(candidateStart >= 0 && candidateEnd > candidateStart);
         var candidateBody = pluginSource.Substring(candidateStart, candidateEnd - candidateStart);
         Assert.Contains("new RuntimeGenerationJob(", candidateBody, StringComparison.Ordinal);
-        Assert.DoesNotContain(".Concat(", candidateBody, StringComparison.Ordinal);
-        Assert.DoesNotContain(".GroupBy(", candidateBody, StringComparison.Ordinal);
+        Assert.Contains("var combinedMetadata = MergeRuntimeMetadata(", candidateBody, StringComparison.Ordinal);
         Assert.Contains("private static List<RuntimeMetadataEntry> MergeRuntimeMetadata(", pluginSource, StringComparison.Ordinal);
         Assert.Contains("ThreadPriority.BelowNormal", pluginSource, StringComparison.Ordinal);
         Assert.Contains("private const float SelectorSubscriptionRetrySeconds = 10f;", pluginSource, StringComparison.Ordinal);
@@ -898,8 +897,9 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("private void FixedUpdate()", pluginSource, StringComparison.Ordinal);
         Assert.DoesNotContain("GetGameObject(", pluginSource, StringComparison.Ordinal);
         Assert.DoesNotContain("GetGameObjectAsync", pluginSource, StringComparison.Ordinal);
-        Assert.Contains("BuildModdedWithDiagnostics", builderSource, StringComparison.Ordinal);
-        Assert.Contains("return BuildWithDiagnostics(sourceEntries, sourceEnemies, random, false, true);", builderSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuildModdedWithDiagnostics", builderSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("includeVanillaWeapons", builderSource, StringComparison.Ordinal);
+        Assert.Contains("RuntimeProfileBuilder.BuildWithDiagnostics(", pluginSource, StringComparison.Ordinal);
     }
 
     [Fact]

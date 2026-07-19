@@ -367,10 +367,12 @@ public sealed class Plugin : BaseUnityPlugin
         yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
 
         var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        var combinedMetadata = MergeRuntimeMetadata(
+            vanillaMetadata ?? new List<RuntimeMetadataEntry>(),
+            metadataCapture.Entries);
         var job = new RuntimeGenerationJob(
             packagePath,
-            vanillaMetadata ?? new List<RuntimeMetadataEntry>(),
-            metadataCapture.Entries,
+            combinedMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.Modded,
             confirmedEmptySnapshot);
@@ -392,16 +394,6 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
-        var combinedMetadata = job.ResolvedEntries;
-        if (combinedMetadata == null)
-        {
-            Logger.LogDebug("GunGame runtime pool generation completed without a metadata snapshot.");
-            if (complete != null)
-            {
-                complete(null);
-            }
-            yield break;
-        }
         var probeJob = new RuntimeGenerationJob(
             packagePath,
             combinedMetadata,
@@ -1263,15 +1255,10 @@ public sealed class Plugin : BaseUnityPlugin
                 enemyEntries,
                 rules.CompatibilityProbeFirearms,
                 new System.Random(randomSeed))
-            : phase == RuntimeGenerationPhase.Modded
-                ? RuntimeProfileBuilder.BuildModdedWithDiagnostics(
-                    profileEntries,
-                    enemyEntries,
-                    new System.Random(randomSeed))
-                : RuntimeProfileBuilder.BuildWithDiagnostics(
-                    profileEntries,
-                    enemyEntries,
-                    new System.Random(randomSeed));
+            : RuntimeProfileBuilder.BuildWithDiagnostics(
+                profileEntries,
+                enemyEntries,
+                new System.Random(randomSeed));
         var phasePools = result.Pools
             .Where(pool => phase == RuntimeGenerationPhase.Vanilla
                 ? RuntimeProfileFamily.IsVanilla(pool.Family)
@@ -1385,14 +1372,12 @@ public sealed class Plugin : BaseUnityPlugin
         private readonly object sync = new object();
         private readonly string packagePath;
         private readonly List<RuntimeMetadataEntry> entries;
-        private readonly List<RuntimeMetadataEntry> additionalEntries;
         private readonly List<RuntimeEnemyEntry> enemyEntries;
         private readonly RuntimeGenerationPhase phase;
         private readonly bool confirmedEmptySnapshot;
         private bool isCompleted;
         private Exception error;
         private RuntimeGenerationReport report;
-        private List<RuntimeMetadataEntry> resolvedEntries;
 
         public RuntimeGenerationJob(
             string packagePath,
@@ -1403,23 +1388,6 @@ public sealed class Plugin : BaseUnityPlugin
         {
             this.packagePath = packagePath;
             this.entries = entries;
-            this.additionalEntries = null;
-            this.enemyEntries = enemyEntries;
-            this.phase = phase;
-            this.confirmedEmptySnapshot = confirmedEmptySnapshot;
-        }
-
-        public RuntimeGenerationJob(
-            string packagePath,
-            List<RuntimeMetadataEntry> entries,
-            List<RuntimeMetadataEntry> additionalEntries,
-            List<RuntimeEnemyEntry> enemyEntries,
-            RuntimeGenerationPhase phase,
-            bool confirmedEmptySnapshot)
-        {
-            this.packagePath = packagePath;
-            this.entries = entries;
-            this.additionalEntries = additionalEntries;
             this.enemyEntries = enemyEntries;
             this.phase = phase;
             this.confirmedEmptySnapshot = confirmedEmptySnapshot;
@@ -1458,17 +1426,6 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        public List<RuntimeMetadataEntry> ResolvedEntries
-        {
-            get
-            {
-                lock (sync)
-                {
-                    return resolvedEntries;
-                }
-            }
-        }
-
         public void Start()
         {
             var worker = new Thread(Generate)
@@ -1484,13 +1441,9 @@ public sealed class Plugin : BaseUnityPlugin
             var timer = Stopwatch.StartNew();
             RuntimeGenerationReport generated = null;
             Exception failure = null;
-            List<RuntimeMetadataEntry> resolved = null;
             try
             {
-                resolved = additionalEntries == null
-                    ? entries
-                    : MergeRuntimeMetadata(entries, additionalEntries);
-                generated = GenerateRuntimeFiles(packagePath, resolved, enemyEntries, phase, confirmedEmptySnapshot);
+                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries, phase, confirmedEmptySnapshot);
                 generated.ElapsedMilliseconds = timer.ElapsedMilliseconds;
             }
             catch (Exception exception)
@@ -1502,7 +1455,6 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 report = generated;
                 error = failure;
-                resolvedEntries = resolved;
                 isCompleted = true;
             }
         }
@@ -1512,8 +1464,9 @@ public sealed class Plugin : BaseUnityPlugin
         IEnumerable<RuntimeMetadataEntry> first,
         IEnumerable<RuntimeMetadataEntry> second)
     {
-        // Snapshot entries are plain managed metadata. Merge happens on the
-        // below-normal generation worker, never on H3VR's Unity thread.
+        // This is a small plain-metadata merge performed once per completed
+        // Modded capture. It restores the 1.4.0 input route for the shared
+        // builder without materializing any prefab.
         return (first ?? Enumerable.Empty<RuntimeMetadataEntry>())
             .Concat(second ?? Enumerable.Empty<RuntimeMetadataEntry>())
             .Where(entry => entry != null && !string.IsNullOrEmpty(entry.ObjectID))
