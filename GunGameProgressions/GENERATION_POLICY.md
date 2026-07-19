@@ -213,7 +213,8 @@ with coverage for the same condition.
 
 | Never reintroduce | Required outcome | Regression test |
 | --- | --- | --- |
-| Known broken content | Exclude Slingshot, BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, and Stinger from every generated profile. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| `Slingshot` | Explicitly blacklist it; firing it can freeze GunGame. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot`; `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Known broken content | Exclude BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, and Stinger from every generated profile. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
 | Requested Runtime 05 removals | Exclude GrappleGun, M224Mortar, LadiesPepperbox, M6Survival, MF_LongShot, PlungerLauncher, PotatoGun, SustenanceCrossbow, and 19 MP5/SP5 variants from Runtime 02/04 and 05. Keep tracked Vanilla unchanged. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
 | Unsafe test candidate | Runtime 05 never bypasses firearm/feed safety gates. | `Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates` |
 | Airgun | Its direct pellet cartridge is a catalog-proven feed, so it stays eligible for Runtime 05. | `Offline_generator_emits_a_metadata_only_runtime_05_scope_audit` |
