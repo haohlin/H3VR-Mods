@@ -9,10 +9,10 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin uses reflection only for live Item Spawner and quickbelt APIs. | Implemented. |
+| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin uses reflection only for live Item Spawner and quickbelt APIs, with bounded startup/scene UI injection. | Implemented. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, `GameSettings.Start`, and GunGame Ammo/Extra quickbelt slots inspected. | Verified. |
 | Automated checks | Windows `Verify` passed; Windows `Test` passed `100/100`. | Passed. |
-| Build / package | Windows Release build passed without warnings; version `1.0.0` package SHA-256 `3FC60132B1551432E0E8761BFD26BFEFDDBBBC536C6DEC993E508B1EBD51EEF8`. | Passed. |
+| Build / package | Windows Release build passed without warnings; version `1.0.0` package SHA-256 `61F9C926D72DA94F415FB3740BB1D3A5840FBBB42E864A81DE030101029EF3A5`. | Passed. |
 | Deploy / VR | Windows deployment completed and created a VR receipt; no H3VR launch/log evidence yet. | VR test pending. |
 
 ### Open blockers
