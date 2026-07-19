@@ -66,6 +66,38 @@
         }
       ]
     },
+    "GunGameCursedRandom": {
+      "kind": "dotnet",
+      "projectDir": "GunGameCursedRandom",
+      "csproj": "GunGameCursedRandom\\GunGameCursedRandom.csproj",
+      "assemblyName": "GunGameCursedRandom",
+      "targetFramework": "net35",
+      "packageSource": "GunGameCursedRandom\\Thunderstore\\HLin_Mods-GunGame_Cursed_Random",
+      "packageName": "GunGame_Cursed_Random",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-GunGame_Cursed_Random",
+      "layout": "legacy-flat",
+      "payload": [
+        {
+          "from": "GunGameCursedRandom\\bin\\Release\\net35\\GunGameCursedRandom.dll",
+          "to": "GunGameCursedRandom.dll"
+        }
+      ],
+      "patchTargets": [],
+      "externalPatchTargets": [
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Progression",
+          "method": "SpawnAndEquip"
+        },
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Options.GameSettings",
+          "method": "Start"
+        }
+      ]
+    },
     "BubbleLevel": {
       "kind": "unity",
       "packageName": "BubbleLevelSet",
