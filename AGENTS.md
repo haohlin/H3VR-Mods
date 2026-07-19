@@ -26,5 +26,9 @@ current machine without entering Git:
 - If required private configuration is missing, stop with the missing variable
   name. Do not substitute a public default or silently target another machine.
 
+Use `h3vr-remote status` to inspect remote Git state and
+`h3vr-remote sync <branch>` for its guarded fetch/fast-forward sync. Do not
+use raw SSH for normal H3VR Git or pipeline work.
+
 The tracked `tools/h3vr-remote.env.example` contains variable names only;
 private values belong only in the per-user file above.

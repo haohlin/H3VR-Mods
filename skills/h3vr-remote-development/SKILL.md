@@ -58,6 +58,10 @@ ignored `build/environment.local.json`. The wrapper must fail with a missing
 variable/configuration name when either private layer is absent; do not scan
 for an alternate host or checkout and do not print private values.
 
+Use `h3vr-remote status` for remote Git inspection and
+`h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+Do not use raw SSH in normal H3VR workflow.
+
 Do not treat a macOS build as an H3VR compatibility check.
 
 ## Cross-session mod state

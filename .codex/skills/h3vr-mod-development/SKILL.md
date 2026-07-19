@@ -35,6 +35,9 @@ private configuration layer is absent, report its missing key and stop. Never
 scan, print, commit, package, or publish local paths, hostnames, account IDs,
 or credentials.
 
+Use `h3vr-remote status` for remote Git inspection and
+`h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.

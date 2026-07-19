@@ -13,6 +13,9 @@ per-user Windows configuration through tracked project wrapper; do not repeat
 host/path setup or scan for a machine. Missing configuration is a blocker,
 reported only by key/file name.
 
+Use `h3vr-remote status` for remote Git inspection and
+`h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+
 The private Windows checkout configured through `H3VR_WINDOWS_REPOSITORY` is
 authoritative for H3VR builds, deployment, VR testing, and Thunderstore
 releases. The macOS checkout is a Git mirror for review and synchronized source
