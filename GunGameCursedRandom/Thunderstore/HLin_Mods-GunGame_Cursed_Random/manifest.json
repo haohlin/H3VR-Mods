@@ -1,0 +1,10 @@
+{
+  "name": "GunGame_Cursed_Random",
+  "author": "HLin_Mods",
+  "version_number": "1.0.0",
+  "dependencies": [
+    "Kodeman-GunGame-1.0.2"
+  ],
+  "description": "Optional GunGame progression mode using H3VR Item Spawner's random-gun generator.",
+  "website_url": "https://github.com/haohlin/H3VR-Mods"
+}

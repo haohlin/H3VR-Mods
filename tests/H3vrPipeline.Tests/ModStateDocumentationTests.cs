@@ -15,11 +15,17 @@ public sealed class ModStateDocumentationTests
             "GunGameProgressions",
             "DESIGN.md",
             "DEV_STATUS.md");
+        RequireFiles(
+            "GunGameCursedRandom",
+            "DESIGN.md",
+            "DEV_STATUS.md");
 
         RequireDevelopmentStatusSections("BubbleLevel");
         RequireDevelopmentStatusSections("GunGameProgressions");
+        RequireDevelopmentStatusSections("GunGameCursedRandom");
         AssertNoLegacyStateFiles("BubbleLevel");
         AssertNoLegacyStateFiles("GunGameProgressions");
+        AssertNoLegacyStateFiles("GunGameCursedRandom");
     }
 
     [Fact]
