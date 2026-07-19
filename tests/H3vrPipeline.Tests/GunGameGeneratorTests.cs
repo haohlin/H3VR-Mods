@@ -260,7 +260,12 @@ public sealed class GunGameGeneratorTests
         Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
         Assert.DoesNotContain(gunNames, gunName => runtimeBlacklist.Contains(gunName));
         Assert.DoesNotContain(gunNames, gunName => globalBlacklist.Contains(gunName));
-        Assert.Contains("Airgun", gunNames);
+        Assert.Equal(
+            new[]
+            {
+                "Airgun", "Flaregun", "MF_Medical180", "Pocket1906", "Quackenbush1886",
+            },
+            gunNames);
     }
 
     [WindowsH3vrFact]
@@ -611,7 +616,10 @@ public sealed class GunGameGeneratorTests
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
         var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
         var persistenceType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
-        var createFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateFingerprint", BindingFlags.Public | BindingFlags.Static));
+        var createFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "CreateFingerprint" && method.GetParameters().Length == 2));
+        var createPhaseFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "CreateFingerprint" && method.GetParameters().Length == 3));
         var createStableSeed = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateStableSeed", BindingFlags.Public | BindingFlags.Static));
         var entries = Array.CreateInstance(entryType, 1);
         entries.SetValue(RuntimeEntry(entryType, "BattleRifle", "Firearm", true, magazineType: 556, roundType: 556), 0);
@@ -620,10 +628,14 @@ public sealed class GunGameGeneratorTests
 
         var first = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
         var second = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
+        var probeFirst = (string)createPhaseFingerprint.Invoke(null, new object[] { entries, enemies, new[] { "Airgun" } })!;
+        var probeChanged = (string)createPhaseFingerprint.Invoke(null, new object[] { entries, enemies, new[] { "Airgun", "Flaregun" } })!;
         SetRuntimeProperty(entryType, entries.GetValue(0)!, "CompatibleMagazines", new List<string> { "ARMagazine" });
         var changed = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
 
         Assert.Equal(first, second);
+        Assert.NotEqual(first, probeFirst);
+        Assert.NotEqual(probeFirst, probeChanged);
         Assert.NotEqual(first, changed);
         Assert.Equal(
             (int)createStableSeed.Invoke(null, new object[] { changed })!,

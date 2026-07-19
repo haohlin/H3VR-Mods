@@ -19,9 +19,29 @@ public static class RuntimePoolPersistence
         IEnumerable<RuntimeMetadataEntry> entries,
         IEnumerable<RuntimeEnemyEntry> enemies)
     {
+        return CreateFingerprint(entries, enemies, Enumerable.Empty<string>());
+    }
+
+    // Optional phase-local rules belong in the fingerprint only for the
+    // profile family they affect. This lets Runtime 05 refresh after its
+    // candidate list changes without rebuilding otherwise unchanged pools.
+    public static string CreateFingerprint(
+        IEnumerable<RuntimeMetadataEntry> entries,
+        IEnumerable<RuntimeEnemyEntry> enemies,
+        IEnumerable<string> phaseRules)
+    {
         var content = new StringBuilder();
         content.Append("generationPolicy|");
         AppendValue(content, CurrentGenerationPolicyVersion);
+        foreach (var rule in (phaseRules ?? Enumerable.Empty<string>())
+                     .Where(rule => !string.IsNullOrEmpty(rule))
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(rule => rule, StringComparer.Ordinal))
+        {
+            content.Append("phaseRule|");
+            AppendValue(content, rule);
+        }
+
         foreach (var entry in (entries ?? Enumerable.Empty<RuntimeMetadataEntry>())
                      .Where(entry => entry != null)
                      .OrderBy(entry => entry.ObjectID ?? string.Empty, StringComparer.Ordinal))

@@ -50,6 +50,12 @@ The names and order are compatibility contracts. The two tracked offline
 Vanilla files are the safe packaged fallback; user-specific Modded files are
 created only at runtime and are never published in a package.
 
+Runtime 05 is only an unconfirmed-worklist. After a firearm passes human VR
+testing, remove it from `compatibilityProbeFirearms`; do not add a firearm
+allowlist or special Vanilla path. The normal shared resolver already controls
+its Vanilla eligibility. Runtime 05 fingerprints its candidate list, so a
+changed worklist replaces the prior probe without rebuilding unchanged pools.
+
 ## Lifecycle
 
 | Moment | Required behavior |

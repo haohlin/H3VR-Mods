@@ -1250,7 +1250,12 @@ public sealed class Plugin : BaseUnityPlugin
             ? entries.Where(entry => !rules.IsGloballyBlacklisted(entry)).ToList()
             : entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
         var phaseName = phase.ToString().ToLowerInvariant();
-        var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
+        var contentFingerprint = phase == RuntimeGenerationPhase.CompatibilityProbe
+            ? RuntimePoolPersistence.CreateFingerprint(
+                profileEntries,
+                enemyEntries,
+                rules.CompatibilityProbeFirearms)
+            : RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
         var randomSeed = RuntimePoolPersistence.CreateStableSeed(contentFingerprint);
         var result = phase == RuntimeGenerationPhase.CompatibilityProbe
             ? RuntimeProfileBuilder.BuildCompatibilityProbe(
