@@ -66,6 +66,9 @@ sights, reticles, lasers, or thermal UI. That skill and its source material are
 restricted: never copy their archives, assets, screenshots, paths, guide text,
 or implementation details into public repositories, public documentation, or
 Thunderstore payloads. Keep any private experiment separate from release source.
+For private Unity-base scope delivery, a built ZIP or loaded plugin is only a
+candidate. Follow that private skill's build-root, exact-install, log, and
+human Item Spawner proof gates before calling an item registered or working.
 
 Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
 `references/unity-content-source-roots.md` **only** when a task creates or
