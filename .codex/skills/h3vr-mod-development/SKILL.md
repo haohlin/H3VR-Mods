@@ -65,6 +65,13 @@ material, mesh, texture, audio, shader, ID, or AssetBundle. They are reference
 guidance for Unity/MeatKit, Atlas, and asset-replacement work; the current
 Windows repository, live assemblies, and wrapper remain authoritative.
 
+For private vanilla-game or mod-package asset extraction and reconstruction,
+also read `references/private-asset-rip-reconstruction.md` before running an
+extractor or importing recovered content. It defines the local-only archive,
+the boundary between recovered visuals and new behavior, and the required
+Unity/MeatKit/VR proof. AssetRipper output is an inspection input, never a
+claim that the full game can be rebuilt or distributed.
+
 For established code-only or data-only work—such as `GunGameProgressions`
 generation—do not read the Unity references or run a Unity workflow. Follow the
 relevant code/data section below and consult the wiki only if Unity content
