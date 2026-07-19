@@ -29,6 +29,7 @@ public sealed class Plugin : BaseUnityPlugin
     private bool vanillaGenerationFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
+    private bool policyReplacementEligible;
     private bool startupWarmupScheduled;
     private Harmony harmony;
     private GunGameSpawnSafety spawnSafety;
@@ -66,9 +67,9 @@ public sealed class Plugin : BaseUnityPlugin
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();
-        StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested."));
-        StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested."));
-        StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested."));
+        StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested.", false));
+        StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested.", false));
+        StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested; policy replacement eligible.", true));
     }
 
     private void OnDestroy()
@@ -247,9 +248,17 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)
+    private IEnumerator RequestStartupModdedRescan(
+        float delaySeconds,
+        string traceMessage,
+        bool enablePolicyReplacement)
     {
         yield return new WaitForSecondsRealtime(delaySeconds);
+        if (enablePolicyReplacement)
+        {
+            policyReplacementEligible = true;
+        }
+
         Trace(traceMessage);
         RequestModdedRefresh();
     }
@@ -284,6 +293,7 @@ public sealed class Plugin : BaseUnityPlugin
             vanillaMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.Vanilla,
+            false,
             false);
         job.Start();
         while (!job.IsCompleted)
@@ -312,13 +322,14 @@ public sealed class Plugin : BaseUnityPlugin
         while (moddedRefreshRequested)
         {
             moddedRefreshRequested = false;
-            yield return StartCoroutine(GenerateModdedPoolsForRefresh());
+            var allowPolicyReplacement = policyReplacementEligible;
+            yield return StartCoroutine(GenerateModdedPoolsForRefresh(allowPolicyReplacement));
         }
 
         moddedRefreshRunning = false;
     }
 
-    private IEnumerator GenerateModdedPoolsForRefresh()
+    private IEnumerator GenerateModdedPoolsForRefresh(bool allowPolicyReplacement)
     {
         while (!vanillaGenerationFinished)
         {
@@ -354,13 +365,15 @@ public sealed class Plugin : BaseUnityPlugin
         yield return StartCoroutine(GenerateModdedPoolCandidate(
             metadataCapture,
             totalTimer,
-            externalLoadState == ExternalContentLoadState.Complete));
+            externalLoadState == ExternalContentLoadState.Complete,
+            allowPolicyReplacement));
     }
 
     private IEnumerator GenerateModdedPoolCandidate(
         RuntimeMetadataCapture metadataCapture,
         Stopwatch totalTimer,
         bool confirmedEmptySnapshot,
+        bool allowPolicyReplacement,
         Action<RuntimeGenerationReport> complete = null)
     {
         RuntimeEnemyCapture enemyCapture = null;
@@ -375,7 +388,8 @@ public sealed class Plugin : BaseUnityPlugin
             combinedMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.Modded,
-            confirmedEmptySnapshot);
+            confirmedEmptySnapshot,
+            allowPolicyReplacement);
         job.Start();
         while (!job.IsCompleted)
         {
@@ -399,6 +413,7 @@ public sealed class Plugin : BaseUnityPlugin
             combinedMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.CompatibilityProbe,
+            false,
             false);
         probeJob.Start();
         while (!probeJob.IsCompleted)
@@ -1235,7 +1250,8 @@ public sealed class Plugin : BaseUnityPlugin
         List<RuntimeMetadataEntry> entries,
         List<RuntimeEnemyEntry> enemyEntries,
         RuntimeGenerationPhase phase,
-        bool confirmedEmptySnapshot)
+        bool confirmedEmptySnapshot,
+        bool allowPolicyReplacement)
     {
         var rules = ProfileRules.Load(packagePath);
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
@@ -1285,11 +1301,12 @@ public sealed class Plugin : BaseUnityPlugin
                 !string.Equals(
                     RuntimePoolPersistence.ReadGenerationPolicyVersion(receiptPath),
                     RuntimePoolPersistence.CurrentGenerationPolicyVersion,
-                    StringComparison.Ordinal)))
+                    StringComparison.Ordinal),
+                allowPolicyReplacement))
         {
-            // Preserve a complete saved pair until a larger current snapshot
-            // or newer policy arrives. An empty snapshot can clear it only
-            // after a loader explicitly confirms content loading is complete.
+            // Preserve a complete saved pair until a larger current snapshot,
+            // or the scheduled ten-minute policy-upgrade window. An empty
+            // snapshot can clear it only after loader completion is explicit.
             return new RuntimeGenerationReport(
                 profileEntries.Count,
                 profileEntries.Count(entry => entry.IsModContent),
@@ -1375,6 +1392,7 @@ public sealed class Plugin : BaseUnityPlugin
         private readonly List<RuntimeEnemyEntry> enemyEntries;
         private readonly RuntimeGenerationPhase phase;
         private readonly bool confirmedEmptySnapshot;
+        private readonly bool allowPolicyReplacement;
         private bool isCompleted;
         private Exception error;
         private RuntimeGenerationReport report;
@@ -1384,13 +1402,15 @@ public sealed class Plugin : BaseUnityPlugin
             List<RuntimeMetadataEntry> entries,
             List<RuntimeEnemyEntry> enemyEntries,
             RuntimeGenerationPhase phase,
-            bool confirmedEmptySnapshot)
+            bool confirmedEmptySnapshot,
+            bool allowPolicyReplacement)
         {
             this.packagePath = packagePath;
             this.entries = entries;
             this.enemyEntries = enemyEntries;
             this.phase = phase;
             this.confirmedEmptySnapshot = confirmedEmptySnapshot;
+            this.allowPolicyReplacement = allowPolicyReplacement;
         }
 
         public bool IsCompleted
@@ -1443,7 +1463,13 @@ public sealed class Plugin : BaseUnityPlugin
             Exception failure = null;
             try
             {
-                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries, phase, confirmedEmptySnapshot);
+                generated = GenerateRuntimeFiles(
+                    packagePath,
+                    entries,
+                    enemyEntries,
+                    phase,
+                    confirmedEmptySnapshot,
+                    allowPolicyReplacement);
                 generated.ElapsedMilliseconds = timer.ElapsedMilliseconds;
             }
             catch (Exception exception)

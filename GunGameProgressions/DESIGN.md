@@ -65,7 +65,8 @@ changed worklist replaces the prior probe without rebuilding unchanged pools.
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
 | GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded and Compatibility Probe choices once, request fresh background snapshot. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
-| One, five, and ten minutes after plugin startup | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
+| One and five minutes after plugin startup | Request non-blocking rescans for late-loading content. Each complete candidate follows strict count-growth replacement. |
+| Ten minutes after plugin startup | Request another non-blocking rescan and permit one complete candidate from a newer generation-policy version to replace a saved pair even when its count is smaller. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
@@ -98,9 +99,11 @@ removes the saved Modded pair so disabled IDs cannot survive indefinitely.
 
 First complete non-empty pair writes immediately. Later Modded candidates
 replace a saved pair only when eligible weapon count is strictly larger. A new
-complete generation-policy version also replaces once, even if it safely removes
-weapons. Equal, smaller, malformed, and unknown-count candidates retain saved
-pair. Only an explicit loader-complete empty snapshot removes stale pools.
+generation-policy version keeps that rule during the immediate, one-minute, and
+five-minute scans. The ten-minute rescan permits one complete policy-version
+replacement even when it safely removes weapons. Equal, smaller, malformed, and
+unknown-count candidates otherwise retain the saved pair. Only an explicit
+loader-complete empty snapshot removes stale pools.
 
 ## Compatibility and runtime safety
 
@@ -161,7 +164,8 @@ resolve Vanilla entries for feed/optic compatibility, but persists only Runtime
 it never waits for a global loader-completion signal or polls registry. If
 GunGame's selector type arrives late, event subscription retries only every ten
 seconds and stops after success. Startup does one immediate snapshot plus one-,
-five-, and ten-minute rescans. The event log records each completed scan's
+five-, and ten-minute rescans. Only the ten-minute callback opens the
+policy-version replacement gate. The event log records each completed scan's
 wall-clock duration for live measurement. Design goal is responsive game, not a
 fixed artificial loading delay.
 

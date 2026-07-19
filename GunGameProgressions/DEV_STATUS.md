@@ -19,7 +19,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Modded count root cause | Valid G28 variants declare direct magazines and Picatinny but omit optional identity tags, so same gate rejects them. | Installed runtime catalog inspection. |
 | Memory boundary | Capture reads `FVRObject` catalog only. No `GetGameObject*` call is allowed. | Source test; previous Windows A/B eliminated large prefab residency path. |
 | Candidate generator | Catalog proof now accepts identity tags, direct compatible feed, exact nonzero magazine/clip interface, or `GravitonBeamer`; Modded cartridge fallback needs direct compatibility. | Windows test suite: `83/83` passed. |
-| Candidate persistence | First Modded pair writes; later pair replaces only when strictly larger; confirmed loader-complete empty snapshot removes stale files. | Windows test suite: `83/83` passed. |
+| Candidate persistence | First Modded pair writes; later pair replaces only when strictly larger; confirmed loader-complete empty snapshot removes stale files. A newer generation-policy version may replace a smaller complete pair only after the ten-minute startup gate. | Focused regression added; Windows validation pending. |
 | Candidate package | `1.4.0` built and deployed. | Windows `Verify`, `Build`, `Package`, and `Deploy` passed. |
 | One-minute implementation | Startup schedules one-, five-, and ten-minute one-shot Modded snapshots and logs each completed scan's total duration plus captured entry count. | Focused regression test; Windows pipeline `83/83` passed. |
 | Real Modded-profile run | H3VR loaded the intended profile and this plugin with its dependencies; no exporter exception occurred. | BepInEx live log. |
@@ -56,14 +56,15 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Runtime-cost boundary | Modded capture remains two-millisecond metadata slices. One cached OtherLoader probe is read per request; delayed selector-event reflection retries every ten seconds; metadata merge/build/write run below-normal. Modded refresh indexes Vanilla metadata for compatibility but does not rebuild Vanilla weapon lists. | Source guard plus Windows `93/93` test suite. |
 | Local scope audit | Both tracked 660-gun Vanilla pools have `0` empty `Extra` entries. Metadata-only Runtime 05 test confirms Airgun is emitted with a nonempty optic. | Windows `Test` `95/95`. |
 | Runtime 05 release baseline | Release policy 18 configured `54` candidate IDs, including five diagnostic overrides. Policy 19 removes bypasses and applies global exclusions. | Historical local metadata report; policy-19 Windows audit pending. |
-| Policy replacement | A complete candidate from a newer policy version replaces a saved Modded pair once even when safety exclusions make it smaller; partial/empty safeguards remain. | Focused persistence regression; Windows `Test` `95/95`. |
+| Policy replacement | A newer policy version keeps strict count growth through immediate/one-/five-minute scans. The ten-minute startup scan may replace once with a smaller complete pair; partial/empty safeguards remain. | Focused persistence and scheduler regressions added; Windows validation pending. |
 | Current build candidate | Feature-branch package remains version `1.4.0`; deployed for private VR validation, not a public release. | Windows `Verify`, `Test` `95/95`, `Build`, `Package`, and `Deploy` passed. |
-| Global startup warmup | The existing immediate and 1/5/10-minute Modded refresh schedule now has one idempotent owner invoked from plugin `Awake()`; `Start()` is only a no-op fallback. It no longer depends on any GunGame scene being opened. | Source-level lifecycle regression updated; Windows validation pending because current remote SSH host-key verification fails. |
+| Global startup warmup | Immediate and 1/5/10-minute Modded refreshes have one idempotent owner in plugin `Awake()`; `Start()` is only a no-op fallback. It does not depend on a GunGame scene. Only the ten-minute callback opens policy-version replacement eligibility. | Source-level lifecycle regression updated; Windows validation pending. |
 
 ## Plan
 
 | State | Next item | Acceptance |
 | --- | --- | --- |
+| In progress | Validate ten-minute policy-version promotion gate. | Windows Test, Verify, Build, Package, and Deploy pass; saved pair is kept before ten minutes and complete policy candidate may replace once at ten minutes. |
 | Complete | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, `Package`, and `Deploy`. | All checks passed; Windows test suite `83/83`. |
 | Complete | Validate one-minute rescan and timing log in the real Modded profile. | Initial and one-minute scan logs recorded; capture remains frame-budgeted and profiles are valid. |
 | Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
@@ -91,6 +92,7 @@ State: `1.4.0 released on Thunderstore; private candidate deployed, runtime Modd
 | Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | Passed: `1.4.0` package with no player Modded pool. |
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Startup scheduler runs from `Awake()` once; initial and one-minute scans run without selector interaction; selector restores generated pair after reload. |
+| Policy-version replacement gate | `h3vr.ps1 -Action Test`; then retain a saved Modded receipt from an older policy and observe early plus ten-minute scans. | Early snapshots keep equal/smaller pair; ten-minute complete candidate replaces once only when receipt policy differs. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |

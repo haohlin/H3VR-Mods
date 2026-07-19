@@ -245,6 +245,7 @@ with coverage for the same condition.
 | Generic magnifier is treated as a scope | Exclude it; only legacy `MagnifierPSO1` normalizes to H3VR's real PSO-1 scope. | `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |
+| New generation-policy version has fewer safe Modded firearms | Keep saved pair through immediate/one-/five-minute scans. Ten-minute callback may replace once only with a complete nonempty pair. | `Runtime_modded_profiles_defer_smaller_policy_replacement_until_the_ten_minute_window` |
 | Modded-only fast path drops Rot enemy | Use stable shared builder for Runtime 02/04; it always resolves the Rot enemy before creating Runtime 02. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread`; `Runtime_profile_families_partition_vanilla_and_modded_outputs` |
 | Runtime scan regresses into a hot loop or prefab work | Retry selector-event reflection at most every ten seconds until subscribed; one post-capture metadata merge is allowed; keep resolver/write on below-normal worker; no registry scan in `Update`/`FixedUpdate`. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread` |
 | Packaged local metadata produces a scope-less emitted gun | Both tracked Vanilla pools and every generated local Runtime 05 candidate must have nonempty `Extra`. | `Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm` |
@@ -265,5 +266,5 @@ When changing this algorithm:
 
 The policy version is recorded in the persistence receipt and fingerprint. A
 complete candidate from a newer version replaces existing Modded pools once,
-even when a safety rule makes it smaller; partial/empty candidates still cannot
-replace a usable pair.
+even when a safety rule makes it smaller, only after the startup ten-minute
+gate opens; partial/empty candidates still cannot replace a usable pair.

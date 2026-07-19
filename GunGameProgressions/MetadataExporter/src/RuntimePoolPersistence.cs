@@ -119,8 +119,8 @@ public static class RuntimePoolPersistence
             false);
     }
 
-    // A complete generation-policy upgrade replaces a saved pair even when
-    // its safe candidate is smaller. Count growth still governs normal scans.
+    // Count growth governs all normal scans. A complete policy upgrade may
+    // replace a smaller saved pair only after Plugin's ten-minute gate opens.
     public static bool ShouldPromoteModdedCandidate(
         int candidatePoolCount,
         int eligibleWeaponsPerPool,
@@ -128,6 +128,25 @@ public static class RuntimePoolPersistence
         bool hasPersistedPair,
         bool confirmedEmptySnapshot,
         bool generationPolicyChanged)
+    {
+        return ShouldPromoteModdedCandidate(
+            candidatePoolCount,
+            eligibleWeaponsPerPool,
+            persistedEligibleWeaponsPerPool,
+            hasPersistedPair,
+            confirmedEmptySnapshot,
+            generationPolicyChanged,
+            false);
+    }
+
+    public static bool ShouldPromoteModdedCandidate(
+        int candidatePoolCount,
+        int eligibleWeaponsPerPool,
+        int? persistedEligibleWeaponsPerPool,
+        bool hasPersistedPair,
+        bool confirmedEmptySnapshot,
+        bool generationPolicyChanged,
+        bool policyReplacementEligible)
     {
         if (candidatePoolCount == 0)
         {
@@ -144,7 +163,7 @@ public static class RuntimePoolPersistence
             return true;
         }
 
-        if (generationPolicyChanged)
+        if (generationPolicyChanged && policyReplacementEligible)
         {
             return true;
         }

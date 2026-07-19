@@ -580,16 +580,32 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_modded_profiles_replace_a_complete_pair_after_a_generation_policy_change()
+    public void Runtime_modded_profiles_defer_smaller_policy_replacement_until_the_ten_minute_window()
     {
         var assembly = LoadBuiltMetadataExporter();
         var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
         var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 6));
+        var shouldPromoteAfterTenMinutes = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 7));
 
-        Assert.True((bool)shouldPromote.Invoke(null, new object?[] { 2, 24, 32, true, false, true })!);
-        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 1, 24, 32, true, false, true })!);
-        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 0, 0, 32, true, false, true })!);
+        // A policy change alone keeps the saved pair during early rescans.
+        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 2, 24, 32, true, false, true })!);
+
+        // The scheduled ten-minute window allows one complete, safe policy
+        // replacement even when the new pair is smaller.
+        Assert.True((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 2, 24, 32, true, false, true, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 2, 24, 32, true, false, false, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 1, 24, 32, true, false, true, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 0, 0, 32, true, false, true, true })!);
     }
 
     [WindowsH3vrFact]
@@ -852,14 +868,17 @@ public sealed class GunGameGeneratorTests
 
         Assert.True(warmupMethod >= 0 && destroyMethod > warmupMethod);
         var warmupBody = source.Substring(warmupMethod, destroyMethod - warmupMethod);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
-        Assert.Contains("private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)", source, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested; policy replacement eligible.\", true));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("private IEnumerator RequestStartupModdedRescan(", source, StringComparison.Ordinal);
+        Assert.Contains("bool enablePolicyReplacement)", source, StringComparison.Ordinal);
         Assert.Contains("new WaitForSecondsRealtime(delaySeconds)", source, StringComparison.Ordinal);
+        Assert.Contains("policyReplacementEligible = true;", source, StringComparison.Ordinal);
+        Assert.Contains("var allowPolicyReplacement = policyReplacementEligible;", source, StringComparison.Ordinal);
         Assert.Contains("startup 1-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 5-minute rescan requested.", source, StringComparison.Ordinal);
-        Assert.Contains("startup 10-minute rescan requested.", source, StringComparison.Ordinal);
+        Assert.Contains("startup 10-minute rescan requested; policy replacement eligible.", source, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
