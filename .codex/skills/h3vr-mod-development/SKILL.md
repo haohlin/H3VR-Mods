@@ -58,6 +58,15 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
 
 ## Unity Reference — Only When Needed
 
+### Restricted scope-support reference
+
+If a locally configured, access-controlled scope-support repository exists, use
+its `h3vr-supported-scope-development` skill for private PIP scopes, reflex
+sights, reticles, lasers, or thermal UI. That skill and its source material are
+restricted: never copy their archives, assets, screenshots, paths, guide text,
+or implementation details into public repositories, public documentation, or
+Thunderstore payloads. Keep any private experiment separate from release source.
+
 Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
 `references/unity-content-source-roots.md` **only** when a task creates or
 changes Unity content: a scene, `GameObject`, prefab, component, `MonoBehaviour`,
