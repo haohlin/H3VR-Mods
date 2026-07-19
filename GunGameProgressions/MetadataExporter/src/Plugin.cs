@@ -29,6 +29,7 @@ public sealed class Plugin : BaseUnityPlugin
     private bool vanillaGenerationFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
+    private bool startupWarmupScheduled;
     private Harmony harmony;
     private GunGameSpawnSafety spawnSafety;
     private Type weaponPoolLoaderType;
@@ -43,6 +44,7 @@ public sealed class Plugin : BaseUnityPlugin
         instance = this;
         InstallGunGameRefreshHooks();
         InstallGunGameSpawnSafety();
+        ScheduleStartupProfileWarmup();
         StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
         Trace("plugin awake.");
         Logger.LogInfo(RuntimeStatusMessages.Ready);
@@ -50,6 +52,17 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Start()
     {
+        ScheduleStartupProfileWarmup();
+    }
+
+    private void ScheduleStartupProfileWarmup()
+    {
+        if (startupWarmupScheduled)
+        {
+            return;
+        }
+
+        startupWarmupScheduled = true;
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();

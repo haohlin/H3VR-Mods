@@ -6,7 +6,7 @@ cross-session handoff source of truth.
 
 ## Status
 
-Last verified: `2026-07-18`
+Last verified: `2026-07-19`
 
 State: `1.4.0 released on Thunderstore; policy-18 runtime candidate built, validated, and deployed on feature branch; not published`
 
@@ -48,6 +48,7 @@ State: `1.4.0 released on Thunderstore; policy-18 runtime candidate built, valid
 | Runtime 05 local candidate boundary | `54` IDs configured; two COOL entries absent locally, 27 configured candidates excluded by Runtime blacklist, two ramrods are accessories, and HeavyFlintlock remains unproven. Five named overrides are emitted. | Local metadata report: `22` emitted, `1` ordinary safety skip, `0` empty optics. |
 | Policy replacement | A complete candidate from a newer policy version replaces a saved Modded pair once even when safety exclusions make it smaller; partial/empty safeguards remain. | Focused persistence regression; Windows `Test` `95/95`. |
 | Current build candidate | Feature-branch package remains version `1.4.0`; deployed for private VR validation, not a public release. | Windows `Verify`, `Test` `95/95`, `Build`, `Package`, and `Deploy` passed. |
+| Global startup warmup | The existing immediate and 1/5/10-minute Modded refresh schedule now has one idempotent owner invoked from plugin `Awake()`; `Start()` is only a no-op fallback. It no longer depends on any GunGame scene being opened. | Source-level lifecycle regression updated; Windows validation pending because current remote SSH host-key verification fails. |
 
 ## Plan
 
@@ -67,6 +68,7 @@ State: `1.4.0 released on Thunderstore; policy-18 runtime candidate built, valid
 | Complete | Apply requested Runtime 02/04/05 exclusions and Runtime 05 forced tests. | Windows `95/95`, Verify, Build, Package, Deploy; local audit emits 22 guns including five named diagnostic entries. |
 | Pending | Human VR-test current Runtime 05. | Five forced entries appear; all 28 exclusions stay absent; BrownBess has no guessed ammo; no GunGame crash/stall. |
 | Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
+| In progress | Validate game-wide startup warmup. | Start H3VR, remain outside GunGame past one minute, then open/reload GunGame. BepInEx shows initial and scheduled Modded scans; saved Modded pair is selectable. |
 
 ## Testing
 
@@ -77,6 +79,7 @@ State: `1.4.0 released on Thunderstore; policy-18 runtime candidate built, valid
 | Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Kodeman targets resolve. |
 | Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | `1.4.0` package with no player Modded pool. |
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
+| Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Startup scheduler runs from `Awake()` once; initial and one-minute scans run without selector interaction; selector restores generated pair after reload. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
 | Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
 | Compatibility candidate | Deployed policy-18 candidate; launch configured profile, select Runtime 05, then inspect log. | Five forced entries appear; 28 excluded IDs absent; each emitted entry has nonempty `Extra`; no crash/stall. |

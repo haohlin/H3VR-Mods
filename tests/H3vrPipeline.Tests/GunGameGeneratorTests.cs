@@ -805,14 +805,24 @@ public sealed class GunGameGeneratorTests
     public void Runtime_warms_modded_profiles_before_the_GunGame_selector_opens()
     {
         var source = File.ReadAllText(PluginSourcePath);
+        var awakeMethod = source.IndexOf("private void Awake()", StringComparison.Ordinal);
         var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var warmupMethod = source.IndexOf("private void ScheduleStartupProfileWarmup()", StringComparison.Ordinal);
         var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
 
-        Assert.True(startMethod >= 0);
-        Assert.True(destroyMethod > startMethod);
-        var startBody = source[startMethod..destroyMethod];
-        Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", startBody, StringComparison.Ordinal);
-        Assert.Contains("RequestModdedRefresh();", startBody, StringComparison.Ordinal);
+        Assert.True(awakeMethod >= 0 && startMethod > awakeMethod);
+        Assert.True(warmupMethod > startMethod && destroyMethod > warmupMethod);
+        var awakeBody = source.Substring(awakeMethod, startMethod - awakeMethod);
+        var startBody = source.Substring(startMethod, warmupMethod - startMethod);
+        var warmupBody = source.Substring(warmupMethod, destroyMethod - warmupMethod);
+        Assert.Contains("ScheduleStartupProfileWarmup();", awakeBody, StringComparison.Ordinal);
+        Assert.Contains("ScheduleStartupProfileWarmup();", startBody, StringComparison.Ordinal);
+        Assert.Contains("if (startupWarmupScheduled)", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("startupWarmupScheduled = true;", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh();", warmupBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("WeaponPoolLoader", warmupBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("FindGunGamePoolLoader", warmupBody, StringComparison.Ordinal);
         Assert.DoesNotContain("StartCoroutine(GenerateModdedPoolsAtStartup());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
     }
@@ -821,14 +831,14 @@ public sealed class GunGameGeneratorTests
     public void Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans()
     {
         var source = File.ReadAllText(PluginSourcePath);
-        var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var warmupMethod = source.IndexOf("private void ScheduleStartupProfileWarmup()", StringComparison.Ordinal);
         var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
 
-        Assert.True(startMethod >= 0 && destroyMethod > startMethod);
-        var startBody = source.Substring(startMethod, destroyMethod - startMethod);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
+        Assert.True(warmupMethod >= 0 && destroyMethod > warmupMethod);
+        var warmupBody = source.Substring(warmupMethod, destroyMethod - warmupMethod);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested.\"));", warmupBody, StringComparison.Ordinal);
         Assert.Contains("private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)", source, StringComparison.Ordinal);
         Assert.Contains("new WaitForSecondsRealtime(delaySeconds)", source, StringComparison.Ordinal);
         Assert.Contains("startup 1-minute rescan requested.", source, StringComparison.Ordinal);

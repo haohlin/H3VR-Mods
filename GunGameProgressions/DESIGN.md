@@ -54,12 +54,12 @@ created only at runtime and are never published in a package.
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. |
+| Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
 | GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded and Compatibility Probe choices once, request fresh background snapshot. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
-| One, five, and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
+| One, five, and ten minutes after plugin startup | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
