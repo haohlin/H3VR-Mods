@@ -9,11 +9,11 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin. | Implemented, Windows build pending. |
+| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin uses reflection only for live Item Spawner and quickbelt APIs. | Implemented. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, and `GameSettings.Start` inspected. | Verified. |
-| Automated checks | Focused metadata/source tests added. | Pending Windows `Test`. |
-| Package | Version `1.0.0` package metadata and payload declared. | Pending Windows package. |
-| Deploy / VR | No receipt or BepInEx runtime evidence yet. | Pending. |
+| Automated checks | Windows `Verify` passed; Windows `Test` passed `100/100`. | Passed. |
+| Build / package | Windows Release build passed without warnings; version `1.0.0` package SHA-256 `25C391E096BE6894A8FE2EB411D4C40E0E6A160F91775D5150BB484001DEB818`. | Passed. |
+| Deploy / VR | Windows deployment completed and created a VR receipt; no H3VR launch/log evidence yet. | VR test pending. |
 
 ### Open blockers
 
@@ -26,8 +26,8 @@ State: `active`
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Build and package on Windows. | `Verify`, `Test`, `Build`, and `Package` pass with current managed assemblies. |
-| `[ ]` | Deploy and inspect first runtime log. | Plugin load plus one complete `Cursed random GunGame spawn` line; no Harmony exception. |
+| `[x]` | Build, package, and deploy on Windows. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass with current managed assemblies. |
+| `[>]` | Inspect first runtime log. | Plugin load plus one complete `Cursed random GunGame spawn` line; no Harmony exception. |
 | `[ ]` | Human VR smoke test. | Toggle works; start/promotion/demotion replace old gear with a random loaded gun and spare feed. |
 
 ### Deferred
@@ -43,9 +43,10 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Pending. |
-| Pipeline | `h3vr-remote run Test` | Pending. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Pending. |
+| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Passed. |
+| Pipeline | `h3vr-remote run Test` | Passed `100/100`. |
+| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Passed, Release, zero warnings. |
+| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Passed; VR receipt created. |
 
 ### Manual H3VR acceptance
 
@@ -59,7 +60,8 @@ State: `active`
 ### Release gate
 
 - [x] Current Windows source status checked.
-- [ ] Automated checks pass.
-- [ ] Package payload/version verified.
-- [ ] Deployment receipt and BepInEx log checked.
+- [x] Automated checks pass.
+- [x] Package payload/version verified.
+- [x] Deployment receipt created.
+- [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.
