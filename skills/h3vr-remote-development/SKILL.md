@@ -173,6 +173,20 @@ Validate the prefab/scene wiring, MeatKit build profile and dependencies,
 generated package, BepInEx log, and real in-game interaction before calling a
 Unity-content change complete.
 
+### Serialized native PIP scope attachment invariant
+
+For a serialized `PIPScopeController`, wire attachment both directions before
+packaging:
+
+- `FVRFireArmAttachment.AttachmentInterface` references the controller.
+- `PIPScopeController.Attachment` references that same firearm attachment.
+- `PIPScopeController.SubMounts` is a non-null array; empty is valid.
+
+One-way wiring can load an asset bundle and still throw in
+`FVRFireArmAttachmentInterface.OnAttach()` when player picks up or mounts the
+scope. Add an editor regression assertion for both references and a live
+spawn, pick-up, detach, and mount test before calling a PIP scope working.
+
 For read-only inspection of Unity bundles or release ZIPs, use the headless
 inspector workflow in
 [`references/headless-unity-asset-inspection.md`](references/headless-unity-asset-inspection.md).

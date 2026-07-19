@@ -67,6 +67,7 @@ NightForce source or payload.
 | Native PIP reference basis | Fixed-scope and variable-scope reference manifests, plus current installed PIP API source, establish native camera, material, reticle, controller, and direct-hand interaction relationships before changing the NightForce prefab. | 2026-07-18 |
 | Runtime PIP bridge | MeatKit's compile API lacks the current PIP types. Keep the prefab/package self-contained with a reflection bridge that resolves those types only from the installed game at runtime. | 2026-07-18 |
 | Native attachment replacement | Replacing only the legacy interface left the new controller detached, so H3VR never enabled its UI or direct interactions. Rewire both attachment fields before removing legacy runtime components. | 2026-07-18 |
+| Serialized native attachment invariant | A live pick-up trace found `PIPScopeController.Attachment` null at `OnAttach()`. Before packaging, serialize both attachment links and a non-null `SubMounts` array; verify them in an editor test and live interaction test. | 2026-07-19 |
 
 ## Known limits / backlog
 

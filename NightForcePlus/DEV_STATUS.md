@@ -4,8 +4,8 @@
 
 ## Status
 
-Last verified: `2026-07-18`
-State: `1.0.5 published; repaired native-PIP candidate deployed for VR test`
+Last verified: `2026-07-19`
+State: `1.0.5 attachment-link repair built and packaged; deployment and VR retest pending`
 
 ### Verified now
 
@@ -26,10 +26,11 @@ State: `1.0.5 published; repaired native-PIP candidate deployed for VR test`
 | Legacy inspection cleanup | New manifest/audit evidence replaced stale raw rips, obsolete extraction tools, and superseded generated NightForce package candidates. Pinned inspector tooling and manifest evidence remain ignored/local. | Completed. |
 | Native PIP references | Hash-backed fixed and variable PIP reference manifests plus current installed PIP source identify required controller, camera, lens, reticle, material, magnification, zeroing, and direct-hand interaction relationships. | Passed; baseline complete before prefab migration. |
 | Native PIP first candidate | User H3VR test showed only generated turrets; they could not turn and native PIP UI did not appear. Source review found the bridge removed the legacy attachment interface without linking the native controller to the existing firearm attachment. | Failed; superseded. |
-| Native PIP repaired bridge | Batch migration now serializes existing firearm attachment; runtime links `Attachment` and `AttachmentInterface` before removing legacy components and ensures UI/zoom/turret colliders. Uses installed native PIP shader/material contract only. | Unity contract passed; VR pending. |
-| Native PIP Unity contract | `NightForcePlusRuntimeTests.RunAll` passed after asserting attachment replacement and direct-hand collider wiring alongside gravity checks. | Passed. |
-| Native PIP package | Fresh MeatKit build and wrapper package validation completed for `NightForcePlus 1.0.5`; SHA-256 `4864D5CC40933DCB91586169337A494BA04A04F39BB283D5B4F087AEF1D6B876`. | Passed; local test candidate only, not a release. |
-| Native PIP deployment | Wrapper deployed exact repaired candidate with backup and VR receipt. No Thunderstore publish occurred. | Passed; user VR test pending. |
+| Native PIP repaired bridge | Initial bridge candidate left `PIPScopeController.Attachment` null at live `OnAttach()`, causing pick-up/mount failure. | Failed; superseded. |
+| Serialized attachment repair | Source now serializes `FVRFireArmAttachment.AttachmentInterface` and `PIPScopeController.Attachment` to each other, and initializes `SubMounts` when absent. | Unity regression passed. |
+| Native PIP Unity contract | `NightForcePlusRuntimeTests.RunAll` passed after asserting both attachment directions, non-null `SubMounts`, direct-hand colliders, and gravity checks. | Passed. |
+| Native PIP package | Fresh MeatKit build completed for `NightForcePlus 1.0.5`; SHA-256 `E4E5C8B514B349FDB2A1338D3C6EA2068B2908F17980EFD433D6E31DB27AB1EF`. | Built; not deployed. |
+| Native PIP deployment | Earlier repaired candidate was deployed, but user pick-up test exposed the null attachment link. Current package remains undeployed. | Superseded; latest VR test pending. |
 | Owner-private full-rip validation | Owner-authorized AssetRipper exports for game and PIP reference packages batch-imported with Unity `5.6.7f1`. A separate private Git project produced a reconstructed L115 visual/PIP prefab, removed leaked legacy NightForce runtime types, and passed its editor contracts. | Passed; isolated research only, never NightForce source or release payload. |
 | Owner-private full-game archive | Full-game export is retained outside all Git worktrees with a compact private archive manifest for future Unity inspection and scope/API comparison. | Preserved; no repository or release payload contains it. |
 | Owner-private MeatKit package | Isolated private profile built and archive-validated a `0.0.2` r2modman ZIP. Manifest contains the standard `OtherLoader` dependency only; it contains no BubbleLevelSet or NightForce dependency. | Passed; human local H3VR comparison pending. |
@@ -37,9 +38,9 @@ State: `1.0.5 published; repaired native-PIP candidate deployed for VR test`
 
 ### Open blockers
 
-Repaired native PIP requires user VR confirmation. Automated source, Unity,
-MeatKit, package, and deployment checks pass; only mounted/held visual and
-direct-hand behavior can prove the native scope works.
+H3VR remains running. Current package deployment is deliberately paused until
+the game exits, then spawn, pick-up, detach, and mount must complete with no
+`FVRFireArmAttachmentInterface.OnAttach()` null reference.
 
 ## Plan
 
@@ -54,6 +55,7 @@ direct-hand behavior can prove the native scope works.
 | `[x]` | Map NightForce's existing model, controls, and reticle to native PIP fields. | Project-owned bridge references resolve to NightForce model/camera/switch/reticle data; legacy controller is explicitly replaced at runtime. |
 | `[x]` | Validate full-rip reconstruction workflow privately. | Matching Unity import, isolated private prefab contracts, MeatKit ZIP, and archive manifest pass without putting recovered assets in a repository or release. |
 | `[x]` | Repair NightForce native PIP attachment/controller wiring. | Unity migration serializes attachment, contract test passes, fresh MeatKit ZIP validates, and wrapper deploys it. |
+| `[ ]` | Deploy serialized attachment repair and repeat live interaction check. | Scope spawns, picks up, detaches, and mounts without `FVRFireArmAttachmentInterface.OnAttach()` exception; PIP and controls remain active. |
 | `[-]` | User VR-test repaired NightForce native PIP scope. | Mounted and held scope shows native PIP image/UI; zoom ring and both turrets turn; zeroing, reticle, and bubble still work. |
 
 ### Deferred
@@ -74,8 +76,8 @@ direct-hand behavior can prove the native scope works.
 | Pipeline | `h3vr.ps1 -Action Test`, then `Build` and `Package` | Windows output reports zero failures and expected package. |
 | Structural package audit | `h3vr.ps1 -Action InspectAssets -InputPath <archive> -ExpectedSha256 <sha256>` | Parser manifest and Unity batch audit complete; bootstrap and scratch cleanup confirmed. |
 | Native PIP reference audit | `h3vr.ps1 -Action InspectAssets` using each recorded reference SHA-256 | Fixed and variable scope manifests resolve native PIP components and their object relationships. |
-| Native PIP prefab bridge | `HLin Mods > NightForcePlus > Migrate to native PIP scope`, then `Run all runtime tests` | Serialized bridge has firearm attachment; source contract requires controller/interface replacement and UI/control colliders; test reports `PASS`. |
-| Native PIP package | Fresh Unity `Build`, then wrapper `Package`; deployment may reuse only that validated ZIP. | Candidate ZIP validates and deployment receipt is written. |
+| Native PIP prefab bridge | `HLin Mods > NightForcePlus > Migrate to native PIP scope`, then `Run all runtime tests` | Both attachment fields point to each other, `SubMounts` is non-null, direct-hand colliders remain present, and test reports `PASS`. |
+| Native PIP package | Fresh Unity `Build`, then wrapper `Package`; deployment may reuse only that validated ZIP. | Latest candidate ZIP validates; deployment receipt remains pending. |
 | Private reconstruction package | Private Unity batch rebuild/verify, then explicit private MeatKit profile build | Recovered visual/PIP prefab contract and package profile contract pass; ZIP opens with manifest, README, icon, plugin DLL, and asset bundles. |
 
 ### Manual H3VR acceptance
@@ -86,7 +88,7 @@ direct-hand behavior can prove the native scope works.
 | Scope reversed/180-degree mount | Bubble remains on same world-uphill side. | User verified release candidate in H3VR. |
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
 | Optic controls | Zoom, reticle, zero, elevation, and windage remain functional. | User verified release candidate in H3VR. |
-| Native PIP controls | Scope image and native UI appear. Zoom ring, elevation, windage, zeroing, reticle, and bubble work mounted and held. | Repaired candidate deployed; pending user VR interaction test. |
+| Native PIP controls | Scope image and native UI appear. Zoom ring, elevation, windage, zeroing, reticle, and bubble work mounted and held. | Deploy latest serialized attachment repair, then user VR test pending. |
 | Private reconstruction ZIP | r2modman imports local ZIP; scope spawns; PIP image, reticle, controls, and bubble work. | Pending user local test; not release evidence. |
 
 ### Release gate

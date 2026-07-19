@@ -138,6 +138,16 @@ branch-switch, or merge work; reopen it and wait for a complete import before
 using the GUI again. Save assets in their owning project root and commit matching
 `.meta` files; never hand-copy Unity assets between projects.
 
+#### Serialized native PIP scope attachment invariant
+
+Before packaging a serialized `PIPScopeController`, set both directions:
+`FVRFireArmAttachment.AttachmentInterface` must reference controller, and
+`PIPScopeController.Attachment` must reference same firearm attachment. Keep
+`PIPScopeController.SubMounts` non-null; empty valid. One-way wiring can load
+bundle but throw in `FVRFireArmAttachmentInterface.OnAttach()` when scope is
+picked up or mounted. Add editor assertions for both links; VR-test spawn,
+pick-up, detach, mount.
+
 ## Start Every Change
 
 1. Connect through `ssh "$H3VR_WINDOWS_HOST"` and preserve any user changes.
