@@ -975,8 +975,9 @@ function Test-R2modmanLocalPackageYamlEntry {
     }
     $entry = New-R2modmanLocalPackageYamlEntry $localManifest
     $quotedName = ConvertTo-YamlQuotedScalar $name
+    $nameLine = '  name: {0}' -f $quotedName
     if ($entry -notmatch ('(?m)^  name: ' + [regex]::Escape($quotedName) + '$')) {
-        throw ('r2modman YAML entry must keep name and scalar on one line. Actual: ' + ($entry -replace "`r`n", ' | '))
+        throw ('r2modman YAML entry must keep name and scalar on one line. quotedParts=' + @($quotedName).Count + '; quoted=' + ($quotedName -replace "`r`n", '<CRLF>') + '; directLine=' + ($nameLine -replace "`r`n", '<CRLF>') + '; actual=' + ($entry -replace "`r`n", ' | '))
     }
     if ($entry -match '(?m)^  name:\s*$') {
         throw 'r2modman YAML entry must not split name from its scalar.'
