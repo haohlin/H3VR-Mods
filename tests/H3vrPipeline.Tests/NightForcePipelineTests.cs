@@ -365,6 +365,36 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Generic_prefab_compare_action_and_status_are_headless_safe_and_exposed_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaPrefabComparison", StringComparison.Ordinal);
+        var statusStart = pipeline.IndexOf("function Get-UnityVanillaPrefabImportStatus", StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && statusStart > actionStart,
+            "Pipeline must expose a generic private prefab comparison action and status reader.");
+        var action = pipeline[actionStart..statusStart];
+        var statusEnd = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", statusStart, StringComparison.Ordinal);
+        Assert.True(statusEnd > statusStart,
+            "Pipeline must expose a bounded generic private prefab import status reader.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityVanillaPrefabCompareNightForce'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("'UnityVanillaPrefabImportStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabCompareNightForce", wrapper, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabImportStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabCompareNightForce requires -Query <prefab name>.", action, StringComparison.Ordinal);
+        Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabComparisonAgainstNightForce", action, StringComparison.Ordinal);
+        Assert.Contains("vanilla-prefab-importer-smoke.log", status, StringComparison.Ordinal);
+        Assert.Contains("[VanillaScopeReferenceImporter] COMPARE:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_vanilla_scope_import_status_is_read_only_and_exposed_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
