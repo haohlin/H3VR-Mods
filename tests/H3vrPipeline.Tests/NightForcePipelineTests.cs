@@ -290,6 +290,26 @@ public sealed class NightForcePipelineTests
         Assert.Contains("Windows Unity project is open", action, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Unsafe_private_scope_imports_can_be_moved_to_private_quarantine()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Move-PrivateVanillaScopeImportsToQuarantine", StringComparison.Ordinal);
+        var actionEnd = pipeline.IndexOf("function Invoke-Publish", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+            "Pipeline must expose a recoverable private-import quarantine action.");
+        var action = pipeline[actionStart..actionEnd];
+
+        Assert.Contains("'QuarantineVanillaScopeImports'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("QuarantineVanillaScopeImports", wrapper, StringComparison.Ordinal);
+        Assert.Contains("H3VR_PRIVATE_ASSET_LAB", action, StringComparison.Ordinal);
+        Assert.Contains("Move-Item -LiteralPath $sourceDirectory", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
+        Assert.Contains("moved, not deleted", action, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get

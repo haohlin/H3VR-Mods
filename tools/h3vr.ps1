@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1453,6 +1453,32 @@ function Assert-RemoteVersionIsNew {
     throw "Thunderstore version metadata request returned HTTP $statusCode for $($ModConfig.namespace)-$($ModConfig.packageName)-$Version."
 }
 
+function Move-PrivateVanillaScopeImportsToQuarantine {
+    $projectRoot = Get-UnityProjectRoot
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before quarantining vanilla scope imports.'
+    }
+
+    $sourceDirectory = Join-Path $projectRoot 'Assets\Projects\NightForcePlus\PrivateVanillaScopeReferences'
+    if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
+        Write-Host 'No private vanilla scope imports require quarantine.'
+        return
+    }
+
+    $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
+    if ([string]::IsNullOrWhiteSpace($assetLab) -or -not (Test-Path -LiteralPath $assetLab -PathType Container)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB must point to an existing private asset lab before quarantining imports.'
+    }
+
+    $quarantineRoot = Join-Path $assetLab 'quarantine\unity-vanilla-scope-imports'
+    Ensure-Directory $quarantineRoot
+    $destinationDirectory = Join-Path $quarantineRoot ('PrivateVanillaScopeReferences-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+    Move-Item -LiteralPath $sourceDirectory -Destination $destinationDirectory
+    Write-Host 'Quarantined unsafe private vanilla scope imports outside the Unity project. Original files were moved, not deleted.'
+}
+
 function Invoke-Publish {
     param([object]$ModConfig)
 
@@ -1533,6 +1559,7 @@ switch ($Action) {
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
     'UnityAssetRipStatus' { Get-UnityAssetRipImportStatus }
     'UnityVanillaImportSmokeTest' { Invoke-UnityVanillaScopeImportSmokeTest }
+    'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {
