@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-20`
-State: `1.0.5 native-PIP candidate locally deployed; H3VR acceptance pending`
+State: `1.0.5 native-PIP repair built as a local candidate; package/deploy and H3VR acceptance pending`
 
 ### Verified now
 
@@ -26,11 +26,14 @@ State: `1.0.5 native-PIP candidate locally deployed; H3VR acceptance pending`
 | Native magnification | Smooth 7--35x geometric magnification and matching native geometric ring positions are serialized. No archived wheel-angle mapping is used. | Windows runtime suite passed. |
 | Reticle visual scaling | Archived custom shader behavior was `0.846 * (M / 7)`. Native FFP preserves the transferable `M / 7` apparent-scale multiplier. Named MOA-XT, MIL-XT, and TREMOR3 canvases have measured angular FOVs. | Windows runtime suite passed. |
 | Current candidate package | Pipeline tests passed `100/100`; Windows Unity batch build completed; runtime PIP/gravity checks and archive validation passed. Candidate SHA-256 `D52569AA66CB7E0A735781ADD7191C0D5956DF1746C651697F0CB7676712C25C`. | Passed. |
-| Current candidate deployment | Validated native-PIP candidate deployed locally with a pipeline-created VR receipt. It is not a public release. | Deployed; manual acceptance pending. |
+| Prior candidate deployment | Earlier native-PIP candidate deployed locally with a pipeline-created VR receipt. User runtime report superseded it. It is not a public release. | Superseded by repaired candidate. |
+| Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. | Root cause traced to serialized legacy presentation plus invalid native PIP axis/clip data. |
+| Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
+| Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
 
 ### Open blockers
 
-Manual H3VR acceptance remains required for the native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, and visual centering/subtension.
+Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR.
 
 ## Plan
 
@@ -42,7 +45,9 @@ Manual H3VR acceptance remains required for the native PIP candidate: Item Spawn
 | `[x]` | Publish with explicit authorization. | BubbleLevelSet `2.0.4` published first. Documentation-only archive overlay preserved non-document payload hashes, package validation passed, and exact Thunderstore download URL returned HTTP `200` for `1.0.5`. |
 | `[x]` | Replace custom scope runtime with native PIP scope. | Serialized PIP components, geometric magnification, reticle canvases, and Windows batch checks pass. |
 | `[x]` | Deploy native-PIP candidate locally. | Validated candidate is installed with a VR receipt. |
-| `[ ]` | Perform native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, and visual alignment pass in H3VR. |
+| `[x]` | Repair native PIP presentation and interaction data. | Legacy presentation removed; positive optical axis, native camera, controls, and feedback pass serialized checks. |
+| `[ ]` | Package and deploy repaired native-PIP candidate. | Source/package validation succeeds through updated pipeline and local receipt matches current source. |
+| `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
 
 ### Deferred
 
@@ -72,13 +77,14 @@ Manual H3VR acceptance remains required for the native PIP candidate: Item Spawn
 | Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work. | Pending candidate VR test. |
 | Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
+| Native PIP presentation | No legacy menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 
 ### Release gate
 
 - [x] Current Windows source and managed DLL status checked.
 - [x] Automated checks pass: pipeline `100/100`; Unity runtime PIP/gravity suite passes.
-- [x] Fresh MeatKit package created from the exact profile.
-- [x] Local deployment receipt for the native-PIP candidate.
-- [ ] User H3VR acceptance for native PIP interaction and reticle visuals.
+- [x] Fresh MeatKit source package created from the exact profile after repair.
+- [ ] Pipeline package/deploy receipt for the repaired candidate.
+- [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.

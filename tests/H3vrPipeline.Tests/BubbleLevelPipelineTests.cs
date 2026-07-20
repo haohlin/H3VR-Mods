@@ -64,6 +64,17 @@ public sealed class BubbleLevelPipelineTests
     }
 
     [Fact]
+    public void Unity_wrapper_waits_for_a_detached_batch_worker_before_rejecting_its_launcher_exit()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("function Wait-ForUnityProjectBatchWorker", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Get-CimInstance Win32_Process", pipeline, StringComparison.Ordinal);
+        Assert.Contains("-batchmode", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Unity launcher exited", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_paths_stay_private_environment_configuration()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json")));

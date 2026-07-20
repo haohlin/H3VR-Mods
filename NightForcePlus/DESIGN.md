@@ -42,6 +42,12 @@ that progression rather than the archived wheel-angle list.
 - User-adjusted control and mount transforms, mesh, and UI wiring remain unchanged.
 - The optic uses native PIP components only; no `ScopeShaderZoom` runtime component or
   archived magnification-angle mapping remains.
+- No static legacy scope Canvas or render camera is serialized. `PIPScopeController`
+  creates its native popup UI at runtime.
+- Rear lens, front lens, PIP scope root, and PIP camera share one positive forward optical
+  axis. Native clip distances derive from front-lens spacing.
+- Magnification, elevation, and windage proxy transforms remain authored placements while
+  their native interactions retain controller links and click feedback.
 - Reticles are first-focal-plane. Their native angular canvas size is fixed while
   magnification changes smoothly, so their apparent size follows the archived
   `M / 7` visual multiplier without copying the archived shader value.
@@ -57,6 +63,7 @@ that progression rather than the archived wheel-angle list.
 | Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
 | Native PIP optic | Replace the obsolete custom scope runtime with H3VR's PIP scope/controller/interactions while preserving user-adjusted prefab transforms. | 2026-07-20 |
 | Reticle scaling boundary | The archived shader started at `0.846` and multiplied by `M / 7`. `0.846` is mesh/UV-shader-specific, so the native PIP implementation preserves the transferable `M / 7` FFP behavior and uses angular reticle canvases. | 2026-07-20 |
+| Native PIP presentation repair | Remove serialized legacy presentation, normalize the supported PIP optical axis, and preserve authored controls while restoring native interaction feedback. | 2026-07-20 |
 
 ## Known limits / backlog
 

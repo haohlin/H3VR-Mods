@@ -363,6 +363,48 @@ function Invoke-DotNetBuild {
     Invoke-CheckedNative { & dotnet build (Join-Path $RepoRoot $ModConfig.csproj) -c Release }
 }
 
+function Wait-ForUnityProjectBatchWorker {
+    param(
+        [string]$ProjectRoot,
+        [int]$StartupTimeoutSeconds = 5,
+        [int]$CompletionTimeoutSeconds = 900
+    )
+
+    $startupDeadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
+    $observedWorker = $false
+    do {
+        $workers = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.CommandLine -and $_.CommandLine -like '*-batchmode*' -and
+                $_.CommandLine -like "*$ProjectRoot*"
+            })
+        if ($workers.Count -gt 0) {
+            $observedWorker = $true
+            break
+        }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $startupDeadline)
+
+    if (-not $observedWorker) {
+        return $false
+    }
+
+    $completionDeadline = (Get-Date).AddSeconds($CompletionTimeoutSeconds)
+    do {
+        $workers = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.CommandLine -and $_.CommandLine -like '*-batchmode*' -and
+                $_.CommandLine -like "*$ProjectRoot*"
+            })
+        if ($workers.Count -eq 0) {
+            return $true
+        }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $completionDeadline)
+
+    throw "Unity batch worker did not exit before timeout for project: $ProjectRoot"
+}
+
 function Invoke-UnityBuild {
     param([object]$ModConfig)
 
@@ -400,7 +442,10 @@ function Invoke-UnityBuild {
         )
         $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
-            throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+            if (-not (Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot)) {
+                throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+            }
+            Write-Warning "Unity launcher exited with code $($process.ExitCode), but detached batch worker completed."
         }
 
         if ((Test-Path -LiteralPath $logPath) -and
