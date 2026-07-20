@@ -167,21 +167,12 @@ Do not run `Package` or `Deploy` for a new local candidate until this parity
 gate passes. A skill-only change needs no rebuild, but still needs Git and
 global-skill parity before the next deployment.
 
-### Concurrent multi-agent isolation
+### Parallel agents
 
-Use one dedicated branch and macOS Git worktree per agent/task. Worktrees
-isolate working files only; they do not prevent conflicts when agents edit the
-same files or push the same branch. Each agent commits and pushes only its own
-branch. A designated integration agent rebases or merges reviewed branches into
-the target branch.
-
-Windows is separate: use one Windows worktree per active branch, each resolved
-by only that task, or one serialized Windows executor. Never switch a shared
-Windows checkout while another task owns it. During a Windows lease, one agent
-alone runs `sync`, `Verify`, `Build`, `Test`, `Package`, `Deploy`, and runtime
-log checks. It must verify clean status and exact branch/HEAD before the first
-action and re-check `h3vr-remote git rev-parse HEAD` after every action. A
-different HEAD, dirty checkout, or expired lease stops the task before deploy.
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
 
 4. Read the affected mod, package source, `build/mods.json`, relevant tests, and
    `tools/h3vr.ps1` before implementation. Reuse existing local patterns.
