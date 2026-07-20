@@ -894,7 +894,10 @@ function ConvertTo-YamlQuotedScalar {
 }
 
 function New-R2modmanLocalPackageYamlEntry {
-    param([object]$LocalManifest)
+    param(
+        [object]$LocalManifest,
+        [switch]$Trace
+    )
 
     $packageName = [string]$LocalManifest.name
     $quotedName = ConvertTo-YamlQuotedScalar $packageName
@@ -931,6 +934,12 @@ function New-R2modmanLocalPackageYamlEntry {
         '  enabled: true'
         '  onlineSource: false'
     )
+
+    if ($Trace) {
+        for ($index = 0; $index -lt $lines.Count; $index++) {
+            Write-Host ('r2modman YAML trace line[' + $index + ']: type=' + $lines[$index].GetType().FullName + '; value=' + ($lines[$index] -replace "`r`n", '<CRLF>'))
+        }
+    }
 
     return [string]::Join("`r`n", [string[]]$lines)
 }
@@ -974,7 +983,7 @@ function Test-R2modmanLocalPackageYamlEntry {
         dependencies = @('Kodeman-GunGame-1.0.2')
         versionNumber = [pscustomobject]@{ major = 1; minor = 0; patch = 0 }
     }
-    $entry = New-R2modmanLocalPackageYamlEntry $localManifest
+    $entry = New-R2modmanLocalPackageYamlEntry -LocalManifest $localManifest -Trace
     $quotedName = ConvertTo-YamlQuotedScalar $name
     $nameLine = '  name: {0}' -f $quotedName
     if ($entry -notmatch ('(?m)^  name: ' + [regex]::Escape($quotedName) + '$')) {
