@@ -58,10 +58,12 @@ done
 
 asset_lab_prefix=""
 if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
-  if [[ "$H3VR_PRIVATE_ASSET_LAB" =~ [\&\|\<\>\(\)\^\"] ]]; then
-    printf 'H3VR_PRIVATE_ASSET_LAB contains unsupported shell characters.\n' >&2
-    exit 2
-  fi
+  case "$H3VR_PRIVATE_ASSET_LAB" in
+    *'&'*|*'|'*|*'<'*|*'>'*|*'('*|*')'*|*'^'*|*'"'*)
+      printf 'H3VR_PRIVATE_ASSET_LAB contains unsupported shell characters.\n' >&2
+      exit 2
+      ;;
+  esac
   asset_lab_prefix="set \"H3VR_PRIVATE_ASSET_LAB=${H3VR_PRIVATE_ASSET_LAB}\" && "
 fi
 
