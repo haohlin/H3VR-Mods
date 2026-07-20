@@ -70,6 +70,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("AuditItemId", wrapper, StringComparison.Ordinal);
         Assert.Contains("AuditItemId requires -Query <ItemID>.", audit, StringComparison.Ordinal);
         Assert.Contains("$EnvironmentConfig.r2modman.pluginsRoot", audit, StringComparison.Ordinal);
+        Assert.Contains("Auditing $($packageDirectories.Count) candidate package(s)", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
     }
