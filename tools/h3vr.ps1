@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1130,6 +1130,67 @@ function Find-InstalledItemId {
     }
 }
 
+function Invoke-UnityVanillaScopeImportSmokeTest {
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before importer smoke test.'
+    }
+
+    $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
+    Ensure-Directory $logDirectory
+    $logPath = Join-Path $logDirectory 'vanilla-scope-importer-smoke.log'
+    $methodName = 'HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunProjectSmokeTest'
+    $successMarker = '[VanillaScopeReferenceImporter] PASS:'
+
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        if (Test-Path -LiteralPath $logPath) {
+            Remove-Item -LiteralPath $logPath -Force
+        }
+        Write-Host "Running vanilla scope importer smoke test with Unity batch mode (attempt $attempt/2)."
+        $arguments = @(
+            '-batchmode',
+            '-nographics',
+            '-quit',
+            '-projectPath', ('"{0}"' -f $projectRoot),
+            '-executeMethod', $methodName,
+            '-logFile', ('"{0}"' -f $logPath)
+        )
+        $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+        $deadline = (Get-Date).AddSeconds(300)
+        do {
+            $passed = (Test-Path -LiteralPath $logPath) -and
+                (Select-String -LiteralPath $logPath -Pattern $successMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
+            $failed = (Test-Path -LiteralPath $logPath) -and
+                (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
+            if ($passed) {
+                Write-Host 'Vanilla scope importer smoke test passed.'
+                return
+            }
+            if ($failed) {
+                break
+            }
+            Start-Sleep -Seconds 1
+        } while ((Get-Date) -lt $deadline)
+
+        if ($attempt -eq 1 -and -not $failed) {
+            Write-Warning 'Unity recompiled scripts before running the importer smoke test; retrying once.'
+            continue
+        }
+        if ($process.ExitCode -ne 0) {
+            throw "Unity vanilla importer smoke test failed with exit code $($process.ExitCode). See $logPath"
+        }
+        throw "Unity did not complete the vanilla scope importer smoke test. See $logPath"
+    }
+}
+
 function Get-PrivateAssetArchiveStatus {
     $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
     if ([string]::IsNullOrWhiteSpace($assetLab)) {
@@ -1472,6 +1533,7 @@ switch ($Action) {
     'FindAssetRip' { Find-PrivateAssetRip $Query }
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
     'UnityAssetRipStatus' { Get-UnityAssetRipImportStatus }
+    'UnityVanillaImportSmokeTest' { Invoke-UnityVanillaScopeImportSmokeTest }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {

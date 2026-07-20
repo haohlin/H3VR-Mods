@@ -270,6 +270,25 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Unity_vanilla_scope_import_smoke_test_is_exposed_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaScopeImportSmokeTest", StringComparison.Ordinal);
+        var actionEnd = pipeline.IndexOf("function Get-PrivateAssetArchiveStatus", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+            "Pipeline must expose a Unity batch smoke test for the private vanilla scope importer.");
+        var action = pipeline[actionStart..actionEnd];
+
+        Assert.Contains("'UnityVanillaImportSmokeTest'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaImportSmokeTest", wrapper, StringComparison.Ordinal);
+        Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunProjectSmokeTest", action, StringComparison.Ordinal);
+        Assert.Contains("[VanillaScopeReferenceImporter] PASS:", action, StringComparison.Ordinal);
+        Assert.Contains("Windows Unity project is open", action, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
