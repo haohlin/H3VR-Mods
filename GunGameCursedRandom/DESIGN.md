@@ -45,7 +45,7 @@ GunGame SpawnAndEquip when enabled
 
 | Decision | Reason | Date |
 | --- | --- | --- |
-| Random progression defaults on once. | Lets a missing UI row not block core runtime testing; later UI choices persist. | 2026-07-20 |
+| Random progression forces on at each H3VR startup. | Prevents a persisted false setting from bypassing the only progression hook while Atlas menu UI remains unverified; an available menu row can still change the current session. | 2026-07-20 |
 | Reuse the Auto Loading row as startup UI template. | Adds one native-looking option without Unity scene edits. | 2026-07-19 |
 | Keep selected profile for enemy mode and run length only. | GunGame still needs its normal lifecycle; firearm profile contents are ignored. | 2026-07-19 |
 | Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
@@ -54,6 +54,7 @@ GunGame SpawnAndEquip when enabled
 
 | Priority | Item | Done when |
 | --- | --- | --- |
-| P0 | Runtime smoke test on GunGame map with Item Spawner V2. | Toggle appears; start/promotion/demotion each yield one hand-equipped random gun. |
+| P0 | Runtime smoke test on GunGame map with Item Spawner V2. | Start/promotion/demotion each yield one hand-equipped random gun. |
 | P0 | Validate generated magazine, cartridge, clip, and speedloader paths. | Loaded gun and spare quickbelt feed work without exceptions. |
+| P0 | Capture forced-override diagnostic trace. | Log proves patch owners, each transition entry, vanilla random result, cleanup, feed, quickbelt, and hand transfer. |
 | P1 | Verify UI placement on every supported GunGame map. | Toggle remains readable and click-target works. |

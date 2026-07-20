@@ -20,6 +20,12 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("AddStartupToggleWhenReady", source);
         Assert.Contains("RandomGunDefaultInitialized", source);
         Assert.Contains("Priority.First", source);
+        Assert.Contains("randomGunsEnabled.Value = true", source);
+        Assert.Contains("SpawnAndEquip entered", source);
+        Assert.Contains("SpawnAndEquip hook installed", source);
+        Assert.Contains("spawnerCount=", source);
+        Assert.Contains("vanilla random result", source);
+        Assert.Contains("quickbelt: spares=", source);
         Assert.Contains("slot.CurObject == null", source);
         Assert.Contains("Cursed random GunGame spawn:", source);
         Assert.DoesNotContain("private void Update(", source, StringComparison.Ordinal);

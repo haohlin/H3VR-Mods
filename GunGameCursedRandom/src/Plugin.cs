@@ -41,25 +41,23 @@ public sealed class Plugin : BaseUnityPlugin
             "General",
             "EnableRandomCursedGuns",
             true,
-            "Use H3VR Item Spawner random guns instead of GunGame profile weapons.");
+            "Use H3VR Item Spawner random guns instead of GunGame profile weapons. Forced on when H3VR starts; startup UI may change it for the current session.");
         randomGunDefaultInitialized = Config.Bind(
             "General",
             "RandomGunDefaultInitialized",
             false,
             "Internal one-time default migration.");
-        if (!randomGunDefaultInitialized.Value)
-        {
-            randomGunsEnabled.Value = true;
-            randomGunDefaultInitialized.Value = true;
-        }
+        var persistedRandomGunSetting = randomGunsEnabled.Value;
+        randomGunsEnabled.Value = true;
+        randomGunDefaultInitialized.Value = true;
         randomGunsEnabled.SettingChanged += (sender, args) => RefreshOptionVisual();
 
         var harmony = new Harmony(HarmonyId);
         Patch(harmony, "GunGame.Scripts.Options.GameSettings", "Start", "GameSettingsStartPostfix", false);
         Patch(harmony, "GunGame.Scripts.Progression", "SpawnAndEquip", "SpawnAndEquipPrefix", true);
         SceneManager.sceneLoaded += OnSceneLoaded;
-        Logger.LogInfo("GunGame Cursed Random ready. Toggle RANDOM CURSED GUNS in GunGame settings.");
-        Logger.LogInfo("Random cursed GunGame progression is enabled by default.");
+        Logger.LogInfo("GunGame Cursed Random ready. Random progression is force-enabled for this H3VR session.");
+        Logger.LogInfo("GunGame Cursed Random trace: persisted random setting=" + persistedRandomGunSetting + "; effective startup setting=true.");
     }
 
     private void Start()
@@ -104,11 +102,28 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             harmony.Patch(original, prefix: prefix);
+            if (patchName == "SpawnAndEquipPrefix")
+            {
+                LogSpawnAndEquipPatchInfo(original);
+            }
         }
         else
         {
             harmony.Patch(original, postfix: new HarmonyMethod(patch));
         }
+    }
+
+    private void LogSpawnAndEquipPatchInfo(MethodBase original)
+    {
+        var patchInfo = Harmony.GetPatchInfo(original);
+        var prefixes = patchInfo == null
+            ? new string[0]
+            : patchInfo.Prefixes
+                .Select(prefix => prefix.owner + "@" + prefix.priority)
+                .ToArray();
+        Logger.LogInfo(
+            "GunGame Cursed Random trace: SpawnAndEquip hook installed; target=" + original +
+            "; prefixes=[" + string.Join(", ", prefixes) + "].");
     }
 
     private static void GameSettingsStartPostfix(object __instance)
@@ -144,25 +159,42 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogWarning("GunGame settings were not available for RANDOM CURSED GUNS.");
     }
 
-    private static bool SpawnAndEquipPrefix(object __instance)
+    private static bool SpawnAndEquipPrefix(object __instance, bool __0)
     {
-        if (instance == null || !instance.randomGunsEnabled.Value)
+        if (instance == null)
         {
             return true;
         }
 
-        instance.Logger.LogInfo("Cursed random GunGame override requested.");
-        return !instance.TryStartRandomSpawn(__instance);
+        instance.Logger.LogInfo(
+            "GunGame Cursed Random trace: SpawnAndEquip entered; demotion=" + __0 +
+            "; randomEnabled=" + instance.randomGunsEnabled.Value +
+            "; progression=" + (__instance == null ? "null" : __instance.GetType().FullName) + ".");
+        if (!instance.randomGunsEnabled.Value)
+        {
+            instance.Logger.LogWarning("GunGame Cursed Random trace: random override bypassed because current-session setting is false.");
+            return true;
+        }
+
+        var started = instance.TryStartRandomSpawn(__instance);
+        instance.Logger.LogInfo("GunGame Cursed Random trace: SpawnAndEquip override started=" + started + "; original profile spawn=" + (!started) + ".");
+        return !started;
     }
 
     private bool TryStartRandomSpawn(object progression)
     {
         if (spawningRandomGun)
         {
+            Logger.LogWarning("GunGame Cursed Random trace: random spawn already pending; suppressing duplicate GunGame profile spawn.");
             return true;
         }
 
-        var spawner = UnityEngine.Object.FindObjectOfType<ItemSpawnerV2>();
+        var spawners = UnityEngine.Object.FindObjectsOfType<ItemSpawnerV2>();
+        var spawner = spawners.FirstOrDefault();
+        Logger.LogInfo(
+            "GunGame Cursed Random trace: random spawn request; spawnerCount=" + spawners.Length +
+            "; selectedSpawner=" + (spawner == null ? "none" : spawner.name) +
+            "; trackedRandomEquipment=" + activeRandomEquipment.Count + ".");
         if (spawner == null)
         {
             if (!missingSpawnerLogged)
@@ -190,9 +222,15 @@ public sealed class Plugin : BaseUnityPlugin
         spawningRandomGun = true;
         var previousGun = randomGunField.GetValue(spawner) as GameObject;
         var before = CapturePhysicalObjects();
+        Logger.LogInfo(
+            "GunGame Cursed Random trace: invoking vanilla random API; method=" + randomGunMethod +
+            "; resultField=" + randomGunField.Name +
+            "; previousGun=" + NameOf(previousGun) +
+            "; physicalObjectsBefore=" + before.Count + ".");
         try
         {
             randomGunMethod.Invoke(spawner, null);
+            Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(randomGunField.GetValue(spawner) as GameObject) + ".");
             StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before));
             return true;
         }
@@ -211,8 +249,10 @@ public sealed class Plugin : BaseUnityPlugin
         HashSet<int> before)
     {
         GameObject randomGun = null;
+        var waitedFrames = 0;
         for (var frame = 0; frame < RandomGunWaitFrames; frame++)
         {
+            waitedFrames = frame + 1;
             randomGun = randomGunField.GetValue(spawner) as GameObject;
             if (randomGun != null && randomGun != previousGun)
             {
@@ -226,7 +266,9 @@ public sealed class Plugin : BaseUnityPlugin
         var gun = randomGun == null ? null : randomGun.GetComponent<FVRPhysicalObject>();
         if (gun == null)
         {
-            Logger.LogWarning("Item Spawner random-gun API did not produce a usable firearm; keeping current GunGame weapon.");
+            Logger.LogWarning(
+                "GunGame Cursed Random trace: vanilla random API produced no usable firearm after " +
+                waitedFrames + " frames; keeping current GunGame weapon.");
             yield break;
         }
 
@@ -237,6 +279,11 @@ public sealed class Plugin : BaseUnityPlugin
         {
             spawned.Add(gun);
         }
+
+        Logger.LogInfo(
+            "GunGame Cursed Random trace: vanilla random result; waitFrames=" + waitedFrames +
+            "; gun=" + NameOf(gun) +
+            "; newPhysicalObjects=" + spawned.Count + ".");
 
         DestroyGunGameEquipment(progression);
         DestroyTrackedEquipment();
@@ -284,6 +331,7 @@ public sealed class Plugin : BaseUnityPlugin
                 {
                     magazine.Load(firearm);
                     magazine.ReloadMagWithType(AM.SRoundDisplayDataDic[magazine.RoundType].Classes[0].Class);
+                    Trace("loaded magazine=" + NameOf(magazine) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
 
@@ -292,6 +340,7 @@ public sealed class Plugin : BaseUnityPlugin
                 if (cylinder != null && speedloader != null)
                 {
                     cylinder.LoadFromSpeedLoader(speedloader);
+                    Trace("loaded speedloader=" + NameOf(speedloader) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
 
@@ -299,15 +348,17 @@ public sealed class Plugin : BaseUnityPlugin
                 if (firearm != null && round != null && firearm.GetChambers().Count > 0)
                 {
                     firearm.GetChambers()[0].SetRound(round, false);
+                    Trace("loaded round=" + NameOf(round) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
             }
-            catch
+            catch (Exception exception)
             {
-                // Item Spawner may generate a legal but non-interchangeable feed.
+                Trace("feed rejected=" + NameOf(feed) + "; reason=" + exception.GetType().Name + ".");
             }
         }
 
+        Trace("no compatible generated feed for gun=" + NameOf(gun) + ".");
         return null;
     }
 
@@ -331,18 +382,23 @@ public sealed class Plugin : BaseUnityPlugin
         FVRPhysicalObject loadedFeed)
     {
         var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
-        var emptySlots = new[]
+        var candidateSlots = new[]
             {
                 GetQuickbeltSlot("AmmoQuickbeltSlot", 0),
                 GetQuickbeltSlot("ExtraQuickbeltSlot", 1)
             }
-            .Where(slot => slot != null && slot.CurObject == null)
+            .Where(slot => slot != null)
             .Distinct()
             .ToList();
+        Trace(
+            "quickbelt: spares=" + spares.Count +
+            "; slots=[" + string.Join(", ", candidateSlots.Select(slot => slot.name + "=" + NameOf(slot.CurObject)).ToArray()) + "].");
+        var emptySlots = candidateSlots.Where(slot => slot.CurObject == null).ToList();
         for (var index = 0; index < spares.Count && index < emptySlots.Count; index++)
         {
             spares[index].ForceObjectIntoInventorySlot(emptySlots[index]);
             spares[index].m_isSpawnLock = true;
+            Trace("quickbelt: placed=" + NameOf(spares[index]) + "; slot=" + emptySlots[index].name + ".");
         }
     }
 
@@ -388,7 +444,15 @@ public sealed class Plugin : BaseUnityPlugin
     private static void EquipInGunGameHand(FVRPhysicalObject gun)
     {
         var leftHand = ReadStaticBool("GunGame.Scripts.Options.LeftHandOption", "LeftHandModeEnabled");
-        GM.CurrentMovementManager.Hands[leftHand ? 0 : 1].RetrieveObject(gun);
+        var handIndex = leftHand ? 0 : 1;
+        if (GM.CurrentMovementManager == null || GM.CurrentMovementManager.Hands == null || GM.CurrentMovementManager.Hands.Length <= handIndex)
+        {
+            Trace("hand equip failed: movement manager or selected hand unavailable; handIndex=" + handIndex + ".");
+            return;
+        }
+
+        Trace("hand equip: gun=" + NameOf(gun) + "; handIndex=" + handIndex + "; leftHandMode=" + leftHand + ".");
+        GM.CurrentMovementManager.Hands[handIndex].RetrieveObject(gun);
     }
 
     private static bool ReadStaticBool(string typeName, string fieldName)
@@ -402,6 +466,8 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static void DestroyGunGameEquipment(object progression)
     {
+        var destroyedOldEquipment = false;
+        var clearedWeaponBuffer = false;
         try
         {
             var clearEquipment = progression == null
@@ -410,6 +476,7 @@ public sealed class Plugin : BaseUnityPlugin
             if (clearEquipment != null)
             {
                 clearEquipment.Invoke(progression, null);
+                destroyedOldEquipment = true;
             }
 
             var component = progression as Component;
@@ -419,16 +486,20 @@ public sealed class Plugin : BaseUnityPlugin
             if (clearBuffer != null)
             {
                 clearBuffer.Invoke(buffer, null);
+                clearedWeaponBuffer = true;
             }
+
+            Trace("cleanup: DestroyOldEq=" + destroyedOldEquipment + "; ClearBuffer=" + clearedWeaponBuffer + ".");
         }
-        catch
+        catch (Exception exception)
         {
-            // A cleanup issue must not prevent delivery of a successful random gun.
+            Trace("cleanup failed: " + exception.GetType().Name + ".");
         }
     }
 
     private void DestroyTrackedEquipment()
     {
+        var destroyed = 0;
         foreach (var item in activeRandomEquipment)
         {
             if (item != null)
@@ -440,10 +511,15 @@ public sealed class Plugin : BaseUnityPlugin
                 }
 
                 UnityEngine.Object.Destroy(item);
+                destroyed++;
             }
         }
 
         activeRandomEquipment.Clear();
+        if (destroyed > 0)
+        {
+            Logger.LogInfo("GunGame Cursed Random trace: destroyed prior tracked random equipment=" + destroyed + ".");
+        }
     }
 
     private static void NotifyWeaponChanged(object progression)
@@ -455,7 +531,11 @@ public sealed class Plugin : BaseUnityPlugin
         if (callback != null)
         {
             callback();
+            Trace("WeaponChangedEvent invoked.");
+            return;
         }
+
+        Trace("WeaponChangedEvent was unavailable.");
     }
 
     private void AddStartupToggle(object settings)
@@ -551,6 +631,19 @@ public sealed class Plugin : BaseUnityPlugin
     private static string NameOf(FVRPhysicalObject item)
     {
         return item == null || item.ObjectWrapper == null ? "unknown" : item.ObjectWrapper.DisplayName;
+    }
+
+    private static string NameOf(GameObject item)
+    {
+        return item == null ? "none" : item.name;
+    }
+
+    private static void Trace(string message)
+    {
+        if (instance != null)
+        {
+            instance.Logger.LogInfo("GunGame Cursed Random trace: " + message);
+        }
     }
 }
 
