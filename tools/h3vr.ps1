@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'SyncUnitySource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -185,6 +185,20 @@ function Get-UnityPackageSourcePath {
     return Join-Path (Get-UnityProjectRoot) $relativePath
 }
 
+function Prepare-UnityProjectSourceSync {
+    param([string]$Branch)
+
+    if ([string]::IsNullOrWhiteSpace($Branch)) {
+        throw 'PrepareUnitySourceSync requires -Query <branch>.'
+    }
+
+    $stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'
+    $payloadPath = Join-Path $stagingRoot 'NightForcePlus-source.zip'
+    Ensure-Directory $stagingRoot
+    [IO.File]::WriteAllBytes($payloadPath, [byte[]]@())
+    Write-Host "Unity source upload prepared for branch $Branch. SHA256: $(Get-FileSha256 $payloadPath)"
+}
+
 function Sync-UnityProjectSource {
     param([string]$Branch)
 
@@ -201,19 +215,22 @@ function Sync-UnityProjectSource {
     }
 
     $stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'
-    $sourceRepository = 'https://github.com/haohlin/H3VR-unity-projects.git'
-    $sourceModRoot = Join-Path $stagingRoot 'NightForcePlus'
+    $payloadPath = Join-Path $stagingRoot 'NightForcePlus-source.zip'
+    $extractRoot = Join-Path $stagingRoot 'extracted'
+    $sourceModRoot = Join-Path $extractRoot 'NightForcePlus'
     $targetModRoot = Join-Path $sourceRoot 'NightForcePlus'
-    $sourceMeta = Join-Path $stagingRoot 'NightForcePlus.meta'
+    $sourceMeta = Join-Path $extractRoot 'NightForcePlus.meta'
     $targetMeta = Join-Path $sourceRoot 'NightForcePlus.meta'
 
-    if (Test-Path -LiteralPath $stagingRoot) {
-        Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+    if (-not (Test-Path -LiteralPath $payloadPath -PathType Leaf)) {
+        throw 'Unity source upload is missing. Run PrepareUnitySourceSync and upload the reviewed payload first.'
     }
-    Ensure-Directory (Split-Path -Parent $stagingRoot)
+    if (Test-Path -LiteralPath $extractRoot) {
+        Remove-Item -LiteralPath $extractRoot -Recurse -Force
+    }
 
     try {
-        Invoke-CheckedNative { & git clone --depth 1 --branch $Branch $sourceRepository $stagingRoot }
+        Expand-Archive -LiteralPath $payloadPath -DestinationPath $extractRoot -Force
         if (-not (Test-Path -LiteralPath $sourceModRoot -PathType Container) -or
             -not (Test-Path -LiteralPath $sourceMeta -PathType Leaf)) {
             throw 'Unity source branch lacks the NightForcePlus source payload.'
@@ -236,12 +253,12 @@ function Sync-UnityProjectSource {
         }
     }
     finally {
-        if (Test-Path -LiteralPath $stagingRoot) {
-            Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+        if (Test-Path -LiteralPath $extractRoot) {
+            Remove-Item -LiteralPath $extractRoot -Recurse -Force
         }
     }
 
-    Write-Host "Unity NightForcePlus source synchronized from branch $Branch with verified hashes."
+    Write-Host "Unity NightForcePlus source payload synchronized for branch $Branch with verified hashes."
 }
 
 function Get-SourceManifestPath {
@@ -1138,6 +1155,7 @@ switch ($Action) {
         Select-String -Path ($sourceMatches.Path | Sort-Object -Unique) -Pattern ("\b" + [regex]::Escape($methodName) + "\s*\(")
     }
     'GrepSource' { if ([string]::IsNullOrWhiteSpace($Query)) { throw 'GrepSource requires -Query.' }; Find-SourceText $Query }
+    'PrepareUnitySourceSync' { Prepare-UnityProjectSourceSync $Query }
     'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
