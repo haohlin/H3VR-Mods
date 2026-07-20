@@ -547,10 +547,11 @@ function Invoke-UnityBuild {
             '-logFile', ('"{0}"' -f $logPath)
         )
         $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+        $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot
+        if ($process.ExitCode -ne 0 -and -not $workerCompleted) {
+            throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
+        }
         if ($process.ExitCode -ne 0) {
-            if (-not (Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot)) {
-                throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
-            }
             Write-Warning "Unity launcher exited with code $($process.ExitCode), but detached batch worker completed."
         }
 
