@@ -56,7 +56,7 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
-    public void Unity_build_waits_for_detached_worker_before_evaluating_retry()
+    public void Unity_build_waits_for_its_success_marker_and_package_before_evaluating_retry()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var buildStart = pipeline.IndexOf("function Invoke-UnityBuild", StringComparison.Ordinal);
@@ -66,11 +66,13 @@ public sealed class NightForcePipelineTests
             "Pipeline must expose the Unity build implementation.");
         var build = pipeline[buildStart..buildEnd];
 
-        Assert.Contains("$workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", build,
+        Assert.Contains("function Wait-ForUnityBuildOutput", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$buildCompleted = Wait-ForUnityBuildOutput", build,
             StringComparison.Ordinal);
-        Assert.Contains("if ($process.ExitCode -ne 0 -and -not $workerCompleted)", build,
+        Assert.Contains("if ($process.ExitCode -ne 0 -and -not $buildCompleted)", build,
             StringComparison.Ordinal);
-        Assert.Contains("[int]$StartupTimeoutSeconds = 60", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", build,
+            StringComparison.Ordinal);
     }
 
     [Fact]
