@@ -615,11 +615,18 @@ function Get-UnityBuildStatus {
         (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
     $hasFailureMarker = (Test-Path -LiteralPath $logPath) -and
         (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure' -Quiet -ErrorAction SilentlyContinue)
-    $runtimeDiagnostics = if (Test-Path -LiteralPath $logPath) {
-        @(Select-String -LiteralPath $logPath -Pattern '\[NightForcePlusRuntime\]' -AllMatches -ErrorAction SilentlyContinue).Count
+    $runtimeDiagnosticLines = if (Test-Path -LiteralPath $logPath) {
+        @(Select-String -LiteralPath $logPath -Pattern '\[NightForcePlusRuntime\]' -ErrorAction SilentlyContinue)
     }
     else {
-        0
+        @()
+    }
+    $runtimeDiagnostics = $runtimeDiagnosticLines.Count
+    $lastRuntimeDiagnostic = if ($runtimeDiagnostics -gt 0) {
+        ($runtimeDiagnosticLines[-1].Line -replace '[A-Za-z]:\\[^\s]+', '<private-path>').Trim()
+    }
+    else {
+        'none'
     }
     $state = if ($hasSourcePackage -and $hasSuccessMarker) { 'ready' } elseif ($hasSourcePackage) { 'package-without-success-marker' } elseif ($hasSuccessMarker) { 'marker-without-package' } else { 'pending-or-failed' }
 
@@ -627,6 +634,7 @@ function Get-UnityBuildStatus {
     Write-Host "Success marker present: $hasSuccessMarker"
     Write-Host "Build failure marker present: $hasFailureMarker"
     Write-Host "NightForce runtime diagnostics: $runtimeDiagnostics"
+    Write-Host "Last NightForce runtime diagnostic: $lastRuntimeDiagnostic"
     Write-Host "Source package present: $hasSourcePackage"
     if ($hasSourcePackage) {
         Write-Host "Source package SHA-256: $(Get-FileSha256 $packagePath)"
