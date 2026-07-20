@@ -962,6 +962,16 @@ function Remove-R2modmanLocalPackageYamlEntries {
     return $output.ToString().Trim()
 }
 
+function Test-R2modmanLocalPackageYamlEntryIsValid {
+    param(
+        [string]$Yaml,
+        [string]$Name
+    )
+
+    $pattern = '(?m)^-\s+manifestVersion:[ \t]*2[ \t]*\r?\n[ \t]+name:[ \t]*["'']?' + [regex]::Escape($Name) + '["'']?[ \t]*\r?$'
+    return $Yaml -match $pattern
+}
+
 function Test-R2modmanLocalPackageYamlEntry {
     $name = 'HLin_Mods-GunGame_Cursed_Random'
     $localManifest = [pscustomobject]@{
@@ -984,6 +994,12 @@ function Test-R2modmanLocalPackageYamlEntry {
     }
 
     $brokenEntry = "- manifestVersion: 2`r`n  name:`r`n$quotedName`r`n  onlineSource: false"
+    if (-not (Test-R2modmanLocalPackageYamlEntryIsValid -Yaml $entry -Name $name)) {
+        throw 'r2modman YAML entry must recognize a valid inline name scalar.'
+    }
+    if (Test-R2modmanLocalPackageYamlEntryIsValid -Yaml $brokenEntry -Name $name) {
+        throw 'r2modman YAML entry must reject a multiline name scalar.'
+    }
     $remaining = Remove-R2modmanLocalPackageYamlEntries -Yaml ("- manifestVersion: 2`r`n  name: 'Other-Mod'`r`n  onlineSource: false`r`n" + $brokenEntry) -Name $name
     if ($remaining -match [regex]::Escape($name) -or $remaining -notmatch 'Other-Mod') {
         throw 'r2modman YAML repair must remove only the target malformed entry.'
@@ -998,8 +1014,7 @@ function Set-R2modmanLocalPackageYamlEntry {
         [string]$Entry
     )
 
-    $validEntryPattern = '(?ms)^-\s+manifestVersion:\s*2\s*\r?\n\s+name:\s*["'']?' + [regex]::Escape($Name) + '["'']?\s*\r?$'
-    if ($Existing -match $validEntryPattern) {
+    if (Test-R2modmanLocalPackageYamlEntryIsValid -Yaml $Existing -Name $Name) {
         return
     }
 
@@ -1019,6 +1034,11 @@ function Set-R2modmanLocalPackageYamlEntry {
     }
     else {
         [System.IO.File]::Move($tempPath, $ModsPath)
+    }
+
+    $written = Get-Content -LiteralPath $ModsPath -Raw
+    if (-not (Test-R2modmanLocalPackageYamlEntryIsValid -Yaml $written -Name $Name)) {
+        throw "r2modman profile YAML repair did not produce a valid entry for $Name."
     }
 }
 
