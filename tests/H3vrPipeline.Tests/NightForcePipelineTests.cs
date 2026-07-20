@@ -362,6 +362,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabSmokeTest", action, StringComparison.Ordinal);
         Assert.Contains("'-projectPath', ('\"{0}\"' -f $projectRoot)", action, StringComparison.Ordinal);
         Assert.Contains("'-logFile', ('\"{0}\"' -f $logPath)", action, StringComparison.Ordinal);
+        Assert.Contains("Wait-ForVanillaPrefabImporterResult", action, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
     }
@@ -390,6 +391,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabComparisonAgainstNightForce", action, StringComparison.Ordinal);
         Assert.Contains("'-projectPath', ('\"{0}\"' -f $projectRoot)", action, StringComparison.Ordinal);
         Assert.Contains("'-logFile', ('\"{0}\"' -f $logPath)", action, StringComparison.Ordinal);
+        Assert.Contains("Wait-ForVanillaPrefabImporterResult", action, StringComparison.Ordinal);
         Assert.Contains("vanilla-prefab-importer-smoke.log", status, StringComparison.Ordinal);
         Assert.Contains("[VanillaScopeReferenceImporter] COMPARE:", status, StringComparison.Ordinal);
         Assert.Contains("if ($null -eq $content)", status, StringComparison.Ordinal);
