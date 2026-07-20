@@ -12,7 +12,7 @@ fi
 while IFS='=' read -r key value || [[ -n "$key" ]]; do
   [[ -z "$key" || "$key" == \#* ]] && continue
   case "$key" in
-    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY)
+    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY|H3VR_PRIVATE_ASSET_LAB)
       export "$key=$value"
       ;;
     *)
@@ -56,4 +56,13 @@ for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_
   remote_command+="$(windows_quote "$argument") "
 done
 
-exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$remote_command"
+asset_lab_prefix=""
+if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
+  if [[ "$H3VR_PRIVATE_ASSET_LAB" =~ [\&\|\<\>\(\)\^\"] ]]; then
+    printf 'H3VR_PRIVATE_ASSET_LAB contains unsupported shell characters.\n' >&2
+    exit 2
+  fi
+  asset_lab_prefix="set \"H3VR_PRIVATE_ASSET_LAB=${H3VR_PRIVATE_ASSET_LAB}\" && "
+fi
+
+exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$asset_lab_prefix$remote_command"
