@@ -74,11 +74,11 @@ public sealed class NightForcePipelineTests
         Assert.Contains("SyncUnitySource requires -Query <branch>.", sync, StringComparison.Ordinal);
         Assert.Contains("Get-UnityProjectRoot", sync, StringComparison.Ordinal);
         Assert.Contains("Join-Path $projectRoot 'Assets\\Projects'", sync, StringComparison.Ordinal);
-        Assert.Contains("git -C \\\"$sourceRoot\\\" rev-parse --is-inside-work-tree", sync, StringComparison.Ordinal);
-        Assert.Contains("cmd.exe /d /c", sync, StringComparison.Ordinal);
-        Assert.Contains("git -C $sourceRoot fetch origin --prune", sync, StringComparison.Ordinal);
-        Assert.Contains("git -C $sourceRoot checkout $Branch", sync, StringComparison.Ordinal);
-        Assert.Contains("git -C $sourceRoot pull --ff-only", sync, StringComparison.Ordinal);
+        Assert.Contains("$stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'", sync, StringComparison.Ordinal);
+        Assert.Contains("git clone --depth 1 --branch $Branch", sync, StringComparison.Ordinal);
+        Assert.Contains("Copy-Item -LiteralPath (Join-Path $stagingRoot 'NightForcePlus')", sync, StringComparison.Ordinal);
+        Assert.Contains("Get-FileSha256", sync, StringComparison.Ordinal);
+        Assert.DoesNotContain("git -C $sourceRoot checkout", sync, StringComparison.Ordinal);
         Assert.DoesNotContain("reset --hard", sync, StringComparison.Ordinal);
     }
 
