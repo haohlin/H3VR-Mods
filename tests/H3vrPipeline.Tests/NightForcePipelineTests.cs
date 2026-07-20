@@ -73,7 +73,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("SyncUnitySource", wrapper, StringComparison.Ordinal);
         Assert.Contains("SyncUnitySource requires -Query <branch>.", sync, StringComparison.Ordinal);
         Assert.Contains("Get-UnityProjectRoot", sync, StringComparison.Ordinal);
-        Assert.Contains("git -C $projectRoot rev-parse --is-inside-work-tree", sync, StringComparison.Ordinal);
+        Assert.Contains("git -C \\\"$projectRoot\\\" rev-parse --is-inside-work-tree", sync, StringComparison.Ordinal);
         Assert.Contains("cmd.exe /d /c", sync, StringComparison.Ordinal);
         Assert.Contains("git -C $projectRoot fetch origin --prune", sync, StringComparison.Ordinal);
         Assert.Contains("git -C $projectRoot checkout $Branch", sync, StringComparison.Ordinal);
