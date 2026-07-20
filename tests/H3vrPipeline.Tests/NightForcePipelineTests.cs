@@ -347,9 +347,11 @@ public sealed class NightForcePipelineTests
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
         var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaPrefabSmokeTest", StringComparison.Ordinal);
+        Assert.True(actionStart >= 0,
+            "Pipeline must expose a generic private vanilla-prefab smoke test.");
         var actionEnd = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", actionStart, StringComparison.Ordinal);
 
-        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+        Assert.True(actionEnd > actionStart,
             "Pipeline must expose a generic private vanilla-prefab smoke test.");
         var action = pipeline[actionStart..actionEnd];
 
