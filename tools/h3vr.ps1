@@ -194,35 +194,54 @@ function Sync-UnityProjectSource {
 
     $projectRoot = Get-UnityProjectRoot
     $sourceRoot = Join-Path $projectRoot 'Assets\Projects'
-    & cmd.exe /d /c "git -C \"$sourceRoot\" rev-parse --is-inside-work-tree >NUL 2>NUL"
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Windows Unity source checkout is not a Git worktree; cannot perform guarded source sync.'
-    }
-
     $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
     if ($openEditors.Count -gt 0) {
         throw 'Windows Unity project is open. Close the editor before source sync.'
     }
 
-    & git -C $sourceRoot diff --quiet
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Windows Unity project has tracked changes; refusing source sync.'
+    $stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'
+    $sourceRepository = 'https://github.com/haohlin/H3VR-unity-projects.git'
+    $sourceModRoot = Join-Path $stagingRoot 'NightForcePlus'
+    $targetModRoot = Join-Path $sourceRoot 'NightForcePlus'
+    $sourceMeta = Join-Path $stagingRoot 'NightForcePlus.meta'
+    $targetMeta = Join-Path $sourceRoot 'NightForcePlus.meta'
+
+    if (Test-Path -LiteralPath $stagingRoot) {
+        Remove-Item -LiteralPath $stagingRoot -Recurse -Force
     }
-    & git -C $sourceRoot diff --cached --quiet
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Windows Unity project has staged changes; refusing source sync.'
+    Ensure-Directory (Split-Path -Parent $stagingRoot)
+
+    try {
+        Invoke-CheckedNative { & git clone --depth 1 --branch $Branch $sourceRepository $stagingRoot }
+        if (-not (Test-Path -LiteralPath $sourceModRoot -PathType Container) -or
+            -not (Test-Path -LiteralPath $sourceMeta -PathType Leaf)) {
+            throw 'Unity source branch lacks the NightForcePlus source payload.'
+        }
+
+        Ensure-Directory $sourceRoot
+        Copy-Item -LiteralPath (Join-Path $stagingRoot 'NightForcePlus') -Destination $sourceRoot -Recurse -Force
+        Copy-Item -LiteralPath $sourceMeta -Destination $targetMeta -Force
+
+        foreach ($sourceFile in @(Get-ChildItem -LiteralPath $sourceModRoot -Recurse -File)) {
+            $relativePath = $sourceFile.FullName.Substring($sourceModRoot.Length).TrimStart('\')
+            $targetFile = Join-Path $targetModRoot $relativePath
+            if (-not (Test-Path -LiteralPath $targetFile -PathType Leaf) -or
+                (Get-FileSha256 $sourceFile.FullName) -ne (Get-FileSha256 $targetFile)) {
+                throw 'Windows Unity NightForcePlus source hash verification failed.'
+            }
+        }
+        if ((Get-FileSha256 $sourceMeta) -ne (Get-FileSha256 $targetMeta)) {
+            throw 'Windows Unity NightForcePlus folder metadata hash verification failed.'
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $stagingRoot) {
+            Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+        }
     }
 
-    Invoke-CheckedNative { & git -C $sourceRoot fetch origin --prune }
-    Invoke-CheckedNative { & git -C $sourceRoot checkout $Branch }
-    Invoke-CheckedNative { & git -C $sourceRoot pull --ff-only }
-    $commit = (& git -C $sourceRoot rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Could not resolve synchronized Windows Unity source commit.'
-    }
-
-    Write-Host "Unity source synchronized to branch $Branch at $commit."
+    Write-Host "Unity NightForcePlus source synchronized from branch $Branch with verified hashes."
 }
 
 function Get-SourceManifestPath {
