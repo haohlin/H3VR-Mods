@@ -39,6 +39,8 @@ public sealed class NightForcePipelineTests
         Assert.Contains("'NightForcePlus'", pipeline, StringComparison.Ordinal);
         Assert.Contains("Invoke-UnityBuild", pipeline, StringComparison.Ordinal);
         Assert.Contains("New-UnityPackage", pipeline, StringComparison.Ordinal);
+        Assert.Contains("function Get-ModProjectDirectory", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("$ModConfig.projectDir", pipeline, StringComparison.Ordinal);
     }
 
     private static string RepositoryRoot

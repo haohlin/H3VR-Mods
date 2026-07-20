@@ -634,10 +634,21 @@ function Copy-Payload {
     }
 }
 
+function Get-ModProjectDirectory {
+    param([object]$ModConfig)
+
+    $property = $ModConfig.PSObject.Properties['projectDir']
+    if ($null -eq $property) {
+        return $null
+    }
+
+    return [string]$property.Value
+}
+
 function Get-EffectiveBuildConfiguration {
     param([object]$ModConfig)
 
-    if ($ModConfig.projectDir -eq 'GunGameProgressions') {
+    if ((Get-ModProjectDirectory $ModConfig) -eq 'GunGameProgressions') {
         return $GunGameBuildConfiguration
     }
 
@@ -651,7 +662,7 @@ function Assert-GunGameReleasePackage {
         [string]$BuildConfiguration
     )
 
-    if ($ModConfig.projectDir -ne 'GunGameProgressions' -or $BuildConfiguration -ne 'Release') {
+    if ((Get-ModProjectDirectory $ModConfig) -ne 'GunGameProgressions' -or $BuildConfiguration -ne 'Release') {
         return
     }
 
@@ -873,7 +884,7 @@ function Invoke-Publish {
         throw 'Publishing requires both -Publish and -VrApproved.'
     }
 
-    if ($ModConfig.projectDir -eq 'GunGameProgressions' -and $GunGameBuildConfiguration -ne 'Release') {
+    if ((Get-ModProjectDirectory $ModConfig) -eq 'GunGameProgressions' -and $GunGameBuildConfiguration -ne 'Release') {
         throw 'GunGame Debug packages are local-only and cannot be published.'
     }
 
