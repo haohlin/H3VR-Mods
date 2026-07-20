@@ -14,6 +14,7 @@ State: `active`
 | Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `103/103`, including malformed r2modman `name` scalar rejection. | Passed. |
 | Build / package | Windows release build passed `0` warnings and `0` errors. Package SHA-256 `4C1AE70B9F489CE957AAA93F1BBC3E1D9157BF3008E4BE7B3F90AB1556F66A5E`. | Passed. |
 | Deploy / profile repair | `d7f5c74` deployed. Existing malformed Cursed local-package entry was replaced atomically; post-write strict validation passed and a same-directory backup was created. | r2modman reopen proof pending. |
+| Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 
 ### Open blockers
 
@@ -23,6 +24,7 @@ State: `active`
 | Runtime profile event | Prove Cursed Random profile loads, event subscription fires, and random replacement starts. | Windows build, deploy, VR test. |
 | VR behavior | Confirm gun hand retrieval, feed loading, quickbelt spare, attachment logging, and previous-item cleanup. | Human VR test. |
 | r2modman UI | Confirm Default profile opens and shows Cursed local package after repaired YAML. | User reopen test. |
+| Cursed placeholder feed | Replace invalid `MagazineG17` in all 64 tiers with live `MagazineG17Standard`, add validation, rebuild and deploy after H3VR closes. | Source fix and retest. |
 
 ## Plan
 
@@ -31,6 +33,7 @@ State: `active`
 | `[x]` | Inspect root-cause runtime log. | Direct Harmony prefixes registered but never entered; custom `GameSettings` lookup never found live settings. |
 | `[x]` | Deploy current profile/event implementation. | Windows `Verify`, `Test`, `Build`, `Package`, and `Deploy` passed for `25fbd9b`; r2modman local registration succeeded. |
 | `[x]` | Repair malformed Default profile Cursed entry. | Windows `Test` passed `103/103`; `d7f5c74` deploy atomically replaced entry and validated written YAML. |
+| `[ ]` | Repair Cursed placeholder feed. | All 64 profile entries must use valid `MagazineG17Standard`; fresh start must reach `WeaponChangedEvent` and random API trace. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select Cursed Random`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected Cursed Random start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
