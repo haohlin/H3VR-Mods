@@ -310,6 +310,24 @@ Use the generated source only for read-only target discovery and compatibility c
 
 Before writing a Harmony patch, confirm `SourceStatus` is current, then inspect the target type and method signature. Register every runtime target in `build/mods.json`, then use `Verify` to catch target drift before VR testing.
 
+### Harmony runtime-proof gate
+
+Keep four proofs separate:
+
+- `Verify` proves the current DLL resolves the source type and method.
+- A BepInEx startup log proves the plugin loaded.
+- `Harmony.GetPatchInfo` during startup proves a patch registered.
+- None proves the intended runtime method ran or produced the game result.
+
+Before changing control flow, configuration, or a fallback after a Harmony
+failure, collect bounded runtime evidence: a prefix/postfix entry at the target;
+post-scene runtime type, assembly, `MethodInfo`, and patch owners/priorities;
+entry logs for immediate callers or alternate lifecycle paths; and the expected
+postcondition in that same test. If target entry is absent, do not blame
+configuration or downstream API. First trace callers and target identity with
+one-shot or transition logs, never `Update` polling. Run one explicit game
+start/promotion/demotion test and inspect `TailLogs` before adding behavior.
+
 Current registered targets are:
 
 | Mod | Target validation |

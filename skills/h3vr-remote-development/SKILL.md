@@ -190,6 +190,24 @@ h3vr-remote run RefreshSource
 Use `FindType`, `FindMethod`, and `GrepSource` for read-only discovery.
 Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 
+### Harmony runtime-proof gate
+
+Keep four proofs separate:
+
+- `Verify` proves the current DLL resolves the source type and method.
+- A BepInEx startup log proves the plugin loaded.
+- `Harmony.GetPatchInfo` during startup proves a patch registered.
+- None proves the intended runtime method ran or produced the game result.
+
+Before changing control flow, configuration, or a fallback after a Harmony
+failure, collect bounded runtime evidence: a prefix/postfix entry at the target;
+post-scene runtime type, assembly, `MethodInfo`, and patch owners/priorities;
+entry logs for immediate callers or alternate lifecycle paths; and the expected
+postcondition in that same test. If target entry is absent, do not blame
+configuration or downstream API. First trace callers and target identity with
+one-shot or transition logs, never `Update` polling. Run one explicit game
+start/promotion/demotion test and inspect `TailLogs` before adding behavior.
+
 ## Implement and Test
 
 1. Keep changes narrow. Prefer extending one shared policy/resolver/framework
