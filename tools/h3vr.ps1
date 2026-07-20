@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1175,6 +1175,37 @@ function Get-PrivateAssetArchiveStatus {
     Write-Host "Prefab entries: $($counts.Prefab)"
 }
 
+function Find-PrivateAssetRip {
+    param([string]$SearchQuery)
+
+    if ([string]::IsNullOrWhiteSpace($SearchQuery)) {
+        throw 'FindAssetRip requires -Query <text>.'
+    }
+
+    $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
+    if ([string]::IsNullOrWhiteSpace($assetLab)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB is not configured on Windows.'
+    }
+    if (-not (Test-Path -LiteralPath $assetLab -PathType Container)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB does not point to an existing private asset lab.'
+    }
+
+    $manifestDirectory = Join-Path $assetLab 'manifests'
+    $manifest = @(Get-ChildItem -LiteralPath $manifestDirectory -Filter 'H3VRFull-export-files-*.sha256.tsv' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1)[0]
+    if ($null -eq $manifest) {
+        throw 'Private asset lab has no H3VRFull SHA-256 manifest.'
+    }
+
+    $escapedQuery = [regex]::Escape($SearchQuery)
+    $matches = @(Get-Content -LiteralPath $manifest.FullName | Where-Object { $_ -match $escapedQuery } | Select-Object -First 100)
+    Write-Host "Asset archive search: $($matches.Count) match(es), showing at most 100."
+    foreach ($match in $matches) {
+        $safeMatch = $match.Replace($assetLab, '<private-asset-lab>')
+        Write-Host "Asset match: $safeMatch"
+    }
+}
+
 function Assert-RemoteVersionIsNew {
     param(
         [object]$ModConfig,
@@ -1273,6 +1304,7 @@ switch ($Action) {
     'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
+    'FindAssetRip' { Find-PrivateAssetRip $Query }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {
