@@ -563,7 +563,9 @@ function Invoke-UnityBuild {
     $logPath = Join-Path $logDirectory ("$Mod-$version-build.log")
     $buildCompleted = $false
     for ($attempt = 1; $attempt -le 2; $attempt++) {
-        Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $logPath) {
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction Stop
+        }
         Write-Host "Building $Mod with Unity batch mode (attempt $attempt/2)."
         $arguments = @(
             '-batchmode',
