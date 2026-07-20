@@ -511,6 +511,30 @@ function Wait-ForUnityProjectBatchWorker {
     throw "Unity batch worker did not exit before timeout for project: $ProjectRoot"
 }
 
+function Wait-ForVanillaPrefabImporterResult {
+    param(
+        [string]$LogPath,
+        [string]$SuccessMarker,
+        [int]$TimeoutSeconds = 300
+    )
+
+    $failurePattern = 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:'
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        if (Test-Path -LiteralPath $LogPath) {
+            if (Select-String -LiteralPath $LogPath -Pattern $SuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue) {
+                return $true
+            }
+            if (Select-String -LiteralPath $LogPath -Pattern $failurePattern -Quiet -ErrorAction SilentlyContinue) {
+                return $false
+            }
+        }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
+
+    return $false
+}
+
 function Wait-ForUnityBuildOutput {
     param(
         [string]$LogPath,
@@ -1241,36 +1265,20 @@ function Invoke-UnityVanillaPrefabSmokeTest {
                 '-executeMethod', $methodName,
                 '-logFile', ('"{0}"' -f $logPath)
             )
-            $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
-            $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
-            if (-not $process.HasExited) {
-                $process.WaitForExit()
-                $process.Refresh()
+            Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments | Out-Null
+            $passed = Wait-ForVanillaPrefabImporterResult -LogPath $logPath -SuccessMarker $successMarker
+            if ($passed) {
+                Write-Host "Private vanilla prefab importer smoke test passed for '$PrefabName'."
+                return
             }
-            $deadline = (Get-Date).AddSeconds(300)
-            do {
-                $passed = (Test-Path -LiteralPath $logPath) -and
-                    (Select-String -LiteralPath $logPath -Pattern $successMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
-                $failed = (Test-Path -LiteralPath $logPath) -and
-                    (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
-                if ($passed) {
-                    Write-Host "Private vanilla prefab importer smoke test passed for '$PrefabName'."
-                    return
-                }
-                if ($failed) {
-                    break
-                }
-                Start-Sleep -Seconds 1
-            } while ((Get-Date) -lt $deadline)
+            $failed = (Test-Path -LiteralPath $logPath) -and
+                (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
 
             if ($attempt -eq 1 -and -not $failed) {
                 Write-Warning 'Unity recompiled scripts before running the importer smoke test; retrying once.'
                 continue
             }
-            if (-not $workerCompleted) {
-                throw 'Unity never started the vanilla importer batch worker.'
-            }
-            if ($process.ExitCode -ne 0) {
+            if ($failed) {
                 throw 'Unity vanilla prefab importer smoke test failed. Inspect the private Unity batch log.'
             }
             throw 'Unity did not complete the vanilla prefab importer smoke test. Inspect the private Unity batch log.'
@@ -1324,36 +1332,20 @@ function Invoke-UnityVanillaPrefabComparison {
                 '-executeMethod', $methodName,
                 '-logFile', ('"{0}"' -f $logPath)
             )
-            $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
-            $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
-            if (-not $process.HasExited) {
-                $process.WaitForExit()
-                $process.Refresh()
+            Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments | Out-Null
+            $passed = Wait-ForVanillaPrefabImporterResult -LogPath $logPath -SuccessMarker $successMarker
+            if ($passed) {
+                Write-Host "Private vanilla prefab comparison completed for '$PrefabName'."
+                return
             }
-            $deadline = (Get-Date).AddSeconds(300)
-            do {
-                $passed = (Test-Path -LiteralPath $logPath) -and
-                    (Select-String -LiteralPath $logPath -Pattern $successMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
-                $failed = (Test-Path -LiteralPath $logPath) -and
-                    (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
-                if ($passed) {
-                    Write-Host "Private vanilla prefab comparison completed for '$PrefabName'."
-                    return
-                }
-                if ($failed) {
-                    break
-                }
-                Start-Sleep -Seconds 1
-            } while ((Get-Date) -lt $deadline)
+            $failed = (Test-Path -LiteralPath $logPath) -and
+                (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
 
             if ($attempt -eq 1 -and -not $failed) {
                 Write-Warning 'Unity recompiled scripts before running the importer comparison; retrying once.'
                 continue
             }
-            if (-not $workerCompleted) {
-                throw 'Unity never started the vanilla importer comparison batch worker.'
-            }
-            if ($process.ExitCode -ne 0) {
+            if ($failed) {
                 throw 'Unity vanilla prefab comparison failed. Inspect the private Unity batch log.'
             }
             throw 'Unity did not complete the vanilla prefab comparison. Inspect the private Unity batch log.'
