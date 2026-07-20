@@ -70,6 +70,7 @@ public sealed class NightForcePipelineTests
             StringComparison.Ordinal);
         Assert.Contains("if ($process.ExitCode -ne 0 -and -not $workerCompleted)", build,
             StringComparison.Ordinal);
+        Assert.Contains("[int]$StartupTimeoutSeconds = 60", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
