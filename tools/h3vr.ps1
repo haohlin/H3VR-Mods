@@ -193,6 +193,11 @@ function Sync-UnityProjectSource {
     }
 
     $projectRoot = Get-UnityProjectRoot
+    & git -C $projectRoot rev-parse --is-inside-work-tree 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Windows Unity project is not a Git worktree; cannot perform guarded source sync.'
+    }
+
     $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
     if ($openEditors.Count -gt 0) {
