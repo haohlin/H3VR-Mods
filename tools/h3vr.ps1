@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -600,6 +600,29 @@ function Invoke-UnityBuild {
     return $packagePath
 }
 
+function Get-UnityBuildStatus {
+    param([object]$ModConfig)
+
+    if ($ModConfig.kind -ne 'unity') {
+        throw "UnityBuildStatus requires a Unity mod."
+    }
+
+    $version = Get-ProjectVersion $ModConfig
+    $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
+    $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') ("$Mod-$version-build.log")
+    $hasSourcePackage = Test-Path -LiteralPath $packagePath
+    $hasSuccessMarker = (Test-Path -LiteralPath $logPath) -and
+        (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
+    $state = if ($hasSourcePackage -and $hasSuccessMarker) { 'ready' } elseif ($hasSourcePackage) { 'package-without-success-marker' } elseif ($hasSuccessMarker) { 'marker-without-package' } else { 'pending-or-failed' }
+
+    Write-Host "Unity build status: $state"
+    Write-Host "Success marker present: $hasSuccessMarker"
+    Write-Host "Source package present: $hasSourcePackage"
+    if ($hasSourcePackage) {
+        Write-Host "Source package SHA-256: $(Get-FileSha256 $packagePath)"
+    }
+}
+
 function Get-GunGameStagingPath {
     return Join-Path (Join-Path $BuildRoot 'staging') 'GunGameProgressions-generator'
 }
@@ -1186,6 +1209,7 @@ switch ($Action) {
     'PrepareUnitySourceSync' { Prepare-UnityProjectSourceSync $Query }
     'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
+    'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {
         $modConfig = Get-ModConfig $Mod
