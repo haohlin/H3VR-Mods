@@ -71,6 +71,17 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("registerWithR2modman", pipeline);
     }
 
+    [Fact]
+    public void Local_r2modman_registration_has_an_executable_yaml_regression_check()
+    {
+        var root = FindRepositoryRoot();
+        var pipeline = File.ReadAllText(Path.Combine(root, "tools", "h3vr.ps1"));
+
+        Assert.Contains("function New-R2modmanLocalPackageYamlEntry", pipeline);
+        Assert.Contains("function Test-R2modmanLocalPackageYamlEntry", pipeline);
+        Assert.Contains("Test-R2modmanLocalPackageYamlEntry", pipeline);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
