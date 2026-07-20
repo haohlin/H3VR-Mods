@@ -319,6 +319,26 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_vanilla_scope_import_status_is_read_only_and_exposed_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var statusStart = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", StringComparison.Ordinal);
+        var statusEnd = pipeline.IndexOf("function Get-PrivateAssetArchiveStatus", statusStart, StringComparison.Ordinal);
+
+        Assert.True(statusStart >= 0 && statusEnd > statusStart,
+            "Pipeline must expose a read-only vanilla scope importer status action.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityVanillaImportStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaImportStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("vanilla-scope-importer-smoke.log", status, StringComparison.Ordinal);
+        Assert.Contains("Script rebind:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unsafe_private_scope_imports_can_be_moved_to_private_quarantine()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

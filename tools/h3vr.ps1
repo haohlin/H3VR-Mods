@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1190,6 +1190,34 @@ function Invoke-UnityVanillaScopeImportSmokeTest {
     }
 }
 
+function Get-UnityVanillaScopeImportStatus {
+    $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-scope-importer-smoke.log'
+    if (-not (Test-Path -LiteralPath $logPath)) {
+        Write-Host 'Vanilla scope importer smoke log: absent.'
+        return
+    }
+
+    $successMarker = '[VanillaScopeReferenceImporter] PASS:'
+    $failurePattern = 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:'
+    $content = Get-Content -LiteralPath $logPath -Raw
+    $passed = $content.Contains($successMarker)
+    $failed = [regex]::IsMatch($content, $failurePattern)
+    $rebindMatches = [regex]::Matches($content,
+        '(?<bound>\d+)/(?<total>\d+) script refs rebound;\s*(?<unresolved>\d+) unresolved;\s*(?<ambiguous>\d+) ambiguous')
+
+    Write-Host 'Vanilla scope importer smoke log: present.'
+    Write-Host "Completion marker: $(if ($passed) { 'present' } else { 'absent' })"
+    Write-Host "Failure marker: $(if ($failed) { 'present' } else { 'absent' })"
+    if ($rebindMatches.Count -eq 0) {
+        Write-Host 'Script rebind: no summary recorded.'
+        return
+    }
+
+    $latest = $rebindMatches[$rebindMatches.Count - 1]
+    Write-Host "Script rebind: $($latest.Groups['bound'].Value)/$($latest.Groups['total'].Value) refs; " +
+        "unresolved=$($latest.Groups['unresolved'].Value); ambiguous=$($latest.Groups['ambiguous'].Value)"
+}
+
 function Get-PrivateAssetArchiveStatus {
     $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
     if ([string]::IsNullOrWhiteSpace($assetLab)) {
@@ -1568,6 +1596,7 @@ switch ($Action) {
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
     'UnityAssetRipStatus' { Get-UnityAssetRipImportStatus }
     'UnityVanillaImportSmokeTest' { Invoke-UnityVanillaScopeImportSmokeTest }
+    'UnityVanillaImportStatus' { Get-UnityVanillaScopeImportStatus }
     'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
