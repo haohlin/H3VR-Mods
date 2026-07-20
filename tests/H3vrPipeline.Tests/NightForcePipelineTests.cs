@@ -342,6 +342,27 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Generic_private_vanilla_prefab_smoke_test_is_query_bound_and_exposed_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaPrefabSmokeTest", StringComparison.Ordinal);
+        var actionEnd = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+            "Pipeline must expose a generic private vanilla-prefab smoke test.");
+        var action = pipeline[actionStart..actionEnd];
+
+        Assert.Contains("'UnityVanillaPrefabSmokeTest'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabSmokeTest", wrapper, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabSmokeTest requires -Query <prefab name>.", action, StringComparison.Ordinal);
+        Assert.Contains("H3VR_VANILLA_PREFAB_NAME", action, StringComparison.Ordinal);
+        Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabSmokeTest", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_vanilla_scope_import_status_is_read_only_and_exposed_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
