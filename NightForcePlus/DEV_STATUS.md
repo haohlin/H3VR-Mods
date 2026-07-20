@@ -30,6 +30,7 @@ State: `1.0.5 native-PIP repair built as a local candidate; package/deploy and H
 | Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. | Root cause traced to serialized legacy presentation plus invalid native PIP axis/clip data. |
 | Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
 | Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
+| Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
 
 ### Open blockers
 
@@ -46,7 +47,9 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | `[x]` | Replace custom scope runtime with native PIP scope. | Serialized PIP components, geometric magnification, reticle canvases, and Windows batch checks pass. |
 | `[x]` | Deploy native-PIP candidate locally. | Validated candidate is installed with a VR receipt. |
 | `[x]` | Repair native PIP presentation and interaction data. | Legacy presentation removed; positive optical axis, native camera, controls, and feedback pass serialized checks. |
+| `[x]` | Build and deploy isolated legacy review variant. | Fresh `NightForcePlusLegacy` package validates, deploys to Default profile, and registers as a separate local r2modman mod. |
 | `[ ]` | Package and deploy repaired native-PIP candidate. | Source/package validation succeeds through updated pipeline and local receipt matches current source. |
+| `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
 | `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
 
 ### Deferred
@@ -74,6 +77,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | Scope reversed/180-degree mount | Bubble remains on same world-uphill side. | User verified release candidate in H3VR. |
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
 | Native optic spawn/grab/mount | Item Spawner entry appears; scope picks up and mounts normally. | Pending candidate VR test. |
+| Legacy optic review | `NightForcePlusLegacy` appears as separate Item Spawner entry and can be compared with current native candidate. | Pending VR test. |
 | Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work. | Pending candidate VR test. |
 | Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
