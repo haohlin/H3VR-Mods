@@ -1200,6 +1200,10 @@ function Invoke-UnityVanillaScopeImportSmokeTest {
 
 function Get-UnityVanillaScopeImportStatus {
     $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-scope-importer-smoke.log'
+    $projectRoot = Get-UnityProjectRoot
+    $batchWorkers = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" -and $_.CommandLine -like '*-batchmode*' })
+    Write-Host "Unity batch worker: $(if ($batchWorkers.Count -gt 0) { 'running' } else { 'not running' })"
     if (-not (Test-Path -LiteralPath $logPath)) {
         Write-Host 'Vanilla scope importer smoke log: absent.'
         return
