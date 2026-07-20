@@ -27,7 +27,7 @@ public sealed class NightForcePipelineTests
             "HLin_Mods.BubbleLevelScope.Editor.NightForcePlusRuntimeTests.BuildNightForcePlusPackage",
             nightForce.GetProperty("unityBuildMethod").GetString());
         Assert.Equal(
-            "[NightForcePlusRuntime] MeatKit package built from exact profile:",
+            "[NightForcePlusRuntime] MeatKit package built from exact profile.",
             nightForce.GetProperty("unityBuildSuccessMarker").GetString());
     }
 
