@@ -1237,9 +1237,9 @@ function Invoke-UnityVanillaPrefabSmokeTest {
                 '-batchmode',
                 '-nographics',
                 '-quit',
-                '-projectPath', ('\"{0}\"' -f $projectRoot),
+                '-projectPath', ('"{0}"' -f $projectRoot),
                 '-executeMethod', $methodName,
-                '-logFile', ('\"{0}\"' -f $logPath)
+                '-logFile', ('"{0}"' -f $logPath)
             )
             $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
             $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
@@ -1320,9 +1320,9 @@ function Invoke-UnityVanillaPrefabComparison {
                 '-batchmode',
                 '-nographics',
                 '-quit',
-                '-projectPath', ('\"{0}\"' -f $projectRoot),
+                '-projectPath', ('"{0}"' -f $projectRoot),
                 '-executeMethod', $methodName,
-                '-logFile', ('\"{0}\"' -f $logPath)
+                '-logFile', ('"{0}"' -f $logPath)
             )
             $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
             $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
