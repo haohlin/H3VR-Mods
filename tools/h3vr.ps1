@@ -472,7 +472,7 @@ function Invoke-DotNetBuild {
 function Wait-ForUnityProjectBatchWorker {
     param(
         [string]$ProjectRoot,
-        [int]$StartupTimeoutSeconds = 5,
+        [int]$StartupTimeoutSeconds = 60,
         [int]$CompletionTimeoutSeconds = 900
     )
 
