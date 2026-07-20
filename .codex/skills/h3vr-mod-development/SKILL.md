@@ -188,6 +188,32 @@ branch-switch, or merge work; reopen it and wait for a complete import before
 using the GUI again. Save assets in their owning project root and commit matching
 `.meta` files; never hand-copy Unity assets between projects.
 
+### Repeatable Unity edit-build-test gate
+
+1. Before opening Unity, read the mod status, descriptor, MeatKit profile, and
+   focused validation. Close Unity before every Git sync or branch operation.
+2. Edit the prefab asset in Prefab Mode. Apply an intentional scene-instance
+   override to the correct prefab, save, close Unity, then inspect the
+   authoritative source diff. Inspector visibility alone does not prove that
+   the prefab asset was saved.
+3. Commit reviewed assets and matching `.meta` files. Sync the exact commit to
+   Windows only with its Unity editor closed; never build a dirty or stale
+   Unity checkout.
+4. Run `h3vr-remote run Test`, then `h3vr-remote run Build <ModName>`. Accept
+   the Unity build only when it exits successfully, writes the descriptor's
+   current success marker, and produces a fresh expected source ZIP. Unity 5.6
+   can compile then exit before its editor method; a pre-existing ZIP is never
+   proof.
+5. Asset-level tests must read serialized prefab data. A cache assigned in
+   `Awake` or `Start` is not serializable test evidence; inspect the serialized
+   component list or run a lifecycle-aware runtime test.
+6. `Build` validates the Unity source package; `Package` creates the
+   `build/artifacts` archive and receipt. Only after an unchanged successful
+   build may `Package` and `Deploy` use `-ReuseExistingUnityPackage`.
+7. VR remains the proof for spawning, pick-up, mounting, inputs, optics, and
+   feel. After the tester finishes, inspect `TailLogs` and update the status
+   record before release.
+
 ## Start Every Change
 
 1. Connect through `ssh "$H3VR_WINDOWS_HOST"` and preserve any user changes.
@@ -302,14 +328,18 @@ item/dependencies/package, and the relevant in-game interaction. Use bespoke
 `MonoBehaviour` scripts in the MeatKit project; use a BepInEx library only for
 shared behavior. The wrapper supports tested `unity` descriptors. Normal
 `Build`, `Package`, and `Deploy` invoke Unity batch mode with the descriptor's
-exact build method, then validate and deploy the generated package. Use
-`-ReuseExistingUnityPackage` only for an already validated package when no
-Unity source changed; never use it as normal post-edit build behavior.
+exact build method. `Build` validates the generated Unity source package;
+`Package` creates the release archive/receipt, and `Deploy` installs that
+validated artifact. Use `-ReuseExistingUnityPackage` only for the exact
+unchanged source/profile/descriptor state after a successful build; never use
+it as normal post-edit build behavior.
 
 Unity 5.6 may compile changed scripts then exit before `-executeMethod` runs.
-For every `unity` descriptor, delete the expected source ZIP before build,
-require its configured success-log marker, and retry batch mode once when the
-first invocation only imports scripts. A pre-existing ZIP is never build proof.
+For every `unity` descriptor, clear or fingerprint the expected source ZIP
+before build, require its configured success-log marker, and retry batch mode
+once when the first invocation only imports scripts. A pre-existing or
+unchanged ZIP is never build proof. When an asset-level test fails, first check
+whether it asserted a runtime cache rather than serialized prefab data.
 
 For a custom magazine, also read `references/custom-magazines.md`. It covers
 the magazine-specific reference prefab, visible rounds, feed/capacity settings,
@@ -335,8 +365,10 @@ Each package must contain valid `manifest.json`, `README.md`, `icon.png`, and ev
 
 For Unity content only, also run the project-local Unity/MeatKit validation and
 asset build selected by the map. When an explicit tested `unity` wrapper kind
-exists, run its registered H3VR-Mods package flow. Neither layer substitutes for
-an in-game interaction test.
+exists, run its registered H3VR-Mods package flow. Inspect the source-package
+marker/freshness after `Build`, then the artifact receipt after `Package`; do
+not expect `build/artifacts` to contain a new archive after `Build` alone.
+Neither layer substitutes for an in-game interaction test.
 
 ## Deploy and VR-Test
 

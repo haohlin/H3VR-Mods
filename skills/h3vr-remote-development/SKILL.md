@@ -97,12 +97,14 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
 
 ## Start Every Task
 
-1. Confirm SSH and inspect the Windows working tree. Never reset or overwrite
-   existing dirty changes.
+1. Confirm the private resolver and inspect the Windows working tree. Never
+   reset or overwrite existing dirty changes. Use the wrapper rather than raw
+   SSH for normal pipeline work.
 
    ```bash
-   ssh "$H3VR_WINDOWS_HOST" "git -C \"$H3VR_WINDOWS_REPOSITORY\" status --short --branch"
-   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Preflight"
+   h3vr-remote status
+   h3vr-remote git status --short --branch
+   h3vr-remote run Preflight
    ```
 
 2. Prove the Git topology before synchronizing. The Windows `main`, local
@@ -129,7 +131,8 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
    ```
 
    If it is clean, run `git pull --ff-only` after the topology check so the
-   local branch receives any remote update. If tracked changes exist, do not
+   local branch receives any remote update. For Unity content, first close the
+   editor on the checkout being synchronized. If tracked changes exist, do not
    pull, merge, reset, or overwrite them; report the divergence first.
    Untracked files alone never authorize cleanup. Before a Windows build,
    ensure the intended commit is present in the configured Windows checkout.
@@ -146,14 +149,14 @@ decompiled source cache is for searching and Harmony-target validation only; it
 is never repository source.
 
 ```bash
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action SourceStatus"
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Verify -Mod ThePing"
+h3vr-remote run SourceStatus
+h3vr-remote run Verify ThePing
 ```
 
 Refresh decompiled source only after a game update or explicit request:
 
 ```bash
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action RefreshSource"
+h3vr-remote run RefreshSource
 ```
 
 Use `FindType`, `FindMethod`, and `GrepSource` for read-only discovery.
@@ -169,14 +172,14 @@ Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 2. Run the repository suite on Windows:
 
    ```bash
-   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Test"
+   h3vr-remote run Test
    ```
 
 3. For an affected mod, run `Build` and inspect its output. For Harmony mods,
    run `Verify` before deployment.
 
    ```bash
-   ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Build -Mod <ModName>"
+   h3vr-remote run Build <ModName>
    ```
 
 Compilation proves managed references only. BepInEx logs and a VR test prove
@@ -202,6 +205,46 @@ Validate the prefab/scene wiring, MeatKit build profile and dependencies,
 generated package, BepInEx log, and real in-game interaction before calling a
 Unity-content change complete.
 
+### Unity/MeatKit edit-build-test gate
+
+Use this sequence for every prefab, scene, or MeatKit change:
+
+1. Read the mod's `DEV_STATUS.md`, descriptor, build profile, and focused
+   validation before opening Unity. Close Unity before every pull, sync,
+   branch switch, or merge. Keep one editor as the workspace writer.
+2. In Unity, edit the prefab asset in Prefab Mode. If an intentional scene
+   instance override is edited, apply it to the correct prefab explicitly.
+   Save, close Unity, then inspect the authoritative Unity checkout with
+   `git diff --check` and the changed prefab/YAML before synchronizing. A
+   visible Inspector field is not proof that the prefab asset was saved.
+3. Commit the reviewed source and matching `.meta` files, then use the guarded
+   Windows source sync only while the Windows editor is closed. Do not build
+   an unsynchronized or dirty Unity checkout.
+4. Run `h3vr-remote run Test`, then `h3vr-remote run Build <ModName>`. A Unity
+   build passes only when its process succeeds, the descriptor's success marker
+   is present in the current log, and the expected source package was freshly
+   written. A pre-existing ZIP is not proof; Unity 5.6 may compile and exit
+   before the requested editor method runs.
+5. Static prefab tests must inspect serialized data that exists before Unity
+   lifecycle methods. Do not assert a component cache populated in `Awake` or
+   `Start`; inspect the serialized component list or run a lifecycle-aware
+   runtime test instead.
+6. `Build` creates the validated Unity source package. `Package` creates the
+   release artifact and receipt under `build/`; do not search that artifact
+   directory after `Build` alone. After an unchanged successful build, use
+   `h3vr-remote run Package <ModName> -ReuseExistingUnityPackage`, then
+   `h3vr-remote run Deploy <ModName> -ReuseExistingUnityPackage` for an
+   authorized local test deployment. Never reuse a package after Unity source,
+   profile, or descriptor changes.
+7. A deployed package still needs human VR proof of item spawning, pick-up,
+   mounting, input, and authored optics/interaction. After the tester reports
+   back, run `h3vr-remote run TailLogs` and record the result before release.
+
+On failure, stop before package or deploy, read the exact current Unity/pipeline
+log, classify it as import/compile, serialized-data test, build-marker/package,
+or runtime failure, and fix that one cause. Never deploy a stale last-successful
+artifact as evidence for a newer source change.
+
 ## Add a New Mod
 
 Start from an existing mod with the same delivery style. Add project/package
@@ -216,14 +259,14 @@ The wrapper is canonical. It creates ignored staging, artifact, and receipt
 files below `build/`. Stop H3VR before deployment.
 
 ```bash
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Package -Mod <ModName>"
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Deploy -Mod <ModName>"
+h3vr-remote run Package <ModName>
+h3vr-remote run Deploy <ModName>
 ```
 
 After the user tests in VR, inspect logs without launching the game yourself:
 
 ```bash
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action TailLogs"
+h3vr-remote run TailLogs
 ```
 
 ### Authorized remote Modded-profile launch
@@ -274,10 +317,10 @@ canonical slogan without explicit product approval. Add a focused release test
 that proves the manifest still contains the canonical text.
 
 ```bash
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Test"
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Package -Mod <ModName>"
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Deploy -Mod <ModName>"
-ssh "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$H3VR_WINDOWS_REPOSITORY\\tools\\h3vr.ps1\" -Action Publish -Mod <ModName> -Publish -VrApproved"
+h3vr-remote run Test
+h3vr-remote run Package <ModName>
+h3vr-remote run Deploy <ModName>
+h3vr-remote run Publish <ModName> -Publish -VrApproved
 ```
 
 Verify a publish from its exact package URL, not a cached versions page:
@@ -293,5 +336,8 @@ https://thunderstore.io/package/download/<Namespace>/<PackageName>/<Version>/
 - Deploy blocked: stop H3VR; do not overwrite files held by the game.
 - Runtime error: collect `TailLogs`, compare the deployed DLL hash, and inspect
   the exact Harmony target or profile entry before editing.
+- Unity build error: do not package or deploy. Verify the current log's
+  configured marker and fresh source package, then fix the one failed
+  import/compile, serialized-data test, or build-method condition.
 - Publish page stale: inspect the version-specific package URL and manifest
   before retrying; never publish a duplicate version.
