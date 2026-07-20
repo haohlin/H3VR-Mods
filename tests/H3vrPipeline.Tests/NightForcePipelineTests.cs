@@ -44,6 +44,27 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Windows_shutdown_is_guarded_non_forced_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-WindowsShutdown", StringComparison.Ordinal);
+        var actionEnd = pipeline.IndexOf("function Invoke-LogAction", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+            "Pipeline must expose guarded Windows shutdown action.");
+        var action = pipeline[actionStart..actionEnd];
+
+        Assert.Contains("'ShutdownWindows'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("ShutdownWindows", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Get-UnityProjectRoot", action, StringComparison.Ordinal);
+        Assert.Contains("Windows Unity project is open. Close it before shutdown.", action, StringComparison.Ordinal);
+        Assert.Contains("shutdown.exe /s /t 60", action, StringComparison.Ordinal);
+        Assert.Contains("shutdown.exe /a", action, StringComparison.Ordinal);
+        Assert.DoesNotContain(" /f", action, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_pipeline_accepts_explicit_private_config_overrides()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

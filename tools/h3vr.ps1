@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1082,6 +1082,21 @@ function Invoke-Deploy {
     Write-Host "VR receipt: $vrReceipt"
 }
 
+function Invoke-WindowsShutdown {
+    $projectRoot = Get-UnityProjectRoot
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close it before shutdown.'
+    }
+
+    & shutdown.exe /s /t 60 /d p:4:1 /c 'H3VR private prefab audits complete.'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Windows shutdown scheduling failed with exit code $LASTEXITCODE."
+    }
+    Write-Host 'Windows shutdown scheduled in 60 seconds. Run shutdown.exe /a locally to cancel.'
+}
+
 function Invoke-LogAction {
     param([string]$Mode)
 
@@ -1911,6 +1926,7 @@ switch ($Action) {
         Write-Host "Packaged $Mod version $($package.Version). SHA-256: $($package.Sha256)"
     }
     'Deploy' { Invoke-Deploy (Get-ModConfig $Mod) }
+    'ShutdownWindows' { Invoke-WindowsShutdown }
     'Logs' { Invoke-LogAction 'all' }
     'TailLogs' { Invoke-LogAction 'tail' }
     'ClearLogs' { Invoke-LogAction 'clear' }
