@@ -148,7 +148,7 @@ public sealed class NightForcePipelineTests
         var fileSearchStart = pipeline.IndexOf("function Test-FileContainsUtf8Text", StringComparison.Ordinal);
         var auditStart = pipeline.IndexOf("function Find-InstalledItemId", StringComparison.Ordinal);
         var fileSearchEnd = auditStart;
-        var auditEnd = pipeline.IndexOf("function Assert-RemoteVersionIsNew", auditStart, StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("function Invoke-UnityVanillaScopeImportSmokeTest", auditStart, StringComparison.Ordinal);
         Assert.True(fileSearchStart >= 0 && fileSearchEnd > fileSearchStart,
             "Pipeline must use a bounded managed file-content search for ItemID auditing.");
         Assert.True(auditStart >= 0, "Pipeline must expose a read-only ItemID audit.");
