@@ -1001,7 +1001,9 @@ function Find-InstalledItemId {
         return
     }
 
-    $auditMatches | Sort-Object Package | Format-Table -AutoSize
+    foreach ($match in $auditMatches | Sort-Object Package) {
+        Write-Output "ItemID match: $($match.Package) [$($match.Files)]"
+    }
 }
 
 function Assert-RemoteVersionIsNew {
