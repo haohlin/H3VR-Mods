@@ -1002,7 +1002,7 @@ function Find-InstalledItemId {
     }
 
     foreach ($match in $auditMatches | Sort-Object Package) {
-        Write-Output "ItemID match: $($match.Package) [$($match.Files)]"
+        Write-Host "ItemID match: $($match.Package) [$($match.Files)]"
     }
 }
 
