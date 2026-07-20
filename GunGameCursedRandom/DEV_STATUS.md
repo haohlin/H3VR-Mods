@@ -9,11 +9,11 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Working tree forces `EnableRandomCursedGuns=true` at every H3VR startup, retains one `Priority.First` `SpawnAndEquip(bool)` prefix, and adds bounded trace logging from patch install through random result, cleanup, quickbelt, and hand transfer. | Windows revalidation pending. |
+| Source | Commit `3842b6c` forces `EnableRandomCursedGuns=true` at every H3VR startup, retains one `Priority.First` `SpawnAndEquip(bool)` prefix, and adds bounded trace logging from patch install through random result, cleanup, quickbelt, and hand transfer. | Windows Verify passed. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, `GameSettings.Start`, and GunGame Ammo/Extra quickbelt slots inspected. | Verified. |
-| Automated checks | Prior Windows checks apply only to deployed source `2b86c4f`; focused test now asserts forced startup setting and diagnostic trace strings. | Revalidation pending. |
-| Build / package | Prior package SHA-256 `273ABC46E6D9FDB3B619E914DAFDB9153A291BF91669C97C94E241B0908588D0` has persisted-setting gate behavior. | Replacement package pending. |
-| Deploy / VR | Live log proved plugin load but no `SpawnAndEquip` prefix entry; profile weapon therefore remained. | Replacement deployment pending H3VR exit. |
+| Automated checks | Windows `Test` passed `100/100`; focused test asserts forced startup setting and diagnostic trace strings. | Passed. |
+| Build / package | Windows release build completed with `0` warnings and `0` errors. Package SHA-256 `EA9A194D44B22084D5E7BDF050F853B4A64CBF622DF96FB09F47B748F0F8A8D2`. | Passed. |
+| Deploy / VR | Live log proved plugin load but no `SpawnAndEquip` prefix entry; replacement package is ready. | Deployment pending H3VR exit. |
 
 ### Open blockers
 
@@ -27,7 +27,7 @@ State: `active`
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Build and deploy per-session forced override with full transition trace. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass after H3VR exits. |
+| `[>]` | Deploy per-session forced override with full transition trace. | Deployment receipt created after H3VR exits. |
 | `[>]` | Inspect first runtime log. | Patch-owner line, `SpawnAndEquip entered`, vanilla random result, cleanup, quickbelt, hand, and final loadout lines; no Harmony exception. |
 | `[ ]` | Human VR smoke test. | Default-enabled start/promotion/demotion replace old gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -44,9 +44,9 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Pending forced-override source. |
-| Pipeline | `h3vr-remote run Test` | Pending forced-override source. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Pending forced-override source. |
+| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Passed. |
+| Pipeline | `h3vr-remote run Test` | Passed: `100/100`. |
+| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Passed: `0` warnings, `0` errors; package SHA recorded above. |
 | Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Pending H3VR exit. |
 
 ### Manual H3VR acceptance
@@ -61,8 +61,8 @@ State: `active`
 ### Release gate
 
 - [x] Current Windows source status checked.
-- [ ] Automated checks pass.
-- [ ] Package payload/version verified.
+- [x] Automated checks pass.
+- [x] Package payload/version verified.
 - [ ] Deployment receipt created.
 - [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.
