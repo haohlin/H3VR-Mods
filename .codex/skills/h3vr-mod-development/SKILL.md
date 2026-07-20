@@ -436,6 +436,11 @@ Deploy only a successfully built and packaged artifact:
 
 `Deploy` installs under the Default profile's `BepInEx\plugins` directory and backs up an existing mod deployment before replacing it. It also creates a `build\receipts\<mod>-<version>-<timestamp>-vrtest.md` checklist. Do not copy DLLs directly into the profile or remove a deployment outside this command.
 
+For a descriptor with `registerWithR2modman: true`, `Deploy` also creates the
+active profile's r2modman local-package cache and list entry. Manifest
+`author` plus `name` must equal `deploymentFolder`, so r2modman GUI controls
+the exact deployed package. Do not edit `mods.yml` by hand.
+
 For a clean test session, archive then clear logs with:
 
 ```powershell

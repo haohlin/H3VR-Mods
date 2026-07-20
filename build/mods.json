@@ -77,6 +77,7 @@
       "namespace": "HLin_Mods",
       "community": "h3vr",
       "deploymentFolder": "HLin_Mods-GunGame_Cursed_Random",
+      "registerWithR2modman": true,
       "layout": "legacy-flat",
       "payload": [
         {

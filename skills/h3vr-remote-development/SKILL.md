@@ -312,6 +312,12 @@ through the wrapper.
 The wrapper is canonical. It creates ignored staging, artifact, and receipt
 files below `build/`. Stop H3VR before deployment.
 
+For a descriptor with `registerWithR2modman: true`, `Deploy` also registers the
+package in the active profile's r2modman local-mod list and cache. Keep the
+manifest `author` plus `name` equal to `deploymentFolder` as
+`<author>-<name>` so GUI enable, disable, and uninstall target the deployed
+folder. Do not hand-edit `mods.yml` or copy a DLL around the wrapper.
+
 ```bash
 h3vr-remote run Package <ModName>
 h3vr-remote run Deploy <ModName>

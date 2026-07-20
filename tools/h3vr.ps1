@@ -882,6 +882,123 @@ Result: PENDING
     return $receiptPath
 }
 
+function ConvertTo-YamlQuotedScalar {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        $Value = ''
+    }
+
+    return "'" + ($Value -replace "'", "''") + "'"
+}
+
+function Register-R2modmanLocalPackage {
+    param(
+        [object]$ModConfig,
+        [string]$PackageRoot
+    )
+
+    if (-not $ModConfig.registerWithR2modman) {
+        return
+    }
+
+    $manifestPath = Join-Path $PackageRoot 'manifest.json'
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        throw "Cannot register r2modman local package: missing manifest.json for $Mod."
+    }
+
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    if ([string]::IsNullOrWhiteSpace($manifest.author) -or [string]::IsNullOrWhiteSpace($manifest.name) -or
+        [string]::IsNullOrWhiteSpace($manifest.version_number)) {
+        throw "Cannot register r2modman local package: manifest requires author, name, and version_number."
+    }
+
+    $name = "$($manifest.author)-$($manifest.name)"
+    if ($ModConfig.deploymentFolder -ne $name) {
+        throw "Cannot register r2modman local package: deploymentFolder must equal manifest package name '$name'."
+    }
+
+    $versionMatch = [regex]::Match([string]$manifest.version_number, '^(\d+)\.(\d+)\.(\d+)$')
+    if (-not $versionMatch.Success) {
+        throw "Cannot register r2modman local package: version_number must be major.minor.patch."
+    }
+
+    $profileRoot = Split-Path (Split-Path $EnvironmentConfig.r2modman.pluginsRoot -Parent) -Parent
+    $cachePath = Join-Path (Join-Path (Join-Path $profileRoot 'cache') $name) $manifest.version_number
+    Remove-Item -LiteralPath $cachePath -Recurse -Force -ErrorAction SilentlyContinue
+    Ensure-Directory $cachePath
+    Copy-Item -Path (Join-Path $PackageRoot '*') -Destination $cachePath -Recurse -Force
+
+    $localManifest = [ordered]@{
+        manifestVersion = 2
+        name = $name
+        authorName = $manifest.author
+        websiteUrl = $manifest.website_url
+        displayName = $manifest.name
+        description = $manifest.description
+        gameVersion = ''
+        networkMode = ''
+        packageType = ''
+        installMode = ''
+        installedAtTime = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        loaders = @()
+        dependencies = @($manifest.dependencies)
+        incompatibilities = @()
+        optionalDependencies = @()
+        versionNumber = [ordered]@{
+            major = [int]$versionMatch.Groups[1].Value
+            minor = [int]$versionMatch.Groups[2].Value
+            patch = [int]$versionMatch.Groups[3].Value
+        }
+        enabled = $true
+        onlineSource = $false
+    }
+    Write-JsonFile -Path (Join-Path $cachePath 'mm_v2_manifest.json') -Value $localManifest
+
+    $modsPath = Join-Path $profileRoot 'mods.yml'
+    $existing = if (Test-Path -LiteralPath $modsPath) { Get-Content -LiteralPath $modsPath -Raw } else { '' }
+    $entryPattern = '(?m)^\s*name:\s*["'']?' + [regex]::Escape($name) + '["'']?\s*$'
+    if ($existing -notmatch $entryPattern) {
+        $dependencyLines = if ($manifest.dependencies.Count -eq 0) {
+            '  dependencies: []'
+        }
+        else {
+            "  dependencies:`r`n" + (($manifest.dependencies | ForEach-Object { "    - " + (ConvertTo-YamlQuotedScalar $_) }) -join "`r`n")
+        }
+        $entry = @(
+            '- manifestVersion: 2',
+            '  name: ' + (ConvertTo-YamlQuotedScalar $name),
+            '  authorName: ' + (ConvertTo-YamlQuotedScalar $manifest.author),
+            '  websiteUrl: ' + (ConvertTo-YamlQuotedScalar $manifest.website_url),
+            '  displayName: ' + (ConvertTo-YamlQuotedScalar $manifest.name),
+            '  description: ' + (ConvertTo-YamlQuotedScalar $manifest.description),
+            "  gameVersion: ''",
+            "  networkMode: ''",
+            "  packageType: ''",
+            "  installMode: ''",
+            '  installedAtTime: ' + $localManifest.installedAtTime,
+            '  loaders: []',
+            $dependencyLines,
+            '  incompatibilities: []',
+            '  optionalDependencies: []',
+            '  versionNumber:',
+            '    major: ' + $localManifest.versionNumber.major,
+            '    minor: ' + $localManifest.versionNumber.minor,
+            '    patch: ' + $localManifest.versionNumber.patch,
+            '  enabled: true',
+            '  onlineSource: false'
+        ) -join "`r`n"
+        if ([string]::IsNullOrWhiteSpace($existing) -or $existing.Trim() -eq '[]') {
+            Set-Content -LiteralPath $modsPath -Value $entry -Encoding UTF8
+        }
+        else {
+            Add-Content -LiteralPath $modsPath -Value ("`r`n" + $entry) -Encoding UTF8
+        }
+    }
+
+    Write-Host "Registered $name as an r2modman local package."
+}
+
 function Invoke-Deploy {
     param([object]$ModConfig)
 
@@ -908,6 +1025,8 @@ function Invoke-Deploy {
         $payloadRoot = Join-Path $deployStaging ("BepInEx\\plugins\\" + $ModConfig.deploymentFolder)
         Copy-Item -Path (Join-Path $payloadRoot '*') -Destination $target -Recurse -Force
     }
+
+    Register-R2modmanLocalPackage -ModConfig $ModConfig -PackageRoot $deployStaging
 
     $vrReceipt = New-VrReceipt -Package $package -DeployPath $target
     Write-Host "Deployed $Mod to $target"

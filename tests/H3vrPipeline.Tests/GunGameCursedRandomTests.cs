@@ -43,6 +43,7 @@ public sealed class GunGameCursedRandomTests
 
         Assert.Equal("dotnet", mod.GetProperty("kind").GetString());
         Assert.Equal("GunGameCursedRandom\\GunGameCursedRandom.csproj", mod.GetProperty("csproj").GetString());
+        Assert.True(mod.GetProperty("registerWithR2modman").GetBoolean());
         Assert.Equal(0, mod.GetProperty("externalPatchTargets").GetArrayLength());
         Assert.Contains(
             mod.GetProperty("payload").EnumerateArray(),
@@ -63,6 +64,11 @@ public sealed class GunGameCursedRandomTests
         Assert.True(File.Exists(Path.Combine(package, "README.md")));
         Assert.True(File.Exists(Path.Combine(package, "CHANGELOG.md")));
         Assert.True(File.Exists(Path.Combine(package, "icon.png")));
+
+        var pipeline = File.ReadAllText(Path.Combine(root, "tools", "h3vr.ps1"));
+        Assert.Contains("Register-R2modmanLocalPackage", pipeline);
+        Assert.Contains("mm_v2_manifest.json", pipeline);
+        Assert.Contains("registerWithR2modman", pipeline);
     }
 
     private static string FindRepositoryRoot()
