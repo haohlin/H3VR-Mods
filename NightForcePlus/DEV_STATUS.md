@@ -37,10 +37,13 @@ State: `native-PIP candidate deployed; fresh H3VR-session registration and VR ac
 | Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
 | Repaired candidate deployment | Windows pipeline synced to `codex/nightforce-runtime`; automated suite passed `106/106`. Corrected completion-marker punctuation rejected neither fresh build nor package; validated current package deployed to active local profile while H3VR was closed. | Fresh H3VR startup and VR acceptance pending. |
 | Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
+| Vanilla scope reference archive | Private H3VRFull manifest indexes `169,718` entries and locates the `LT3x9Scope` visual set, but its selected prefab has no readable source file in the configured materialized export. The existing Unity `main-game` import is present but has no `LT3x9Scope` prefab. | Archive index is not sufficient evidence for a dependency-closed import; restore a verified raw export outside Unity first. |
 
 ### Open blockers
 
 Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR.
+
+The vanilla-reference import is blocked separately: the configured archive is manifest-indexed but lacks a readable selected prefab. Do not import game scripts or use the existing `main-game` rip as a runtime base; restore the raw export, then import only the selected dependency closure.
 
 ## Plan
 
@@ -60,6 +63,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | `[x]` | Package and deploy repaired native-PIP candidate. | Pipeline tests passed; current package validated and deployed while H3VR was closed. |
 | `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
 | `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
+| `[ ]` | Restore a verified vanilla-scope visual reference. | A raw export outside Unity contains the selected prefab and complete mesh/material/texture/shader closure; a private on-demand inspection slice imports with no missing visual references. |
 
 ### Deferred
 
