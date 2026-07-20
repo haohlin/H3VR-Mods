@@ -56,6 +56,23 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_build_waits_for_detached_worker_before_evaluating_retry()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var buildStart = pipeline.IndexOf("function Invoke-UnityBuild", StringComparison.Ordinal);
+        var buildEnd = pipeline.IndexOf("function Get-GunGameStagingPath", buildStart, StringComparison.Ordinal);
+
+        Assert.True(buildStart >= 0 && buildEnd > buildStart,
+            "Pipeline must expose the Unity build implementation.");
+        var build = pipeline[buildStart..buildEnd];
+
+        Assert.Contains("$workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", build,
+            StringComparison.Ordinal);
+        Assert.Contains("if ($process.ExitCode -ne 0 -and -not $workerCompleted)", build,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_source_sync_is_guarded_and_available_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
