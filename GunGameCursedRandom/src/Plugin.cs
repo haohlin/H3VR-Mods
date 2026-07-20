@@ -28,6 +28,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static Plugin instance;
     private readonly List<GameObject> activeRandomEquipment = new List<GameObject>();
     private ConfigEntry<bool> randomGunsEnabled;
+    private ConfigEntry<bool> randomGunDefaultInitialized;
     private MethodInfo randomGunMethod;
     private FieldInfo randomGunField;
     private bool spawningRandomGun;
@@ -39,8 +40,18 @@ public sealed class Plugin : BaseUnityPlugin
         randomGunsEnabled = Config.Bind(
             "General",
             "EnableRandomCursedGuns",
-            false,
+            true,
             "Use H3VR Item Spawner random guns instead of GunGame profile weapons.");
+        randomGunDefaultInitialized = Config.Bind(
+            "General",
+            "RandomGunDefaultInitialized",
+            false,
+            "Internal one-time default migration.");
+        if (!randomGunDefaultInitialized.Value)
+        {
+            randomGunsEnabled.Value = true;
+            randomGunDefaultInitialized.Value = true;
+        }
         randomGunsEnabled.SettingChanged += (sender, args) => RefreshOptionVisual();
 
         var harmony = new Harmony(HarmonyId);
@@ -48,6 +59,7 @@ public sealed class Plugin : BaseUnityPlugin
         Patch(harmony, "GunGame.Scripts.Progression", "SpawnAndEquip", "SpawnAndEquipPrefix", true);
         SceneManager.sceneLoaded += OnSceneLoaded;
         Logger.LogInfo("GunGame Cursed Random ready. Toggle RANDOM CURSED GUNS in GunGame settings.");
+        Logger.LogInfo("Random cursed GunGame progression is enabled by default.");
     }
 
     private void Start()

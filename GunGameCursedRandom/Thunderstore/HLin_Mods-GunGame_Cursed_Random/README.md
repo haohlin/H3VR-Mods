@@ -18,7 +18,7 @@ to BepInEx.
 ## Use
 
 1. Open a GunGame map.
-2. Enable **RANDOM CURSED GUNS** in the startup settings panel.
+2. **RANDOM CURSED GUNS** is enabled by default. Toggle it off in the startup settings panel when desired.
 3. Start game.
 
 If the map has no active vanilla Item Spawner V2, the plugin leaves normal

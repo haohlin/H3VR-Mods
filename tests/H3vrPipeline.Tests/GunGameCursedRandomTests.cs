@@ -18,6 +18,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("SpawnAndEquip", source);
         Assert.Contains("GameSettingsStartPostfix", source);
         Assert.Contains("AddStartupToggleWhenReady", source);
+        Assert.Contains("RandomGunDefaultInitialized", source);
         Assert.Contains("Cursed random GunGame spawn:", source);
         Assert.DoesNotContain("private void Update(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private void FixedUpdate(", source, StringComparison.Ordinal);
