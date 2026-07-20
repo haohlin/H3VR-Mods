@@ -941,7 +941,13 @@ function New-R2modmanLocalPackageYamlEntry {
         }
     }
 
-    return [string]::Join("`r`n", [string[]]$lines)
+    $yaml = [string]::Join("`r`n", [string[]]$lines)
+    if ($Trace) {
+        $nameOffset = $yaml.IndexOf('  name:')
+        $nameCodes = @($yaml.Substring($nameOffset, 48).ToCharArray() | ForEach-Object { [int][char]$_ }) -join ','
+        Write-Host ('r2modman YAML trace joined name codes=' + $nameCodes)
+    }
+    return $yaml
 }
 
 function Remove-R2modmanLocalPackageYamlEntries {
