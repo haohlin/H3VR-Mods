@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'SyncUnitySource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -183,6 +183,40 @@ function Get-UnityPackageSourcePath {
 
     $relativePath = $ModConfig.packageRelativePath.Replace('{version}', $Version)
     return Join-Path (Get-UnityProjectRoot) $relativePath
+}
+
+function Sync-UnityProjectSource {
+    param([string]$Branch)
+
+    if ([string]::IsNullOrWhiteSpace($Branch)) {
+        throw 'SyncUnitySource requires -Query <branch>.'
+    }
+
+    $projectRoot = Get-UnityProjectRoot
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before source sync.'
+    }
+
+    & git -C $projectRoot diff --quiet
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Windows Unity project has tracked changes; refusing source sync.'
+    }
+    & git -C $projectRoot diff --cached --quiet
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Windows Unity project has staged changes; refusing source sync.'
+    }
+
+    Invoke-CheckedNative { & git -C $projectRoot fetch origin --prune }
+    Invoke-CheckedNative { & git -C $projectRoot checkout $Branch }
+    Invoke-CheckedNative { & git -C $projectRoot pull --ff-only }
+    $commit = (& git -C $projectRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Could not resolve synchronized Windows Unity source commit.'
+    }
+
+    Write-Host "Unity source synchronized to branch $Branch at $commit."
 }
 
 function Get-SourceManifestPath {
@@ -1079,6 +1113,7 @@ switch ($Action) {
         Select-String -Path ($sourceMatches.Path | Sort-Object -Unique) -Pattern ("\b" + [regex]::Escape($methodName) + "\s*\(")
     }
     'GrepSource' { if ([string]::IsNullOrWhiteSpace($Query)) { throw 'GrepSource requires -Query.' }; Find-SourceText $Query }
+    'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {
