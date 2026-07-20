@@ -14,6 +14,12 @@ installed H3VR assemblies, packages releases, deploys to r2modman, and is the
 only H3VR runtime. Invoke every validation and pipeline action from macOS with
 `h3vr-remote run <Action> [Mod]`; local command results are not H3VR evidence.
 
+GitHub CI is a separate hosted-only portable-source check. It runs on hosted
+Linux for its scoped source/data paths and must never call `h3vr-remote`, a
+remote shell, Windows PowerShell, Unity, MeatKit, H3VR, credentials, package,
+deploy, or publish tools. CI failure is not live-game evidence; Windows remains
+the explicit manual/runtime validation surface.
+
 Never commit game assemblies, decompiled source, generated artifacts,
 credentials, local paths, host names, account names, machine IDs, or connection
 details.
@@ -98,8 +104,8 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
 ## Start Every Task
 
 1. Confirm the private resolver and inspect the Windows working tree. Never
-   reset or overwrite existing dirty changes. Use the wrapper rather than raw
-   SSH for normal pipeline work.
+   reset or overwrite existing dirty changes. Use the wrapper rather than a
+   raw remote shell for normal pipeline work.
 
    ```bash
    h3vr-remote status

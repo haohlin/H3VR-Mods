@@ -460,7 +460,13 @@ The command requires both `-Publish` and `-VrApproved`, a package built from the
 
 When a macOS agent needs to transfer a small change, stage it outside the repository and use SHA-verified transfer with an atomic replacement on Windows. The local `h3vr-remote` helper supports `run`, `fetch`, and `push`; it is a local convenience tool, not repository source.
 
-GitHub Actions runs `.github/workflows/verify.yml` for portable data and pipeline tests only. It cannot restore game-linked packages, perform live source validation, build release packages, deploy, read credentials, or publish. Windows `Test`, `Build`, `Package`, preflight, and `Verify` remain required before a real release.
+GitHub Actions runs `.github/workflows/verify.yml` only on hosted Linux and
+only for its scoped portable source/data paths. It must never call
+`h3vr-remote`, a remote shell, Windows PowerShell, Unity, MeatKit, H3VR,
+credentials, package, deploy, or publish tools. It cannot restore game-linked
+packages, perform live source validation, or establish release evidence.
+Windows `Test`, `Build`, `Package`, preflight, and `Verify` remain explicit
+manual/runtime gates before a real release.
 
 ## Completion Checklist
 

@@ -1,25 +1,43 @@
-name: Verify H3VR Portable Checks
+name: Verify Portable Source
 
 on:
   pull_request:
+    paths:
+      - '.github/workflows/verify.yml'
+      - 'GunGameProgressions/**'
+      - 'tests/H3vrPipeline.Tests/**'
+      - 'tools/H3vrPipeline/**'
+      - 'build/mods.json'
   push:
     branches:
       - main
       - feat/**
+    paths:
+      - '.github/workflows/verify.yml'
+      - 'GunGameProgressions/**'
+      - 'tests/H3vrPipeline.Tests/**'
+      - 'tools/H3vrPipeline/**'
+      - 'build/mods.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portable-verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  verify:
-    runs-on: windows-latest
+  portable-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 7.0.x
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - name: Verify versioned vanilla metadata and fallback profiles
-        shell: pwsh
+        shell: bash
         run: |
           git ls-files --error-unmatch GunGameProgressions/ObjectData.json
           git ls-files --error-unmatch GunGameProgressions/GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json
