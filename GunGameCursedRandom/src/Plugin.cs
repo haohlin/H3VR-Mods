@@ -54,7 +54,10 @@ public sealed class Plugin : BaseUnityPlugin
 
         var harmony = new Harmony(HarmonyId);
         Patch(harmony, "GunGame.Scripts.Options.GameSettings", "Start", "GameSettingsStartPostfix", false);
+        Patch(harmony, "GunGame.Scripts.GameManager", "StartGame", "GameManagerStartGameTracePrefix", false);
         Patch(harmony, "GunGame.Scripts.Progression", "SpawnAndEquip", "SpawnAndEquipPrefix", true);
+        Patch(harmony, "GunGame.Scripts.Progression", "Promote", "ProgressionPromoteTracePrefix", false);
+        Patch(harmony, "GunGame.Scripts.Progression", "Demote", "ProgressionDemoteTracePrefix", false);
         SceneManager.sceneLoaded += OnSceneLoaded;
         Logger.LogInfo("GunGame Cursed Random ready. Random progression is force-enabled for this H3VR session.");
         Logger.LogInfo("GunGame Cursed Random trace: persisted random setting=" + persistedRandomGunSetting + "; effective startup setting=true.");
@@ -96,7 +99,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (patchName.EndsWith("Prefix", StringComparison.Ordinal))
         {
             var prefix = new HarmonyMethod(patch);
-            if (patchName == "SpawnAndEquipPrefix")
+            if (patchName == "SpawnAndEquipPrefix" || patchName.EndsWith("TracePrefix", StringComparison.Ordinal))
             {
                 prefix.priority = Priority.First;
             }
@@ -115,15 +118,9 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void LogSpawnAndEquipPatchInfo(MethodBase original)
     {
-        var patchInfo = Harmony.GetPatchInfo(original);
-        var prefixes = patchInfo == null
-            ? new string[0]
-            : patchInfo.Prefixes
-                .Select(prefix => prefix.owner + "@" + prefix.priority)
-                .ToArray();
         Logger.LogInfo(
             "GunGame Cursed Random trace: SpawnAndEquip hook installed; target=" + original +
-            "; prefixes=[" + string.Join(", ", prefixes) + "].");
+            "; prefixes=[" + DescribePrefixOwners(original) + "].");
     }
 
     private static void GameSettingsStartPostfix(object __instance)
@@ -137,6 +134,41 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         StartCoroutine(AddStartupToggleWhenReady());
+        StartCoroutine(TraceGunGameSceneAfterLoad());
+    }
+
+    private IEnumerator TraceGunGameSceneAfterLoad()
+    {
+        for (var frame = 0; frame < 120; frame++)
+        {
+            yield return null;
+        }
+
+        TraceRuntimeMethod("GameManager.StartGame", "GunGame.Scripts.GameManager", "StartGame", false);
+        TraceRuntimeMethod("Progression.SpawnAndEquip", "GunGame.Scripts.Progression", "SpawnAndEquip", true);
+        TraceRuntimeMethod("Progression.Promote", "GunGame.Scripts.Progression", "Promote", false);
+        TraceRuntimeMethod("Progression.Demote", "GunGame.Scripts.Progression", "Demote", false);
+    }
+
+    private void TraceRuntimeMethod(string label, string typeName, string methodName, bool hasBooleanParameter)
+    {
+        var type = AccessTools.TypeByName(typeName);
+        var component = type == null ? null : UnityEngine.Object.FindObjectOfType(type) as Component;
+        var method = type == null
+            ? null
+            : type.GetMethod(
+                methodName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                hasBooleanParameter ? new[] { typeof(bool) } : Type.EmptyTypes,
+                null);
+        Logger.LogInfo(
+            "GunGame Cursed Random trace: runtime method probe; label=" + label +
+            "; typeFound=" + (type != null) +
+            "; componentFound=" + (component != null) +
+            "; componentAssembly=" + (component == null ? "none" : component.GetType().Assembly.FullName) +
+            "; method=" + (method == null ? "none" : method.ToString()) +
+            "; prefixes=[" + DescribePrefixOwners(method) + "].");
     }
 
     private IEnumerator AddStartupToggleWhenReady()
@@ -179,6 +211,21 @@ public sealed class Plugin : BaseUnityPlugin
         var started = instance.TryStartRandomSpawn(__instance);
         instance.Logger.LogInfo("GunGame Cursed Random trace: SpawnAndEquip override started=" + started + "; original profile spawn=" + (!started) + ".");
         return !started;
+    }
+
+    private static void GameManagerStartGameTracePrefix(object __instance)
+    {
+        Trace("GameManager.StartGame entered; manager=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
+    }
+
+    private static void ProgressionPromoteTracePrefix(object __instance)
+    {
+        Trace("Progression.Promote entered; progression=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
+    }
+
+    private static void ProgressionDemoteTracePrefix(object __instance)
+    {
+        Trace("Progression.Demote entered; progression=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
     }
 
     private bool TryStartRandomSpawn(object progression)
@@ -636,6 +683,16 @@ public sealed class Plugin : BaseUnityPlugin
     private static string NameOf(GameObject item)
     {
         return item == null ? "none" : item.name;
+    }
+
+    private static string DescribePrefixOwners(MethodBase method)
+    {
+        var patchInfo = method == null ? null : Harmony.GetPatchInfo(method);
+        return patchInfo == null
+            ? string.Empty
+            : string.Join(
+                ", ",
+                patchInfo.Prefixes.Select(prefix => prefix.owner + "@" + prefix.priority).ToArray());
     }
 
     private static void Trace(string message)

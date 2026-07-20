@@ -16,6 +16,11 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("ExtraQuickbeltSlot", source);
         Assert.Contains("GunGame.Scripts.Progression", source);
         Assert.Contains("SpawnAndEquip", source);
+        Assert.Contains("GunGame.Scripts.GameManager", source);
+        Assert.Contains("GameManagerStartGameTracePrefix", source);
+        Assert.Contains("ProgressionPromoteTracePrefix", source);
+        Assert.Contains("ProgressionDemoteTracePrefix", source);
+        Assert.Contains("runtime method probe", source);
         Assert.Contains("GameSettingsStartPostfix", source);
         Assert.Contains("AddStartupToggleWhenReady", source);
         Assert.Contains("RandomGunDefaultInitialized", source);
@@ -45,6 +50,10 @@ public sealed class GunGameCursedRandomTests
             mod.GetProperty("externalPatchTargets").EnumerateArray(),
             target => target.GetProperty("type").GetString() == "GunGame.Scripts.Progression" &&
                 target.GetProperty("method").GetString() == "SpawnAndEquip");
+        Assert.Contains(
+            mod.GetProperty("externalPatchTargets").EnumerateArray(),
+            target => target.GetProperty("type").GetString() == "GunGame.Scripts.GameManager" &&
+                target.GetProperty("method").GetString() == "StartGame");
         Assert.Contains(
             mod.GetProperty("externalPatchTargets").EnumerateArray(),
             target => target.GetProperty("type").GetString() == "GunGame.Scripts.Options.GameSettings" &&

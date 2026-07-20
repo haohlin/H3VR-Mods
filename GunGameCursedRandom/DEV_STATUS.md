@@ -9,26 +9,26 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Commit `3842b6c` forces `EnableRandomCursedGuns=true` at every H3VR startup, retains one `Priority.First` `SpawnAndEquip(bool)` prefix, and adds bounded trace logging from patch install through random result, cleanup, quickbelt, and hand transfer. | Windows Verify passed. |
+| Source | Working tree adds no-behavior tracing on `GameManager.StartGame`, `Progression.Promote`, and `Progression.Demote`, plus post-scene runtime method identity and current Harmony-prefix owner probes. | Windows revalidation pending. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, `GameSettings.Start`, and GunGame Ammo/Extra quickbelt slots inspected. | Verified. |
-| Automated checks | Windows `Test` passed `100/100`; focused test asserts forced startup setting and diagnostic trace strings. | Passed. |
-| Build / package | Windows release build completed with `0` warnings and `0` errors. Package SHA-256 `EA9A194D44B22084D5E7BDF050F853B4A64CBF622DF96FB09F47B748F0F8A8D2`. | Passed. |
-| Deploy / VR | Replacement package deployed to active r2modman Default profile; Windows deployment receipt created. | Runtime trace and VR test pending. |
+| Automated checks | Prior Windows checks apply only to forced-prefix source; focused test now asserts root-cause trace hooks and GameManager target registration. | Revalidation pending. |
+| Build / package | Prior package SHA-256 `EA9A194D44B22084D5E7BDF050F853B4A64CBF622DF96FB09F47B748F0F8A8D2` proved plugin load and hook registration but no hook entry. | Diagnostic package pending. |
+| Deploy / VR | Runtime log proved plugin load and `SpawnAndEquip` hook registration, then no `SpawnAndEquip` entry. | Root-cause trace deployment pending. |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
 | Runtime Item Spawner location | GunGame scene must expose active `ItemSpawnerV2`. | Windows runtime test. |
-| Prior persisted setting | Current deployed gate can be false despite default migration. | Replaced by per-session force enable; Windows runtime test. |
+| Missing hook entry | Existing trace cannot distinguish uncalled GameManager transition from runtime method/patch replacement. | Diagnostic scene probes and transition prefixes. |
 | VR behavior | Confirm gun hand retrieval, feed loading, quickbelt spare, attachment logging, and previous-item cleanup. | Human VR test. |
 
 ## Plan
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[x]` | Deploy per-session forced override with full transition trace. | Deployment receipt created after H3VR exit. |
-| `[>]` | Inspect first runtime log. | Patch-owner line, `SpawnAndEquip entered`, vanilla random result, cleanup, quickbelt, hand, and final loadout lines; no Harmony exception. |
+| `[>]` | Build and deploy root-cause diagnostic trace. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass. |
+| `[>]` | Inspect root-cause runtime log. | Runtime component assembly, patch owners, GameManager start, and progression transition entries identify missing call versus method replacement. |
 | `[ ]` | Human VR smoke test. | Default-enabled start/promotion/demotion replace old gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
 ### Deferred
@@ -44,10 +44,10 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Passed. |
-| Pipeline | `h3vr-remote run Test` | Passed: `100/100`. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Passed: `0` warnings, `0` errors; package SHA recorded above. |
-| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Passed; deployment receipt created. |
+| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Pending diagnostic source. |
+| Pipeline | `h3vr-remote run Test` | Pending diagnostic source. |
+| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Pending diagnostic source. |
+| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Pending diagnostic source. |
 
 ### Manual H3VR acceptance
 
@@ -61,8 +61,8 @@ State: `active`
 ### Release gate
 
 - [x] Current Windows source status checked.
-- [x] Automated checks pass.
-- [x] Package payload/version verified.
-- [x] Deployment receipt created.
+- [ ] Automated checks pass.
+- [ ] Package payload/version verified.
+- [ ] Deployment receipt created.
 - [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.

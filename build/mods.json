@@ -93,6 +93,21 @@
         },
         {
           "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Progression",
+          "method": "Promote"
+        },
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Progression",
+          "method": "Demote"
+        },
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.GameManager",
+          "method": "StartGame"
+        },
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
           "type": "GunGame.Scripts.Options.GameSettings",
           "method": "Start"
         }
