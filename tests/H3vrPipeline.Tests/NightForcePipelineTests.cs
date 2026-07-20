@@ -197,6 +197,16 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Write-Host $assetLab", status, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Private_asset_lab_configuration_is_forwarded_without_entering_repository_files()
+    {
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+
+        Assert.Contains("H3VR_PRIVATE_ASSET_LAB", wrapper, StringComparison.Ordinal);
+        Assert.Contains("asset_lab_prefix", wrapper, StringComparison.Ordinal);
+        Assert.DoesNotContain("H3VR-PrivateScopeLab", wrapper, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
