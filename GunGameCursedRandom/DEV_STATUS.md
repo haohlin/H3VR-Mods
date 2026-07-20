@@ -2,18 +2,18 @@
 
 ## Status
 
-Last verified: `2026-07-19`
+Last verified: `2026-07-20`
 State: `active`
 
 ### Verified now
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin gives its `SpawnAndEquip` prefix first priority, uses reflection only for live Item Spawner and quickbelt APIs, preserves occupied Ammo/Extra slots, and defaults random mode on once. | Windows revalidation pending. |
+| Source | Feature branch `feat/gungame-cursed-random`; standalone net35 BepInEx plugin gives its `SpawnAndEquip` prefix `Priority.First`, uses reflection only for live Item Spawner and quickbelt APIs, preserves occupied Ammo/Extra slots, and defaults random mode on once. | Implemented. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, `GameSettings.Start`, and GunGame Ammo/Extra quickbelt slots inspected. | Verified. |
-| Automated checks | Focused source test covers first-priority override and empty-slot-only spare placement. | Final Windows `Test` pending. |
-| Build / package | Version `1.0.0` package metadata and payload declared. | Final Windows package pending. |
-| Deploy / VR | H3VR is running. | Deploy pending H3VR exit. |
+| Automated checks | Windows `Verify -Mod GunGameCursedRandom` passed; Windows `Test` passed `100/100`; focused source test covers first-priority override and empty-slot-only spare placement. | Passed. |
+| Build / package | Windows release build completed with `0` warnings and `0` errors. Package SHA-256 `273ABC46E6D9FDB3B619E914DAFDB9153A291BF91669C97C94E241B0908588D0`. | Passed. |
+| Deploy / VR | Package deployed to active r2modman Default profile; Windows deployment receipt created. | Runtime log and VR test pending. |
 
 ### Open blockers
 
@@ -26,9 +26,9 @@ State: `active`
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Revalidate and deploy forced first-priority override on Windows. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass after H3VR exits. |
-| `[>]` | Inspect first runtime log. | Plugin load plus one complete `Cursed random GunGame spawn` line; no Harmony exception. |
-| `[ ]` | Human VR smoke test. | Toggle works; start/promotion/demotion replace old gear with a random loaded gun and spare feed. |
+| `[x]` | Revalidate and deploy forced first-priority override on Windows. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` passed after H3VR exit. |
+| `[>]` | Inspect first runtime log. | `Cursed random GunGame override requested`, then one complete `Cursed random GunGame spawn` line; no Harmony exception. |
+| `[ ]` | Human VR smoke test. | Default-enabled start/promotion/demotion replace old gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
 ### Deferred
 
@@ -43,25 +43,25 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Final validation pending. |
-| Pipeline | `h3vr-remote run Test` | Final validation pending. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Final validation pending. |
-| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Pending H3VR exit. |
+| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Passed. |
+| Pipeline | `h3vr-remote run Test` | Passed: `100/100`. |
+| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Passed: `0` warnings, `0` errors; package SHA recorded above. |
+| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Passed; deployment receipt created. |
 
 ### Manual H3VR acceptance
 
 | Case | Expected result | Evidence |
 | --- | --- | --- |
-| Startup option | Left GunGame settings panel has `RANDOM CURSED GUNS`; default on is random, off is vanilla. | Pending. |
+| Startup option | Default-enabled random progression starts without relying on `RANDOM CURSED GUNS`; menu-row visibility remains a separate map lifecycle follow-up. | Pending. |
 | Game start | One Item Spawner random gun appears directly in selected hand, with random attachments logged. | Pending. |
-| Promotion / demotion | Previous random gear disappears; new random gun arrives; spare generated feed enters ammo quickbelt slot. | Pending. |
+| Promotion / demotion | Previous random gear disappears; new random gun arrives; random spare feeds use only empty Ammo/Extra slots. | Pending. |
 | Failure fallback | Missing Item Spawner leaves existing profile gun intact and logs one warning. | Pending. |
 
 ### Release gate
 
 - [x] Current Windows source status checked.
-- [ ] Automated checks pass.
-- [ ] Package payload/version verified.
-- [ ] Deployment receipt created.
+- [x] Automated checks pass.
+- [x] Package payload/version verified.
+- [x] Deployment receipt created.
 - [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.
