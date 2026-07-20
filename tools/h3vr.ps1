@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1201,9 +1201,124 @@ function Find-PrivateAssetRip {
     $matches = @(Get-Content -LiteralPath $manifest.FullName | Where-Object { $_ -match $escapedQuery } | Select-Object -First 100)
     Write-Host "Asset archive search: $($matches.Count) match(es), showing at most 100."
     foreach ($match in $matches) {
-        $safeMatch = $match.Replace($assetLab, '<private-asset-lab>')
-        Write-Host "Asset match: $safeMatch"
+        $columns = $match -split "`t", 2
+        $sourcePath = $columns[0]
+        $assetsOffset = $sourcePath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+        if ($assetsOffset -lt 0) {
+            $assetsOffset = $sourcePath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        $safePath = if ($assetsOffset -ge 0) { $sourcePath.Substring($assetsOffset + 1) } else { Split-Path -Leaf $sourcePath }
+        $metadata = if ($columns.Count -gt 1) { "`t$($columns[1])" } else { '' }
+        Write-Host "Asset match: $safePath$metadata"
     }
+}
+
+function Get-PrivateAssetRipGraph {
+    param([string]$PrefabName)
+
+    if ([string]::IsNullOrWhiteSpace($PrefabName)) {
+        throw 'InspectAssetRip requires -Query <prefab name>.'
+    }
+
+    $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
+    if ([string]::IsNullOrWhiteSpace($assetLab)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB is not configured on Windows.'
+    }
+    if (-not (Test-Path -LiteralPath $assetLab -PathType Container)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB does not point to an existing private asset lab.'
+    }
+
+    $manifestDirectory = Join-Path $assetLab 'manifests'
+    $manifest = @(Get-ChildItem -LiteralPath $manifestDirectory -Filter 'H3VRFull-export-files-*.sha256.tsv' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1)[0]
+    if ($null -eq $manifest) {
+        throw 'Private asset lab has no H3VRFull SHA-256 manifest.'
+    }
+
+    $expectedName = if ($PrefabName.EndsWith('.prefab', [System.StringComparison]::OrdinalIgnoreCase)) { $PrefabName } else { "$PrefabName.prefab" }
+    $prefabEntries = @(
+        Get-Content -LiteralPath $manifest.FullName |
+            ForEach-Object {
+                $columns = $_ -split "`t", 2
+                if ([System.IO.Path]::GetFileName($columns[0]).Equals($expectedName, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $columns[0]
+                }
+            }
+    )
+    if ($prefabEntries.Count -eq 0) {
+        throw "No archived prefab named '$expectedName' was found."
+    }
+    if ($prefabEntries.Count -gt 1) {
+        throw "Archived prefab name '$expectedName' is ambiguous. Use a unique prefab name."
+    }
+
+    $rootPath = $prefabEntries[0]
+    $assetsOffset = $rootPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+    if ($assetsOffset -lt 0) {
+        $assetsOffset = $rootPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+    }
+    if ($assetsOffset -lt 0) {
+        throw 'Archived prefab does not resolve below an Assets directory.'
+    }
+    $assetsRoot = $rootPath.Substring(0, $assetsOffset + 7)
+    if (-not (Test-Path -LiteralPath $rootPath -PathType Leaf) -or -not (Test-Path -LiteralPath $assetsRoot -PathType Container)) {
+        throw 'Archived prefab source files are unavailable.'
+    }
+
+    $guidToAssetPath = @{}
+    foreach ($meta in Get-ChildItem -LiteralPath $assetsRoot -Filter '*.meta' -File -Recurse) {
+        $guidMatch = Select-String -LiteralPath $meta.FullName -Pattern '^guid:\s*([0-9a-f]{32})\s*$' -CaseSensitive -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $guidMatch) {
+            $guidToAssetPath[$guidMatch.Matches[0].Groups[1].Value] = $meta.FullName.Substring(0, $meta.FullName.Length - 5)
+        }
+    }
+
+    $pending = [System.Collections.Generic.Queue[string]]::new()
+    $pending.Enqueue($rootPath)
+    $visited = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $unresolved = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    while ($pending.Count -gt 0) {
+        $assetPath = $pending.Dequeue()
+        if (-not $visited.Add($assetPath)) {
+            continue
+        }
+        try {
+            $content = Get-Content -LiteralPath $assetPath -Raw -ErrorAction Stop
+        }
+        catch {
+            continue
+        }
+        foreach ($reference in [regex]::Matches($content, 'guid:\s*([0-9a-f]{32})')) {
+            $guid = $reference.Groups[1].Value
+            if ($guidToAssetPath.ContainsKey($guid)) {
+                $pending.Enqueue($guidToAssetPath[$guid])
+            }
+            else {
+                $unresolved.Add($guid) | Out-Null
+            }
+        }
+    }
+
+    $safeRoot = $rootPath.Substring($assetsOffset + 1)
+    Write-Host "Asset graph root: $safeRoot"
+    foreach ($assetPath in $visited | Sort-Object) {
+        if ($assetPath -eq $rootPath) {
+            continue
+        }
+        $assetOffset = $assetPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+        if ($assetOffset -lt 0) {
+            $assetOffset = $assetPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        $safePath = if ($assetOffset -ge 0) { $assetPath.Substring($assetOffset + 1) } else { Split-Path -Leaf $assetPath }
+        $kind = if ($safePath -match '(^|[\\/])Mesh([\\/]|$)') { 'Mesh' }
+        elseif ($safePath -match '(^|[\\/])Material([\\/]|$)') { 'Material' }
+        elseif ($safePath -match '(^|[\\/])Texture2D([\\/]|$)') { 'Texture2D' }
+        elseif ($safePath -match '(^|[\\/])Shaders?([\\/]|$)') { 'Shader' }
+        elseif ($safePath -match '(^|[\\/])MonoBehaviour([\\/]|$)') { 'Serialized component' }
+        else { 'Asset' }
+        Write-Host "Dependency: $kind | $safePath"
+    }
+    Write-Host "Graph nodes: $($visited.Count); unresolved GUIDs: $($unresolved.Count)."
 }
 
 function Assert-RemoteVersionIsNew {
@@ -1305,6 +1420,7 @@ switch ($Action) {
     'AuditItemId' { Find-InstalledItemId $Query }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
     'FindAssetRip' { Find-PrivateAssetRip $Query }
+    'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {

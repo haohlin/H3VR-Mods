@@ -229,6 +229,27 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Remove-Item", search, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Private_asset_graph_inspection_is_read_only_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var graphStart = pipeline.IndexOf("function Get-PrivateAssetRipGraph", StringComparison.Ordinal);
+        var graphEnd = pipeline.IndexOf("function Assert-RemoteVersionIsNew", graphStart, StringComparison.Ordinal);
+
+        Assert.True(graphStart >= 0 && graphEnd > graphStart,
+            "Pipeline must expose a read-only private asset dependency-graph action.");
+        var graph = pipeline[graphStart..graphEnd];
+
+        Assert.Contains("'InspectAssetRip'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("InspectAssetRip", wrapper, StringComparison.Ordinal);
+        Assert.Contains("InspectAssetRip requires -Query <prefab name>.", graph, StringComparison.Ordinal);
+        Assert.Contains("guid:", graph, StringComparison.Ordinal);
+        Assert.Contains("Dependency:", graph, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", graph, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", graph, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
