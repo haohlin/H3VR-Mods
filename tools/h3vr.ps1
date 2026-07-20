@@ -193,7 +193,7 @@ function Sync-UnityProjectSource {
     }
 
     $projectRoot = Get-UnityProjectRoot
-    & git -C $projectRoot rev-parse --is-inside-work-tree 2>$null | Out-Null
+    & cmd.exe /d /c "git -C \"$projectRoot\" rev-parse --is-inside-work-tree >NUL 2>NUL"
     if ($LASTEXITCODE -ne 0) {
         throw 'Windows Unity project is not a Git worktree; cannot perform guarded source sync.'
     }
