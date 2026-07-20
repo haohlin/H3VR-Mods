@@ -1217,26 +1217,17 @@ function Find-PrivateAssetRip {
 function Get-PrivateAssetRipExportRoots {
     param([string]$AssetLab)
 
-    $roots = [System.Collections.Generic.List[string]]::new()
-    $pending = [System.Collections.Generic.Queue[object]]::new()
-    $pending.Enqueue([pscustomobject]@{ Path = $AssetLab; Depth = 0 })
-    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    while ($pending.Count -gt 0) {
-        $current = $pending.Dequeue()
-        if (-not $seen.Add($current.Path)) {
-            continue
+    $frontier = @($AssetLab)
+    for ($depth = 0; $depth -le 3 -and $frontier.Count -gt 0; $depth++) {
+        $roots = @($frontier | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'Assets') -PathType Container })
+        if ($roots.Count -gt 0) {
+            return $roots
         }
-        if (Test-Path -LiteralPath (Join-Path $current.Path 'Assets') -PathType Container) {
-            $roots.Add($current.Path)
-        }
-        if ($current.Depth -ge 3) {
-            continue
-        }
-        foreach ($directory in Get-ChildItem -LiteralPath $current.Path -Directory -ErrorAction SilentlyContinue) {
-            $pending.Enqueue([pscustomobject]@{ Path = $directory.FullName; Depth = ($current.Depth + 1) })
-        }
+        $frontier = @($frontier | ForEach-Object {
+            Get-ChildItem -LiteralPath $_ -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+        })
     }
-    return $roots
+    return @()
 }
 
 function Resolve-PrivateAssetRipSourceFile {
