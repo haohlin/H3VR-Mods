@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-20`
-State: `native-PIP runtime diagnosis in progress; current candidate registration is conflicted and Windows Unity source synchronization is blocked safely`
+State: `native-PIP candidate deployed; fresh H3VR-session registration and VR acceptance pending`
 
 ### Verified now
 
@@ -25,16 +25,17 @@ State: `native-PIP runtime diagnosis in progress; current candidate registration
 | Native PIP migration | `PIPScope`, controller, front/rear PIP lenses, direct-hand magnification/elevation/windage interactions, and attachment references are serialized. `ScopeShaderZoom` is absent at runtime. | Windows runtime suite passed. |
 | Native magnification | Smooth 7--35x geometric magnification and matching native geometric ring positions are serialized. No archived wheel-angle mapping is used. | Windows runtime suite passed. |
 | Reticle visual scaling | Archived custom shader behavior was `0.846 * (M / 7)`. Native FFP preserves the transferable `M / 7` apparent-scale multiplier. Named MOA-XT, MIL-XT, and TREMOR3 canvases have measured angular FOVs. | Windows runtime suite passed. |
-| Current candidate package | Pipeline tests passed `100/100`; Windows Unity batch build completed; runtime PIP/gravity checks and archive validation passed. Candidate SHA-256 `D52569AA66CB7E0A735781ADD7191C0D5956DF1746C651697F0CB7676712C25C`. | Passed. |
+| Current candidate package | Pipeline tests passed `105/105`; Windows Unity batch build completed; runtime PIP/gravity checks and archive validation passed. Current local package SHA-256 `A1BDD1054A5D0751D9FB762F15D72393FF70053BA488F57204A955733A0BE27F`. | Passed. |
 | Prior candidate deployment | Earlier native-PIP candidate deployed locally with a pipeline-created VR receipt. User runtime report superseded it. It is not a public release. | Superseded by repaired candidate. |
 | Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. | Root cause traced to serialized legacy presentation plus invalid native PIP axis/clip data. |
-| Runtime ItemID conflict | H3VR reports that `NightForcePlus` is already registered, so the repaired candidate can be skipped while a different installed scope is spawned. Both current and Legacy packages are enabled; the Legacy package also has its own `NightForcePlusLegacy` identity text. | Current candidate is not a reliable runtime subject until its Item Spawner identity is isolated. |
-| Windows Unity source sync | The configured Windows MeatKit project is not a Git worktree. The guarded sync action stops before any source changes instead of copying over an unversioned import. | Blocked pending the authoritative Windows Unity checkout or explicit safe synchronization procedure. |
+| Runtime ItemID conflict | Prior H3VR startup reported duplicate `NightForcePlus` registration. Source now uses `NightForcePlusPIP` / `NightForcePlus PIP`; both enabled packages need a fresh H3VR startup-log check before conflict is considered resolved. | Fresh-session verification pending. |
+| Windows Unity source sync | Configured Windows MeatKit project is an unversioned import. Guarded, narrow source transfer copied only committed NightForcePlus source and matching metadata, then hash-verified every transferred file. | Passed. |
 | Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
 | PIP optical placement | Original `Tango6.003_0` lens mesh had its visible plane `0.115426 m` ahead of its Transform pivot, so prior pivot-only alignment claim was false. New `NightForcePipLensCentered.asset` centers that plane. Rear PIP plane is the measured eyepiece end at local Z `-0.13655871`; front PIP plane is the visible objective glass at local Z `0.25538534`; native separation/clip plane is `0.39194405 m`. | Windows Unity runtime suite and fresh MeatKit build passed. |
 | PIP physical diameter | Rear effective diameter is `42.8 mm`; front effective diameter matches the visible objective-glass mesh at `59.794 mm`. Serialized front/rear lens scales are `1.057317` / `1.4771477`; native front-lens gizmo remains a diagnostic guide, not visible game geometry. | Serialized geometry tests passed. |
 | Physical PIP candidate package | Pipeline tests passed `102/102`; Unity emitted the exact NightForce build marker, exited batch mode successfully, and wrote fresh source ZIP SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`. | Built, not packaged/deployed to r2modman. |
 | Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
+| Repaired candidate deployment | Windows pipeline synced to `fix/nightforce-runtime-audit`; automated suite passed `105/105`. Validated current package deployed to active local profile while H3VR was closed. | Fresh H3VR startup and VR acceptance pending. |
 | Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
 
 ### Open blockers
@@ -55,8 +56,8 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | `[x]` | Calibrate native PIP physical lens planes. | Center-pivot mesh, measured eyepiece/objective planes, effective diameters, camera clip spacing, and focused serialized checks pass in Windows Unity batch mode. |
 | `[x]` | Build and deploy isolated legacy review variant. | Fresh `NightForcePlusLegacy` package validates, deploys to Default profile, and registers as a separate local r2modman mod. |
 | `[ ]` | Isolate the repaired PIP Item Spawner identity. | Object definition and Item Spawner entry consistently use `NightForcePlusPIP` / `NightForcePlus PIP`, then both enabled packages register without a duplicate ItemID. |
-| `[ ]` | Synchronize the tested Unity source to Windows. | Windows build project is a known clean Git worktree on the source branch, or a separately reviewed source-sync procedure is provided; no unversioned project is overwritten. |
-| `[ ]` | Package and deploy repaired native-PIP candidate. | Source/package validation succeeds through updated pipeline and local receipt matches current source. |
+| `[x]` | Synchronize the tested Unity source to Windows. | Narrow guarded source sync transferred only committed NightForcePlus source and matching metadata, with per-file hash verification. |
+| `[x]` | Package and deploy repaired native-PIP candidate. | Pipeline tests passed; current package validated and deployed while H3VR was closed. |
 | `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
 | `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
 
@@ -97,7 +98,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 - [x] Current Windows source and managed DLL status checked.
 - [x] Automated checks pass: pipeline `100/100`; Unity runtime PIP/gravity suite passes.
 - [x] Fresh MeatKit source package created from the exact profile after physical PIP repair; SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`.
-- [ ] Pipeline package/deploy receipt for the repaired candidate.
+- [x] Pipeline package/deploy receipt for the repaired candidate.
 - [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.
