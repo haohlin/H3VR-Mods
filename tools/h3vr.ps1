@@ -1376,6 +1376,9 @@ function Get-UnityVanillaPrefabImportStatus {
     }
 
     $content = Get-Content -LiteralPath $logPath -Raw
+    if ($null -eq $content) {
+        $content = [string]::Empty
+    }
     $passed = $content.Contains('[VanillaScopeReferenceImporter] PASS:')
     $comparison = $content.Contains('[VanillaScopeReferenceImporter] COMPARE:')
     $failed = [regex]::IsMatch($content, 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:')
