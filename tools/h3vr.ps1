@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'AuditItemId', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -930,6 +930,79 @@ function Invoke-LogAction {
     $lines | Select-String -Pattern 'HLin|ThePing|GunGame|Harmony|Exception|Error|BepInEx'
 }
 
+function Test-FileContainsUtf8Text {
+    param(
+        [string]$Path,
+        [byte[]]$Needle
+    )
+
+    try {
+        $bytes = [IO.File]::ReadAllBytes($Path)
+    }
+    catch {
+        return $false
+    }
+    if ($Needle.Length -eq 0 -or $bytes.Length -lt $Needle.Length) {
+        return $false
+    }
+
+    for ($start = 0; $start -le $bytes.Length - $Needle.Length; $start++) {
+        if ($bytes[$start] -ne $Needle[0]) {
+            continue
+        }
+
+        $found = $true
+        for ($offset = 1; $offset -lt $Needle.Length; $offset++) {
+            if ($bytes[$start + $offset] -ne $Needle[$offset]) {
+                $found = $false
+                break
+            }
+        }
+
+        if ($found) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Find-InstalledItemId {
+    param([string]$ItemId)
+
+    if ([string]::IsNullOrWhiteSpace($ItemId)) {
+        throw 'AuditItemId requires -Query <ItemID>.'
+    }
+
+    $needle = [Text.Encoding]::UTF8.GetBytes($ItemId)
+    $packageDirectories = @(Get-ChildItem -LiteralPath $EnvironmentConfig.r2modman.pluginsRoot -Directory |
+        Where-Object { $_.Name -like 'HLin*' -or $_.Name -like '*NightForce*' })
+    $auditMatches = @()
+
+    foreach ($directory in $packageDirectories) {
+        $matchedFiles = @()
+        foreach ($file in @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File)) {
+            if (Test-FileContainsUtf8Text -Path $file.FullName -Needle $needle) {
+                $matchedFiles += $file.Name
+            }
+        }
+
+        if ($matchedFiles.Count -gt 0) {
+            $auditMatches += [PSCustomObject]@{
+                Package = $directory.Name
+                Files = ($matchedFiles | Sort-Object -Unique) -join ', '
+            }
+        }
+    }
+
+    if ($auditMatches.Count -eq 0) {
+        Write-Host "No HLin or NightForce package contains ItemID text '$ItemId'."
+        return
+    }
+
+    $auditMatches | Sort-Object Package | Format-Table -AutoSize
+}
+
 function Assert-RemoteVersionIsNew {
     param(
         [object]$ModConfig,
@@ -1024,6 +1097,7 @@ switch ($Action) {
         Select-String -Path ($sourceMatches.Path | Sort-Object -Unique) -Pattern ("\b" + [regex]::Escape($methodName) + "\s*\(")
     }
     'GrepSource' { if ([string]::IsNullOrWhiteSpace($Query)) { throw 'GrepSource requires -Query.' }; Find-SourceText $Query }
+    'AuditItemId' { Find-InstalledItemId $Query }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {
         $modConfig = Get-ModConfig $Mod

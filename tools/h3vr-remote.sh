@@ -37,7 +37,7 @@ fi
 action="$1"
 shift
 case "$action" in
-  Preflight|SourceStatus|RefreshSource|FindType|FindMethod|GrepSource|Verify|Build|Test|Package|Deploy|Logs|TailLogs|ClearLogs|SetPublishToken|Publish)
+  Preflight|SourceStatus|RefreshSource|FindType|FindMethod|GrepSource|AuditItemId|Verify|Build|Test|Package|Deploy|Logs|TailLogs|ClearLogs|SetPublishToken|Publish)
     ;;
   *)
     printf 'Unsupported H3VR pipeline action: %s\n' "$action" >&2
