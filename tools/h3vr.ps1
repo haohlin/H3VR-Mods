@@ -4,9 +4,10 @@ param(
     [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
-    [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
+    [string]$EnvironmentConfigPath,
+    [string]$ModsConfigPath,
     [string]$Query,
     [switch]$Publish,
     [switch]$VrApproved,
@@ -22,14 +23,42 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BuildRoot = Join-Path $RepoRoot 'build'
 $PublicEnvironmentConfigPath = Join-Path $BuildRoot 'environment.json'
 $LocalEnvironmentConfigPath = Join-Path $BuildRoot 'environment.local.json'
-$EnvironmentConfigPath = if (Test-Path -LiteralPath $LocalEnvironmentConfigPath) {
+$DefaultEnvironmentConfigPath = if (Test-Path -LiteralPath $LocalEnvironmentConfigPath) {
     $LocalEnvironmentConfigPath
 }
 else {
     $PublicEnvironmentConfigPath
 }
+$DefaultModsConfigPath = Join-Path $BuildRoot 'mods.json'
+
+function Resolve-PipelineConfigPath {
+    param(
+        [string]$Path,
+        [string]$DefaultPath,
+        [string]$Label
+    )
+
+    $candidate = if ([string]::IsNullOrWhiteSpace($Path)) {
+        $DefaultPath
+    }
+    elseif ([IO.Path]::IsPathRooted($Path)) {
+        $Path
+    }
+    else {
+        Join-Path $RepoRoot $Path
+    }
+
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        throw "$Label does not exist: $candidate"
+    }
+
+    return (Resolve-Path -LiteralPath $candidate).Path
+}
+
+$EnvironmentConfigPath = Resolve-PipelineConfigPath -Path $EnvironmentConfigPath -DefaultPath $DefaultEnvironmentConfigPath -Label 'Environment configuration'
+$ModsConfigPath = Resolve-PipelineConfigPath -Path $ModsConfigPath -DefaultPath $DefaultModsConfigPath -Label 'Mod configuration'
 $EnvironmentConfig = Get-Content -LiteralPath $EnvironmentConfigPath -Raw | ConvertFrom-Json
-$ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw | ConvertFrom-Json
+$ModsConfig = Get-Content -LiteralPath $ModsConfigPath -Raw | ConvertFrom-Json
 
 function Expand-EnvironmentConfiguration {
     param([object]$Config)

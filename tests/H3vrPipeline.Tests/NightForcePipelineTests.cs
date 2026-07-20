@@ -43,6 +43,18 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("$ModConfig.projectDir", pipeline, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Unity_pipeline_accepts_explicit_private_config_overrides()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("[string]$EnvironmentConfigPath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("[string]$ModsConfigPath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("function Resolve-PipelineConfigPath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Resolve-PipelineConfigPath -Path $EnvironmentConfigPath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Resolve-PipelineConfigPath -Path $ModsConfigPath", pipeline, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get

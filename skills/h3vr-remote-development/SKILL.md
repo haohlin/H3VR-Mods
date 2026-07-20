@@ -266,6 +266,14 @@ Use this sequence for every prefab, scene, or MeatKit change:
 3. Commit the reviewed source and matching `.meta` files, then use the guarded
    Windows source sync only while the Windows editor is closed. Do not build
    an unsynchronized or dirty Unity checkout.
+   For a historical or local-only Unity variant that must coexist in one
+   project, keep it in a uniquely named `Assets/Projects/<Variant>` folder
+   with preserved asset GUIDs. Do not clone the entire MeatKit project or
+   replace the shared pipeline configuration. Use an ignored, explicit
+   `-EnvironmentConfigPath` and `-ModsConfigPath` sidecar pair that names the
+   same project root and a unique package/deployment folder. Its batch build
+   method must validate only that variant; it must not run a current-mod
+   migration on archived assets.
 4. Run `h3vr-remote run Test`, then `h3vr-remote run Build <ModName>`. A Unity
    build passes only when its process succeeds, the descriptor's success marker
    is present in the current log, and the expected source package was freshly
