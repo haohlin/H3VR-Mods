@@ -29,6 +29,51 @@ for key in H3VR_WINDOWS_HOST H3VR_WINDOWS_REPOSITORY; do
   fi
 done
 
+windows_quote() {
+  local value="$1"
+  value=${value//\"/\\\"}
+  printf '"%s"' "$value"
+}
+
+pipeline_repository="$H3VR_WINDOWS_REPOSITORY"
+
+resolve_windows_worktree() {
+  local requested_branch="${H3VR_WINDOWS_WORKTREE_BRANCH:-}"
+  local worktree_listing
+  local line
+  local candidate_repository=""
+
+  if [[ -z "$requested_branch" ]]; then
+    return
+  fi
+
+  case "$requested_branch" in
+    *[!A-Za-z0-9._/-]* | '')
+      printf 'H3VR_WINDOWS_WORKTREE_BRANCH contains invalid characters.\n' >&2
+      exit 2
+      ;;
+  esac
+
+  worktree_listing=$(ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" \
+    "git -C $(windows_quote "$H3VR_WINDOWS_REPOSITORY") worktree list --porcelain")
+  while IFS= read -r line; do
+    case "$line" in
+      'worktree '*)
+        candidate_repository="${line#worktree }"
+        ;;
+      "branch refs/heads/$requested_branch")
+        if [[ -n "$candidate_repository" ]]; then
+          pipeline_repository="$candidate_repository"
+          return
+        fi
+        ;;
+    esac
+  done <<< "$worktree_listing"
+
+  printf 'Requested Windows worktree branch was not found.\n' >&2
+  exit 2
+}
+
 if [[ $# -lt 1 ]]; then
   printf 'Usage: %s <PipelineAction> [h3vr.ps1 arguments]\n' "$0" >&2
   exit 2
@@ -43,16 +88,24 @@ case "$action" in
     printf 'Unsupported H3VR pipeline action: %s\n' "$action" >&2
     exit 2
     ;;
-esac
+  esac
 
-windows_quote() {
-  local value="$1"
-  value=${value//\"/\\\"}
-  printf '"%s"' "$value"
-}
+resolve_windows_worktree
+
+pipeline_arguments=(
+  powershell.exe
+  -NoProfile
+  -ExecutionPolicy Bypass
+  -File "${pipeline_repository}\\tools\\h3vr.ps1"
+)
+if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
+  private_environment_config="${H3VR_WINDOWS_REPOSITORY}\\build\\environment.local.json"
+  pipeline_arguments+=(-EnvironmentConfigPath "$private_environment_config")
+fi
+pipeline_arguments+=(-Action "$action" "$@")
 
 remote_command=""
-for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1" -Action "$action" "$@"; do
+for argument in "${pipeline_arguments[@]}"; do
   remote_command+="$(windows_quote "$argument") "
 done
 

@@ -210,6 +210,32 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Remote_wrapper_can_select_a_branch_worktree_without_exposing_its_path()
+    {
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+
+        Assert.Contains("H3VR_WINDOWS_WORKTREE_BRANCH", wrapper, StringComparison.Ordinal);
+        Assert.Contains("git -C", wrapper, StringComparison.Ordinal);
+        Assert.Contains("worktree list --porcelain", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Requested Windows worktree branch was not found.", wrapper, StringComparison.Ordinal);
+        Assert.Contains("pipeline_repository", wrapper, StringComparison.Ordinal);
+        Assert.DoesNotContain("H3VR-Mods-nightforce-runtime", wrapper, StringComparison.Ordinal);
+        Assert.DoesNotContain("printf '%s\\n' \"$pipeline_repository\"", wrapper, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Remote_worktree_execution_reuses_private_machine_environment_configuration()
+    {
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+
+        Assert.Contains("private_environment_config", wrapper, StringComparison.Ordinal);
+        Assert.Contains("-EnvironmentConfigPath", wrapper, StringComparison.Ordinal);
+        Assert.Contains("$H3VR_WINDOWS_REPOSITORY", wrapper, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", wrapper, StringComparison.Ordinal);
+        Assert.DoesNotContain("H3VR-Mods-nightforce-runtime", wrapper, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Private_asset_archive_search_is_read_only_and_available_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
