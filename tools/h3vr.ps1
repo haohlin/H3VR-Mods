@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1356,6 +1356,73 @@ function Invoke-UnityVanillaPrefabComparison {
     }
 }
 
+function Invoke-UnityVanillaPrefabAudit {
+    param([string]$PrefabName)
+
+    if ([string]::IsNullOrWhiteSpace($PrefabName)) {
+        throw 'UnityVanillaPrefabAuditNightForce requires -Query <prefab name>.'
+    }
+    if ($PrefabName -notmatch '^[A-Za-z0-9][A-Za-z0-9._ -]*\.prefab$') {
+        throw 'UnityVanillaPrefabAuditNightForce requires a leaf .prefab name containing only letters, digits, spaces, dots, underscores, or hyphens.'
+    }
+
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before prefab audit.'
+    }
+
+    $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
+    Ensure-Directory $logDirectory
+    $logPath = Join-Path $logDirectory 'vanilla-prefab-importer-smoke.log'
+    $methodName = 'HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabAuditAgainstNightForce'
+    $successMarker = '[VanillaScopeReferenceImporter] AUDIT:'
+    $previousPrefabName = [Environment]::GetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', 'Process')
+
+    try {
+        [Environment]::SetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', $PrefabName, 'Process')
+        for ($attempt = 1; $attempt -le 2; $attempt++) {
+            [IO.File]::WriteAllText($logPath, [string]::Empty)
+            Write-Host "Auditing private vanilla prefab '$PrefabName' against NightForce using Unity batch mode (attempt $attempt/2)."
+            $arguments = @(
+                '-batchmode',
+                '-nographics',
+                '-quit',
+                '-projectPath', ('"{0}"' -f $projectRoot),
+                '-executeMethod', $methodName,
+                '-logFile', ('"{0}"' -f $logPath)
+            )
+            Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments | Out-Null
+            $passed = Wait-ForVanillaPrefabImporterResult -LogPath $logPath -SuccessMarker $successMarker
+            if ($passed) {
+                Write-Host "Private vanilla prefab audit completed for '$PrefabName'."
+                return
+            }
+            $failed = (Test-Path -LiteralPath $logPath) -and
+                (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
+
+            if ($attempt -eq 1 -and -not $failed) {
+                Write-Warning 'Unity recompiled scripts before running the prefab audit; retrying once.'
+                continue
+            }
+            if ($failed) {
+                throw 'Unity vanilla prefab audit failed. Inspect the private Unity batch log.'
+            }
+            throw 'Unity did not complete the vanilla prefab audit. Inspect the private Unity batch log.'
+        }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', $previousPrefabName, 'Process')
+    }
+}
+
 function Get-UnityVanillaPrefabImportStatus {
     $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-prefab-importer-smoke.log'
     $projectRoot = Get-UnityProjectRoot
@@ -1373,6 +1440,7 @@ function Get-UnityVanillaPrefabImportStatus {
     }
     $passed = $content.Contains('[VanillaScopeReferenceImporter] PASS:')
     $comparison = $content.Contains('[VanillaScopeReferenceImporter] COMPARE:')
+    $audit = $content.Contains('[VanillaScopeReferenceImporter] AUDIT:')
     $failed = [regex]::IsMatch($content, 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:')
     $rebindMatches = [regex]::Matches($content,
         '(?<bound>\d+)/(?<total>\d+) script refs rebound;\s*(?<unresolved>\d+) unresolved;\s*(?<ambiguous>\d+) ambiguous')
@@ -1380,6 +1448,7 @@ function Get-UnityVanillaPrefabImportStatus {
     Write-Host 'Vanilla prefab importer smoke log: present.'
     Write-Host "Completion marker: $(if ($passed) { 'present' } else { 'absent' })"
     Write-Host "Comparison marker: $(if ($comparison) { 'present' } else { 'absent' })"
+    Write-Host "Audit marker: $(if ($audit) { 'present' } else { 'absent' })"
     Write-Host "Failure marker: $(if ($failed) { 'present' } else { 'absent' })"
     if ($rebindMatches.Count -eq 0) {
         Write-Host 'Script rebind: no summary recorded.'
@@ -1393,6 +1462,10 @@ function Get-UnityVanillaPrefabImportStatus {
     $comparisonLines = @($content -split '\r?\n' | Where-Object { $_.Contains('[VanillaScopeReferenceImporter] COMPARE:') })
     if ($comparisonLines.Count -gt 0) {
         Write-Host "Comparison summary: $($comparisonLines[$comparisonLines.Count - 1])"
+    }
+    $auditLines = @($content -split '\r?\n' | Where-Object { $_.Contains('[VanillaScopeReferenceImporter] AUDIT:') })
+    if ($auditLines.Count -gt 0) {
+        Write-Host "Audit summary: $($auditLines[$auditLines.Count - 1])"
     }
 }
 
@@ -1822,6 +1895,7 @@ switch ($Action) {
     'UnityVanillaImportSmokeTest' { Invoke-UnityVanillaScopeImportSmokeTest }
     'UnityVanillaPrefabSmokeTest' { Invoke-UnityVanillaPrefabSmokeTest $Query }
     'UnityVanillaPrefabCompareNightForce' { Invoke-UnityVanillaPrefabComparison $Query }
+    'UnityVanillaPrefabAuditNightForce' { Invoke-UnityVanillaPrefabAudit $Query }
     'UnityVanillaPrefabImportStatus' { Get-UnityVanillaPrefabImportStatus }
     'UnityVanillaImportStatus' { Get-UnityVanillaScopeImportStatus }
     'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }

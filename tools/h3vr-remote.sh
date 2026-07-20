@@ -82,7 +82,7 @@ fi
 action="$1"
 shift
 case "$action" in
-  Preflight|SourceStatus|RefreshSource|FindType|FindMethod|GrepSource|PrepareUnitySourceSync|SyncUnitySource|AuditItemId|AssetRipStatus|FindAssetRip|InspectAssetRip|UnityAssetRipStatus|UnityVanillaImportSmokeTest|UnityVanillaPrefabSmokeTest|UnityVanillaPrefabCompareNightForce|UnityVanillaPrefabImportStatus|UnityVanillaImportStatus|QuarantineVanillaScopeImports|UnityBuildStatus|Verify|Build|Test|Package|Deploy|Logs|TailLogs|ClearLogs|SetPublishToken|Publish)
+  Preflight|SourceStatus|RefreshSource|FindType|FindMethod|GrepSource|PrepareUnitySourceSync|SyncUnitySource|AuditItemId|AssetRipStatus|FindAssetRip|InspectAssetRip|UnityAssetRipStatus|UnityVanillaImportSmokeTest|UnityVanillaPrefabSmokeTest|UnityVanillaPrefabCompareNightForce|UnityVanillaPrefabAuditNightForce|UnityVanillaPrefabImportStatus|UnityVanillaImportStatus|QuarantineVanillaScopeImports|UnityBuildStatus|Verify|Build|Test|Package|Deploy|Logs|TailLogs|ClearLogs|SetPublishToken|Publish)
     ;;
   *)
     printf 'Unsupported H3VR pipeline action: %s\n' "$action" >&2
