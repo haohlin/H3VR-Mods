@@ -139,6 +139,28 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
    Keep commits scoped; do not erase another developer's work with broad
    copies.
 
+### Cross-platform parity before local deployment
+
+After every completed implementation, documentation, or workflow-skill change,
+make the macOS checkout, GitHub branch, and Windows checkout converge before
+any local package or deployment:
+
+1. Commit the reviewed tracked changes on macOS and push the intended branch.
+2. With the Windows worktree clean and Unity closed, run
+   `h3vr-remote sync <branch>`. It must fast-forward; never force a divergent
+   or dirty Windows checkout into parity.
+3. Prove one exact commit on all three sides: compare macOS `HEAD`, the pushed
+   `origin/<branch>`, and `h3vr-remote git rev-parse HEAD`. A matching branch
+   name is not sufficient.
+4. User-global H3VR skill entrypoints are not Git-tracked. When a shared skill
+   changes, update the reviewed equivalent entrypoint on every configured
+   platform and compare its SHA-256. A missing or different global skill is a
+   parity failure, not an invitation to copy an unreviewed platform-local file.
+
+Do not run `Package` or `Deploy` for a new local candidate until this parity
+gate passes. A skill-only change needs no rebuild, but still needs Git and
+global-skill parity before the next deployment.
+
 4. Read the affected mod, package source, `build/mods.json`, relevant tests, and
    `tools/h3vr.ps1` before implementation. Reuse existing local patterns.
 

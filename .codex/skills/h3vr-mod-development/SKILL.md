@@ -51,6 +51,35 @@ locally. Run every validation and pipeline action on Windows through
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
 
+## Cross-platform parity before local deployment
+
+After every completed source, documentation, or skill change, synchronize the
+macOS checkout, GitHub branch, and Windows checkout before a local package or
+deployment:
+
+1. Commit reviewed tracked changes on macOS and push the intended branch.
+2. With the Windows worktree clean and Unity closed, run
+   `h3vr-remote sync <branch>`. It must fast-forward; never force a dirty or
+   divergent Windows checkout into parity.
+3. Compare the exact macOS `HEAD`, pushed `origin/<branch>`, and
+   `h3vr-remote git rev-parse HEAD`. Equal branch names are not proof.
+4. User-global H3VR skills are untracked. When a shared skill changes, update
+   the reviewed equivalent entrypoint on every configured platform and compare
+   SHA-256 hashes. A missing or mismatched global skill blocks parity; never
+   replace it from an unreviewed platform-local copy.
+
+Do not `Package` or `Deploy` a new local candidate until parity passes. A
+skill-only update does not require a rebuild, but must reach Git and each
+configured global skill before the next deployment.
+
+## Serialized native PIP scope guardrail
+
+For every serialized `PIPScopeController`, set both directions before package:
+`FVRFireArmAttachment.AttachmentInterface = controller` and
+`PIPScopeController.Attachment = firearmAttachment`. Keep `SubMounts`
+non-null; empty is valid. One-way wiring can fail during pick-up or mounting;
+add editor assertions for both links and VR-test spawn, pick-up, detach, mount.
+
 ## Cross-session mod state
 
 Chat memory is only a convenience; tracked mod records are source of truth for
@@ -438,6 +467,9 @@ GitHub Actions runs `.github/workflows/verify.yml` for portable data and pipelin
 Before requesting review or merging a development branch:
 
 - [ ] `git status` contains only the intended changes.
+- [ ] macOS `HEAD`, GitHub branch, and Windows `HEAD` are the same commit.
+- [ ] Every changed user-global H3VR skill has a matching reviewed SHA-256 on
+      each configured platform.
 - [ ] `SourceStatus` is current; source was refreshed after the last managed-DLL change when applicable.
 - [ ] Every new or changed Harmony target passes `Verify`.
 - [ ] For Unity content, the wiki map route was selected; source assets and
