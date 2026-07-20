@@ -60,17 +60,17 @@ public sealed class BubbleLevelPipelineTests
         Assert.Contains("$attempt -le 2", pipeline, StringComparison.Ordinal);
         Assert.Contains("unityBuildSuccessMarker", pipeline, StringComparison.Ordinal);
         Assert.Contains("Remove-Item -LiteralPath $packagePath", pipeline, StringComparison.Ordinal);
-        Assert.Contains("if ((Test-Path -LiteralPath $logPath) -and", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$buildCompleted = Wait-ForUnityBuildOutput", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Unity_wrapper_waits_for_a_detached_batch_worker_before_rejecting_its_launcher_exit()
+    public void Unity_wrapper_waits_for_build_output_before_rejecting_its_launcher_exit()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
 
-        Assert.Contains("function Wait-ForUnityProjectBatchWorker", pipeline, StringComparison.Ordinal);
-        Assert.Contains("Get-CimInstance Win32_Process", pipeline, StringComparison.Ordinal);
-        Assert.Contains("-batchmode", pipeline, StringComparison.Ordinal);
+        Assert.Contains("function Wait-ForUnityBuildOutput", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Test-Path -LiteralPath $PackagePath", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Select-String -LiteralPath $LogPath", pipeline, StringComparison.Ordinal);
         Assert.Contains("Unity launcher exited", pipeline, StringComparison.Ordinal);
     }
 
