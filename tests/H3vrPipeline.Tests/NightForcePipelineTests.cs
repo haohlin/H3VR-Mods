@@ -71,6 +71,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("AuditItemId requires -Query <ItemID>.", audit, StringComparison.Ordinal);
         Assert.Contains("$EnvironmentConfig.r2modman.pluginsRoot", audit, StringComparison.Ordinal);
         Assert.Contains("Auditing $($packageDirectories.Count) candidate package(s)", audit, StringComparison.Ordinal);
+        Assert.Contains("ItemID audit found $($auditMatches.Count) matching package(s)", audit, StringComparison.Ordinal);
         Assert.Contains("Write-Host \"ItemID match: $($match.Package) [$($match.Files)]\"", audit, StringComparison.Ordinal);
         Assert.Contains("foreach ($match in ($auditMatches | Sort-Object Package))", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Format-Table", audit, StringComparison.Ordinal);
