@@ -4,13 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
-using BepInEx.Configuration;
 using FistVR;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace HLin.GunGameCursedRandom;
 
@@ -19,58 +15,38 @@ namespace HLin.GunGameCursedRandom;
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
-    private const string HarmonyId = "HLin.GunGameCursedRandom";
+    private const string CursedProfileName = "Cursed Random";
     private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
-    private const int StartupToggleWaitFrames = 120;
 
     private static Plugin instance;
     private readonly List<GameObject> activeRandomEquipment = new List<GameObject>();
-    private ConfigEntry<bool> randomGunsEnabled;
-    private ConfigEntry<bool> randomGunDefaultInitialized;
+    private readonly List<StaticActionSubscription> beforeGameStartSubscriptions = new List<StaticActionSubscription>();
+    private readonly List<ProtectedQuickbeltContent> protectedQuickbeltContents = new List<ProtectedQuickbeltContent>();
+    private readonly List<WeaponChangedSubscription> weaponChangedSubscriptions = new List<WeaponChangedSubscription>();
     private MethodInfo randomGunMethod;
     private FieldInfo randomGunField;
+    private bool replacementQueued;
     private bool spawningRandomGun;
     private bool missingSpawnerLogged;
 
     private void Awake()
     {
         instance = this;
-        randomGunsEnabled = Config.Bind(
-            "General",
-            "EnableRandomCursedGuns",
-            true,
-            "Use H3VR Item Spawner random guns instead of GunGame profile weapons. Forced on when H3VR starts; startup UI may change it for the current session.");
-        randomGunDefaultInitialized = Config.Bind(
-            "General",
-            "RandomGunDefaultInitialized",
-            false,
-            "Internal one-time default migration.");
-        var persistedRandomGunSetting = randomGunsEnabled.Value;
-        randomGunsEnabled.Value = true;
-        randomGunDefaultInitialized.Value = true;
-        randomGunsEnabled.SettingChanged += (sender, args) => RefreshOptionVisual();
+        SubscribeBeforeGameStartEvents();
+        if (SubscribeWeaponChangedEvents() == 0)
+        {
+            Logger.LogError("GunGame Cursed Random could not subscribe to GunGame Progression.WeaponChangedEvent.");
+        }
 
-        var harmony = new Harmony(HarmonyId);
-        Patch(harmony, "GunGame.Scripts.Options.GameSettings", "Start", "GameSettingsStartPostfix", false);
-        Patch(harmony, "GunGame.Scripts.GameManager", "StartGame", "GameManagerStartGameTracePrefix", false);
-        Patch(harmony, "GunGame.Scripts.Progression", "SpawnAndEquip", "SpawnAndEquipPrefix", true);
-        Patch(harmony, "GunGame.Scripts.Progression", "Promote", "ProgressionPromoteTracePrefix", false);
-        Patch(harmony, "GunGame.Scripts.Progression", "Demote", "ProgressionDemoteTracePrefix", false);
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        Logger.LogInfo("GunGame Cursed Random ready. Random progression is force-enabled for this H3VR session.");
-        Logger.LogInfo("GunGame Cursed Random trace: persisted random setting=" + persistedRandomGunSetting + "; effective startup setting=true.");
-    }
-
-    private void Start()
-    {
-        StartCoroutine(AddStartupToggleWhenReady());
+        Logger.LogInfo("GunGame Cursed Random ready. Select Cursed Random in GunGame progression choices to enable random weapons.");
     }
 
     private void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        Unsubscribe(beforeGameStartSubscriptions);
+        UnsubscribeWeaponChangedEvents();
         DestroyTrackedEquipment();
         if (instance == this)
         {
@@ -78,154 +54,209 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void Patch(Harmony harmony, string typeName, string methodName, string patchName, bool hasBooleanParameter)
+    private int SubscribeWeaponChangedEvents()
     {
-        var type = AccessTools.TypeByName(typeName);
-        var original = type == null
-            ? null
-            : type.GetMethod(
-                methodName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                null,
-                hasBooleanParameter ? new[] { typeof(bool) } : Type.EmptyTypes,
-                null);
-        var patch = AccessTools.Method(typeof(Plugin), patchName);
-        if (original == null || patch == null)
+        var added = 0;
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            Logger.LogError("GunGame API unavailable: " + typeName + "." + methodName);
+            var progressionType = assembly.GetType("GunGame.Scripts.Progression", false);
+            var changedEvent = progressionType == null
+                ? null
+                : progressionType.GetField(
+                    "WeaponChangedEvent",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            if (changedEvent == null || changedEvent.FieldType != typeof(Action) ||
+                weaponChangedSubscriptions.Any(subscription => subscription.EventField == changedEvent))
+            {
+                continue;
+            }
+
+            var subscription = new WeaponChangedSubscription
+            {
+                ProgressionType = progressionType,
+                EventField = changedEvent
+            };
+            subscription.Handler = delegate { OnNativeWeaponChanged(subscription.ProgressionType); };
+            changedEvent.SetValue(null, (Action)Delegate.Combine(changedEvent.GetValue(null) as Action, subscription.Handler));
+            weaponChangedSubscriptions.Add(subscription);
+            added++;
+            Logger.LogInfo("GunGame Cursed Random subscribed to " + progressionType.FullName + " in " + assembly.GetName().Name + ".");
+        }
+
+        return added;
+    }
+
+    private void SubscribeBeforeGameStartEvents()
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var gameManagerType = assembly.GetType("GunGame.Scripts.GameManager", false);
+            var beforeGameStart = gameManagerType == null
+                ? null
+                : gameManagerType.GetField(
+                    "BeforeGameStartedEvent",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            if (beforeGameStart == null || beforeGameStart.FieldType != typeof(Action))
+            {
+                continue;
+            }
+
+            var subscription = new StaticActionSubscription { EventField = beforeGameStart };
+            subscription.Handler = delegate { CapturePreparedQuickbeltContents(assembly); };
+            beforeGameStart.SetValue(null, (Action)Delegate.Combine(beforeGameStart.GetValue(null) as Action, subscription.Handler));
+            beforeGameStartSubscriptions.Add(subscription);
+            Logger.LogInfo("GunGame Cursed Random subscribed to GameManager.BeforeGameStartedEvent in " + assembly.GetName().Name + ".");
+        }
+    }
+
+    private void UnsubscribeWeaponChangedEvents()
+    {
+        foreach (var subscription in weaponChangedSubscriptions)
+        {
+            Unsubscribe(subscription);
+        }
+
+        weaponChangedSubscriptions.Clear();
+    }
+
+    private static void Unsubscribe(IEnumerable<StaticActionSubscription> subscriptions)
+    {
+        foreach (var subscription in subscriptions)
+        {
+            Unsubscribe(subscription);
+        }
+    }
+
+    private static void Unsubscribe(StaticActionSubscription subscription)
+    {
+        var current = subscription.EventField.GetValue(null) as Action;
+        subscription.EventField.SetValue(null, (Action)Delegate.Remove(current, subscription.Handler));
+    }
+
+    private void OnNativeWeaponChanged(Type progressionType)
+    {
+        if (!IsCursedProfileSelected(progressionType.Assembly))
+        {
             return;
         }
 
-        if (patchName.EndsWith("Prefix", StringComparison.Ordinal))
+        var progression = FindLiveProgression(progressionType);
+        if (progression == null)
         {
-            var prefix = new HarmonyMethod(patch);
-            if (patchName == "SpawnAndEquipPrefix" || patchName.EndsWith("TracePrefix", StringComparison.Ordinal))
+            Logger.LogWarning("Cursed Random selected, but its live Progression instance was unavailable.");
+            return;
+        }
+
+        if (spawningRandomGun || replacementQueued)
+        {
+            Logger.LogWarning("Cursed Random transition ignored because a random replacement is already pending.");
+            return;
+        }
+
+        replacementQueued = true;
+        Logger.LogInfo("Cursed Random selected: native GunGame weapon transition observed; replacing profile equipment.");
+        StartCoroutine(ReplaceNativeEquipment(progression));
+    }
+
+    private IEnumerator ReplaceNativeEquipment(object progression)
+    {
+        yield return null;
+        replacementQueued = false;
+        if (!IsCursedProfileSelected(progression.GetType().Assembly) || spawningRandomGun)
+        {
+            yield break;
+        }
+
+        if (!TryStartRandomSpawn(progression))
+        {
+            Logger.LogWarning("Cursed Random random API unavailable; keeping current profile equipment.");
+        }
+    }
+
+    private static Component FindLiveProgression(Type progressionType)
+    {
+        Component fallback = null;
+        foreach (var candidate in Resources.FindObjectsOfTypeAll(progressionType))
+        {
+            var component = candidate as Component;
+            if (component == null)
             {
-                prefix.priority = Priority.First;
+                continue;
             }
 
-            harmony.Patch(original, prefix: prefix);
-            if (patchName == "SpawnAndEquipPrefix")
+            if (component.gameObject.activeInHierarchy)
             {
-                LogSpawnAndEquipPatchInfo(original);
+                return component;
             }
-        }
-        else
-        {
-            harmony.Patch(original, postfix: new HarmonyMethod(patch));
-        }
-    }
 
-    private void LogSpawnAndEquipPatchInfo(MethodBase original)
-    {
-        Logger.LogInfo(
-            "GunGame Cursed Random trace: SpawnAndEquip hook installed; target=" + original +
-            "; prefixes=[" + DescribePrefixOwners(original) + "].");
-    }
-
-    private static void GameSettingsStartPostfix(object __instance)
-    {
-        if (instance != null)
-        {
-            instance.AddStartupToggle(__instance);
-        }
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        StartCoroutine(AddStartupToggleWhenReady());
-        StartCoroutine(TraceGunGameSceneAfterLoad());
-    }
-
-    private IEnumerator TraceGunGameSceneAfterLoad()
-    {
-        for (var frame = 0; frame < 120; frame++)
-        {
-            yield return null;
+            fallback = component;
         }
 
-        TraceRuntimeMethod("GameManager.StartGame", "GunGame.Scripts.GameManager", "StartGame", false);
-        TraceRuntimeMethod("Progression.SpawnAndEquip", "GunGame.Scripts.Progression", "SpawnAndEquip", true);
-        TraceRuntimeMethod("Progression.Promote", "GunGame.Scripts.Progression", "Promote", false);
-        TraceRuntimeMethod("Progression.Demote", "GunGame.Scripts.Progression", "Demote", false);
+        return fallback;
     }
 
-    private void TraceRuntimeMethod(string label, string typeName, string methodName, bool hasBooleanParameter)
+    private static bool IsCursedProfileSelected(Assembly assembly)
     {
-        var type = AccessTools.TypeByName(typeName);
-        var component = type == null ? null : UnityEngine.Object.FindObjectOfType(type) as Component;
-        var method = type == null
-            ? null
-            : type.GetMethod(
-                methodName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                null,
-                hasBooleanParameter ? new[] { typeof(bool) } : Type.EmptyTypes,
-                null);
-        Logger.LogInfo(
-            "GunGame Cursed Random trace: runtime method probe; label=" + label +
-            "; typeFound=" + (type != null) +
-            "; componentFound=" + (component != null) +
-            "; componentAssembly=" + (component == null ? "none" : component.GetType().Assembly.FullName) +
-            "; method=" + (method == null ? "none" : method.ToString()) +
-            "; prefixes=[" + DescribePrefixOwners(method) + "].");
-    }
-
-    private IEnumerator AddStartupToggleWhenReady()
-    {
-        var settingsType = AccessTools.TypeByName("GunGame.Scripts.Options.GameSettings");
-        for (var frame = 0; frame < StartupToggleWaitFrames; frame++)
+        try
         {
-            var settings = settingsType == null
+            var settingsType = assembly == null ? null : assembly.GetType("GunGame.Scripts.Options.GameSettings", false);
+            var currentPoolProperty = settingsType == null
                 ? null
-                : UnityEngine.Object.FindObjectOfType(settingsType) as Component;
-            if (settings != null)
+                : settingsType.GetProperty(
+                    "CurrentPool",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            var currentPool = currentPoolProperty == null ? null : currentPoolProperty.GetValue(null, null);
+            var getName = currentPool == null
+                ? null
+                : currentPool.GetType().GetMethod("GetName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var name = getName == null ? null : getName.Invoke(currentPool, null) as string;
+            return string.Equals(name, CursedProfileName, StringComparison.Ordinal);
+        }
+        catch (Exception exception)
+        {
+            Trace("profile check failed: " + exception.GetType().Name + ".");
+            return false;
+        }
+    }
+
+    private void CapturePreparedQuickbeltContents(Assembly assembly)
+    {
+        protectedQuickbeltContents.Clear();
+        if (!IsCursedProfileSelected(assembly))
+        {
+            return;
+        }
+
+        foreach (var slot in new[]
             {
-                AddStartupToggle(settings);
-                yield break;
+                GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0),
+                GetQuickbeltSlot(assembly, "ExtraQuickbeltSlot", 1)
+            }
+            .Where(slot => slot != null)
+            .Distinct())
+        {
+            var item = slot.CurObject;
+            if (item != null && !activeRandomEquipment.Contains(item.gameObject))
+            {
+                protectedQuickbeltContents.Add(new ProtectedQuickbeltContent { Slot = slot, Object = item });
+            }
+        }
+
+        Logger.LogInfo("Cursed Random preserved prepared quickbelt objects=" + protectedQuickbeltContents.Count + ".");
+    }
+
+    private void RestorePreparedQuickbeltContents()
+    {
+        foreach (var protectedContent in protectedQuickbeltContents)
+        {
+            if (protectedContent.Slot == null || protectedContent.Object == null ||
+                protectedContent.Slot.CurObject == protectedContent.Object)
+            {
+                continue;
             }
 
-            yield return null;
+            protectedContent.Object.ForceObjectIntoInventorySlot(protectedContent.Slot);
         }
-
-        Logger.LogWarning("GunGame settings were not available for RANDOM CURSED GUNS.");
-    }
-
-    private static bool SpawnAndEquipPrefix(object __instance, bool __0)
-    {
-        if (instance == null)
-        {
-            return true;
-        }
-
-        instance.Logger.LogInfo(
-            "GunGame Cursed Random trace: SpawnAndEquip entered; demotion=" + __0 +
-            "; randomEnabled=" + instance.randomGunsEnabled.Value +
-            "; progression=" + (__instance == null ? "null" : __instance.GetType().FullName) + ".");
-        if (!instance.randomGunsEnabled.Value)
-        {
-            instance.Logger.LogWarning("GunGame Cursed Random trace: random override bypassed because current-session setting is false.");
-            return true;
-        }
-
-        var started = instance.TryStartRandomSpawn(__instance);
-        instance.Logger.LogInfo("GunGame Cursed Random trace: SpawnAndEquip override started=" + started + "; original profile spawn=" + (!started) + ".");
-        return !started;
-    }
-
-    private static void GameManagerStartGameTracePrefix(object __instance)
-    {
-        Trace("GameManager.StartGame entered; manager=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
-    }
-
-    private static void ProgressionPromoteTracePrefix(object __instance)
-    {
-        Trace("Progression.Promote entered; progression=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
-    }
-
-    private static void ProgressionDemoteTracePrefix(object __instance)
-    {
-        Trace("Progression.Demote entered; progression=" + (__instance == null ? "null" : __instance.GetType().Assembly.FullName) + ".");
     }
 
     private bool TryStartRandomSpawn(object progression)
@@ -341,9 +372,9 @@ public sealed class Plugin : BaseUnityPlugin
             .OrderBy(FeedSortOrder)
             .ToList();
         var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
-        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed);
+        RestorePreparedQuickbeltContents();
+        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, progression == null ? null : progression.GetType().Assembly);
         EquipInGunGameHand(gun);
-        NotifyWeaponChanged(progression);
         LogRandomLoadout(gun, looseFeeds, loadedFeed);
     }
 
@@ -426,13 +457,14 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static void MoveSpareFeedsToQuickbelt(
         IEnumerable<FVRPhysicalObject> feeds,
-        FVRPhysicalObject loadedFeed)
+        FVRPhysicalObject loadedFeed,
+        Assembly assembly)
     {
         var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
         var candidateSlots = new[]
             {
-                GetQuickbeltSlot("AmmoQuickbeltSlot", 0),
-                GetQuickbeltSlot("ExtraQuickbeltSlot", 1)
+                GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0),
+                GetQuickbeltSlot(assembly, "ExtraQuickbeltSlot", 1)
             }
             .Where(slot => slot != null)
             .Distinct()
@@ -449,9 +481,11 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private static FVRQuickBeltSlot GetQuickbeltSlot(string fieldName, int fallbackIndex)
+    private static FVRQuickBeltSlot GetQuickbeltSlot(Assembly assembly, string fieldName, int fallbackIndex)
     {
-        var optionType = AccessTools.TypeByName("GunGame.Scripts.Options.QuickbeltOption");
+        var optionType = assembly == null
+            ? AccessTools.TypeByName("GunGame.Scripts.Options.QuickbeltOption")
+            : assembly.GetType("GunGame.Scripts.Options.QuickbeltOption", false);
         var field = optionType == null
             ? null
             : optionType.GetField(fieldName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
@@ -514,7 +548,6 @@ public sealed class Plugin : BaseUnityPlugin
     private static void DestroyGunGameEquipment(object progression)
     {
         var destroyedOldEquipment = false;
-        var clearedWeaponBuffer = false;
         try
         {
             var clearEquipment = progression == null
@@ -526,17 +559,7 @@ public sealed class Plugin : BaseUnityPlugin
                 destroyedOldEquipment = true;
             }
 
-            var component = progression as Component;
-            var bufferType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponBuffer");
-            var buffer = component == null || bufferType == null ? null : component.GetComponent(bufferType);
-            var clearBuffer = buffer == null ? null : AccessTools.Method(buffer.GetType(), "ClearBuffer");
-            if (clearBuffer != null)
-            {
-                clearBuffer.Invoke(buffer, null);
-                clearedWeaponBuffer = true;
-            }
-
-            Trace("cleanup: DestroyOldEq=" + destroyedOldEquipment + "; ClearBuffer=" + clearedWeaponBuffer + ".");
+            Trace("cleanup: DestroyOldEq=" + destroyedOldEquipment + "; preserved native next-weapon buffer.");
         }
         catch (Exception exception)
         {
@@ -569,95 +592,6 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private static void NotifyWeaponChanged(object progression)
-    {
-        var eventField = progression == null
-            ? null
-            : progression.GetType().GetField("WeaponChangedEvent", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-        var callback = eventField == null ? null : eventField.GetValue(null) as Action;
-        if (callback != null)
-        {
-            callback();
-            Trace("WeaponChangedEvent invoked.");
-            return;
-        }
-
-        Trace("WeaponChangedEvent was unavailable.");
-    }
-
-    private void AddStartupToggle(object settings)
-    {
-        var component = settings as Component;
-        if (component == null || component.GetComponentsInChildren<RandomToggleMarker>(true).Length > 0)
-        {
-            return;
-        }
-
-        var sourceImage = settings.GetType().GetField(
-            "DisabledAutoLoadingImage",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        var image = sourceImage == null ? null : sourceImage.GetValue(settings) as Image;
-        var sourceButton = image == null ? null : image.GetComponentInParent<Button>();
-        if (sourceButton == null)
-        {
-            Logger.LogWarning("Could not add RANDOM CURSED GUNS startup toggle.");
-            return;
-        }
-
-        var clone = UnityEngine.Object.Instantiate(sourceButton.gameObject, sourceButton.transform.parent);
-        clone.name = "HLin_RandomCursedGuns";
-        clone.transform.SetSiblingIndex(sourceButton.transform.GetSiblingIndex() + 1);
-        var button = clone.GetComponent<Button>();
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(new UnityAction(ToggleRandomGuns));
-        foreach (var text in clone.GetComponentsInChildren<Text>(true))
-        {
-            text.text = "RANDOM CURSED GUNS";
-        }
-
-        var markerPath = GetRelativePath(sourceButton.transform, image.transform);
-        var markerTransform = string.IsNullOrEmpty(markerPath) ? clone.transform : clone.transform.Find(markerPath);
-        var marker = markerTransform == null ? null : markerTransform.GetComponent<Image>();
-        clone.AddComponent<RandomToggleMarker>().EnabledImage = marker;
-        RefreshOptionVisual();
-        Logger.LogInfo("Added RANDOM CURSED GUNS startup toggle.");
-    }
-
-    private static string GetRelativePath(Transform root, Transform child)
-    {
-        var parts = new List<string>();
-        while (child != null && child != root)
-        {
-            parts.Add(child.name);
-            child = child.parent;
-        }
-
-        if (child != root)
-        {
-            return string.Empty;
-        }
-
-        parts.Reverse();
-        return string.Join("/", parts.ToArray());
-    }
-
-    private void ToggleRandomGuns()
-    {
-        randomGunsEnabled.Value = !randomGunsEnabled.Value;
-        Logger.LogInfo("Random cursed GunGame progression " + (randomGunsEnabled.Value ? "enabled." : "disabled."));
-    }
-
-    private void RefreshOptionVisual()
-    {
-        foreach (var marker in UnityEngine.Object.FindObjectsOfType<RandomToggleMarker>())
-        {
-            if (marker.EnabledImage != null)
-            {
-                marker.EnabledImage.enabled = randomGunsEnabled != null && randomGunsEnabled.Value;
-            }
-        }
-    }
-
     private void LogRandomLoadout(
         FVRPhysicalObject gun,
         IEnumerable<FVRPhysicalObject> feeds,
@@ -685,14 +619,21 @@ public sealed class Plugin : BaseUnityPlugin
         return item == null ? "none" : item.name;
     }
 
-    private static string DescribePrefixOwners(MethodBase method)
+    private class StaticActionSubscription
     {
-        var patchInfo = method == null ? null : Harmony.GetPatchInfo(method);
-        return patchInfo == null
-            ? string.Empty
-            : string.Join(
-                ", ",
-                patchInfo.Prefixes.Select(prefix => prefix.owner + "@" + prefix.priority).ToArray());
+        public FieldInfo EventField;
+        public Action Handler;
+    }
+
+    private sealed class WeaponChangedSubscription : StaticActionSubscription
+    {
+        public Type ProgressionType;
+    }
+
+    private sealed class ProtectedQuickbeltContent
+    {
+        public FVRQuickBeltSlot Slot;
+        public FVRPhysicalObject Object;
     }
 
     private static void Trace(string message)
@@ -702,9 +643,4 @@ public sealed class Plugin : BaseUnityPlugin
             instance.Logger.LogInfo("GunGame Cursed Random trace: " + message);
         }
     }
-}
-
-public sealed class RandomToggleMarker : MonoBehaviour
-{
-    public Image EnabledImage;
 }

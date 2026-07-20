@@ -5,6 +5,6 @@
   "dependencies": [
     "Kodeman-GunGame-1.0.2"
   ],
-  "description": "Optional GunGame progression mode using H3VR Item Spawner's random-gun generator.",
+  "description": "Selectable Cursed Random GunGame profile using H3VR Item Spawner's random-gun generator.",
   "website_url": "https://github.com/haohlin/H3VR-Mods"
 }

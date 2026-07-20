@@ -2,26 +2,28 @@
 
 ## Purpose
 
-Give each GunGame start, promotion, and demotion a fully random vanilla Item
-Spawner firearm while retaining GunGame's Sosig, kill, and run lifecycle.
+Give each selected `Cursed Random` GunGame profile start, promotion, and
+demotion a fully random vanilla Item Spawner firearm while retaining GunGame's
+Sosig, kill, and run lifecycle.
 
 ## Scope
 
 | In scope | Out of scope |
 | --- | --- |
-| Clone one GunGame startup-toggle row for `RANDOM CURSED GUNS`. | Edit GunGame maps, prefabs, or profiles. |
-| Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` when enabled. | Reimplement H3VR random-gun, ammo, or attachment selection. |
-| Replace only `Progression.SpawnAndEquip`; retain GunGame promotion/demotion and Sosig behavior. | Change GunGame progression counts, enemies, or selected quickbelt slots. |
+| Ship `GunGameWeaponPool_Cursed_Random.json` for normal GunGame profile selection. | Edit GunGame maps or prefabs. |
+| Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` after Cursed Random profile transitions. | Reimplement H3VR random-gun, ammo, or attachment selection. |
+| Subscribe to `Progression.WeaponChangedEvent`; retain native promotion/demotion and Sosig behavior. | Change GunGame progression counts, enemies, or selected quickbelt slots. |
 | Give spawned firearm to configured GunGame hand; load first compatible feed; put up to two spares in GunGame Ammo and Extra quickbelt slots. | Guarantee compatibility for every modded Item Spawner object. |
 
 ## Architecture
 
 ```text
-GunGame settings start
-  -> clone existing toggle row
-  -> persistent enabled state
+GunGame profile loader
+  -> Cursed Random appears in normal progression choices
+  -> player selects Cursed Random
 
-GunGame SpawnAndEquip when enabled
+Native GunGame weapon transition
+  -> Progression.WeaponChangedEvent
   -> ItemSpawnerV2 BTN_TryToSpawnRandomGun
   -> wait for vanilla random result
   -> remove previous GunGame/random equipment
@@ -30,9 +32,11 @@ GunGame SpawnAndEquip when enabled
 
 ## Invariants
 
-- Disabled mode does not change GunGame behavior.
-- Enabled mode bypasses only profile weapon spawning, never the GunGame
-  promotion, demotion, enemy, or run-count lifecycle.
+- Any profile other than `Cursed Random` does not change GunGame behavior.
+- Cursed Random replaces only completed native profile equipment, never
+  GunGame promotion, demotion, enemy, or run-count lifecycle.
+- Cursed Random contains 64 valid placeholder tiers, preserving native
+  weapon-count selection through 64 weapons.
 - Use the live `ItemSpawnerV2` random-gun API; do not maintain a second random
   weapon or attachment selector.
 - No polling: one coroutine runs per GunGame equipment transition and stops
@@ -45,11 +49,10 @@ GunGame SpawnAndEquip when enabled
 
 | Decision | Reason | Date |
 | --- | --- | --- |
-| Random progression forces on at each H3VR startup. | Prevents a persisted false setting from bypassing the only progression hook while Atlas menu UI remains unverified; an available menu row can still change the current session. | 2026-07-20 |
-| Reuse the Auto Loading row as startup UI template. | Adds one native-looking option without Unity scene edits. | 2026-07-19 |
-| Keep selected profile for enemy mode and run length only. | GunGame still needs its normal lifecycle; firearm profile contents are ignored. | 2026-07-19 |
+| Use native Cursed Random profile selection. | Live log proves custom startup lookup never found `GameSettings`; profile loader is already stable, visible map UI. | 2026-07-20 |
+| Subscribe to `WeaponChangedEvent`, not `SpawnAndEquip`. | Live log never entered registered direct Harmony prefixes; GunGame source invokes this event after equipment transition. Runtime proof remains required. | 2026-07-20 |
 | Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
-| Trace real GunGame call identity before adding fallback behavior. | Existing runtime evidence shows registered `SpawnAndEquip` hook but no entry; trace GameManager, Progression, runtime component assembly, and full prefix owners first. | 2026-07-20 |
+| Remove custom Atlas-panel behavior. | New profile is visible through GunGame's existing profile loader; no scene lifecycle/UI clone is needed. | 2026-07-20 |
 
 ## Known limits / backlog
 
@@ -57,6 +60,5 @@ GunGame SpawnAndEquip when enabled
 | --- | --- | --- |
 | P0 | Runtime smoke test on GunGame map with Item Spawner V2. | Start/promotion/demotion each yield one hand-equipped random gun. |
 | P0 | Validate generated magazine, cartridge, clip, and speedloader paths. | Loaded gun and spare quickbelt feed work without exceptions. |
-| P0 | Capture forced-override diagnostic trace. | Log proves patch owners, each transition entry, vanilla random result, cleanup, feed, quickbelt, and hand transfer. |
-| P0 | Isolate missing `SpawnAndEquip` call. | Scene probe identifies runtime component assembly and current prefix owners; start/promotion/demotion trace establishes actual transition path. |
-| P1 | Verify UI placement on every supported GunGame map. | Toggle remains readable and click-target works. |
+| P0 | Verify Cursed Random profile load and native event subscription. | Log names profile load, event subscription, and selected transition. |
+| P0 | Verify profile choice appears on supported GunGame maps. | `Cursed Random` is visible/selectable in normal profile list. |

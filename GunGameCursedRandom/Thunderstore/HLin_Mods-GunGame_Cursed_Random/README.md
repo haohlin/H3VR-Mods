@@ -1,12 +1,13 @@
 # GunGame Cursed Random
 
-Adds **RANDOM CURSED GUNS** to GunGame's startup settings. Enable it before
-starting a run to use H3VR's existing Item Spawner random-gun button for every
-GunGame start, promotion, and demotion.
+Adds a native GunGame profile named **Cursed Random**. Select it in GunGame's
+normal progression list to use H3VR's existing Item Spawner random-gun button
+for every start, promotion, and demotion.
 
-GunGame still owns Sosigs, kill requirements, player hand setting, run length,
-and quickbelt selection. Filled Ammo and Extra quickbelt slots remain intact.
-Weapon pool choices no longer select firearms while this option is enabled.
+GunGame still owns profile selection, Sosigs, kill requirements, player hand
+setting, run length, and quickbelt selection. Filled Ammo and Extra quickbelt
+slots remain intact. The profile supplies 64 normal GunGame tiers, so its
+existing weapon-count selector remains usable.
 
 Each completed random spawn logs its firearm, generated feeds, and attachments
 to BepInEx.
@@ -18,8 +19,10 @@ to BepInEx.
 ## Use
 
 1. Open a GunGame map.
-2. **RANDOM CURSED GUNS** is enabled by default. Toggle it off in the startup settings panel when desired.
-3. Start game.
+2. Select **Cursed Random** from normal progression choices.
+3. Set Sosig count, health, kills, weapon count, and prepared quickbelt slots
+   normally.
+4. Start game.
 
 If the map has no active vanilla Item Spawner V2, the plugin leaves normal
 GunGame profile spawning active and logs one warning instead of failing a run.

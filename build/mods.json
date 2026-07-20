@@ -82,36 +82,14 @@
         {
           "from": "GunGameCursedRandom\\bin\\Release\\net35\\GunGameCursedRandom.dll",
           "to": "GunGameCursedRandom.dll"
+        },
+        {
+          "from": "GunGameCursedRandom\\profiles\\GunGameWeaponPool_Cursed_Random.json",
+          "to": "GunGameWeaponPool_Cursed_Random.json"
         }
       ],
       "patchTargets": [],
-      "externalPatchTargets": [
-        {
-          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
-          "type": "GunGame.Scripts.Progression",
-          "method": "SpawnAndEquip"
-        },
-        {
-          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
-          "type": "GunGame.Scripts.Progression",
-          "method": "Promote"
-        },
-        {
-          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
-          "type": "GunGame.Scripts.Progression",
-          "method": "Demote"
-        },
-        {
-          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
-          "type": "GunGame.Scripts.GameManager",
-          "method": "StartGame"
-        },
-        {
-          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
-          "type": "GunGame.Scripts.Options.GameSettings",
-          "method": "Start"
-        }
-      ]
+      "externalPatchTargets": []
     },
     "BubbleLevel": {
       "kind": "unity",

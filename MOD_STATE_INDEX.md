@@ -20,4 +20,4 @@ without verified state.
 | [BubbleLevel](BubbleLevel/DEV_STATUS.md) | Released `2.0.4`; optional material/regression follow-up | [design](BubbleLevel/DESIGN.md), [development status](BubbleLevel/DEV_STATUS.md) |
 | [NightForcePlus](NightForcePlus/DEV_STATUS.md) | Released `1.0.5`; optional reticle/art/UI follow-up | [design](NightForcePlus/DESIGN.md), [development status](NightForcePlus/DEV_STATUS.md) |
 | [GunGameProgressions](GunGameProgressions/DEV_STATUS.md) | Released; compatibility follow-up | [design](GunGameProgressions/DESIGN.md), [development status](GunGameProgressions/DEV_STATUS.md) |
-| [GunGameCursedRandom](GunGameCursedRandom/DEV_STATUS.md) | Active `1.0.0`; Windows verify/test/build/package/deploy passed; VR smoke test pending | [design](GunGameCursedRandom/DESIGN.md), [development status](GunGameCursedRandom/DEV_STATUS.md) |
+| [GunGameCursedRandom](GunGameCursedRandom/DEV_STATUS.md) | Active `1.0.0`; selectable-profile candidate awaits Windows build, deploy, and VR smoke test | [design](GunGameCursedRandom/DESIGN.md), [development status](GunGameCursedRandom/DEV_STATUS.md) |

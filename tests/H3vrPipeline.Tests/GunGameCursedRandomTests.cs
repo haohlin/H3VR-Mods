@@ -6,7 +6,7 @@ namespace H3vrPipeline.Tests;
 public sealed class GunGameCursedRandomTests
 {
     [Fact]
-    public void Cursed_random_mod_keeps_one_narrow_progression_hook_and_vanilla_random_api()
+    public void Cursed_random_mod_uses_native_weapon_changed_event_and_vanilla_random_api()
     {
         var root = FindRepositoryRoot();
         var source = File.ReadAllText(Path.Combine(root, "GunGameCursedRandom", "src", "Plugin.cs"));
@@ -15,30 +15,27 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("AmmoQuickbeltSlot", source);
         Assert.Contains("ExtraQuickbeltSlot", source);
         Assert.Contains("GunGame.Scripts.Progression", source);
-        Assert.Contains("SpawnAndEquip", source);
-        Assert.Contains("GunGame.Scripts.GameManager", source);
-        Assert.Contains("GameManagerStartGameTracePrefix", source);
-        Assert.Contains("ProgressionPromoteTracePrefix", source);
-        Assert.Contains("ProgressionDemoteTracePrefix", source);
-        Assert.Contains("runtime method probe", source);
-        Assert.Contains("GameSettingsStartPostfix", source);
-        Assert.Contains("AddStartupToggleWhenReady", source);
-        Assert.Contains("RandomGunDefaultInitialized", source);
-        Assert.Contains("Priority.First", source);
-        Assert.Contains("randomGunsEnabled.Value = true", source);
-        Assert.Contains("SpawnAndEquip entered", source);
-        Assert.Contains("SpawnAndEquip hook installed", source);
+        Assert.Contains("WeaponChangedEvent", source);
+        Assert.Contains("CursedProfileName", source);
+        Assert.Contains("IsCursedProfileSelected", source);
+        Assert.Contains("if (!IsCursedProfileSelected(progressionType.Assembly))", source);
+        Assert.Contains("Resources.FindObjectsOfTypeAll", source);
+        Assert.Contains("ReplaceNativeEquipment", source);
         Assert.Contains("spawnerCount=", source);
         Assert.Contains("vanilla random result", source);
         Assert.Contains("quickbelt: spares=", source);
         Assert.Contains("slot.CurObject == null", source);
         Assert.Contains("Cursed random GunGame spawn:", source);
+        Assert.DoesNotContain("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddStartupToggle", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RandomToggleMarker", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("randomGunsEnabled", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private void Update(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private void FixedUpdate(", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Cursed_random_mod_is_registered_with_package_and_external_harmony_targets()
+    public void Cursed_random_mod_packages_selectable_profile_without_harmony_targets()
     {
         var root = FindRepositoryRoot();
         using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "build", "mods.json")));
@@ -46,18 +43,20 @@ public sealed class GunGameCursedRandomTests
 
         Assert.Equal("dotnet", mod.GetProperty("kind").GetString());
         Assert.Equal("GunGameCursedRandom\\GunGameCursedRandom.csproj", mod.GetProperty("csproj").GetString());
+        Assert.Equal(0, mod.GetProperty("externalPatchTargets").GetArrayLength());
         Assert.Contains(
-            mod.GetProperty("externalPatchTargets").EnumerateArray(),
-            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Progression" &&
-                target.GetProperty("method").GetString() == "SpawnAndEquip");
-        Assert.Contains(
-            mod.GetProperty("externalPatchTargets").EnumerateArray(),
-            target => target.GetProperty("type").GetString() == "GunGame.Scripts.GameManager" &&
-                target.GetProperty("method").GetString() == "StartGame");
-        Assert.Contains(
-            mod.GetProperty("externalPatchTargets").EnumerateArray(),
-            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Options.GameSettings" &&
-                target.GetProperty("method").GetString() == "Start");
+            mod.GetProperty("payload").EnumerateArray(),
+            payload => payload.GetProperty("to").GetString() == "GunGameWeaponPool_Cursed_Random.json");
+
+        var profilePath = Path.Combine(
+            root,
+            "GunGameCursedRandom",
+            "profiles",
+            "GunGameWeaponPool_Cursed_Random.json");
+        using var profile = JsonDocument.Parse(File.ReadAllText(profilePath));
+        Assert.Equal("Cursed Random", profile.RootElement.GetProperty("Name").GetString());
+        Assert.Equal("Advanced", profile.RootElement.GetProperty("WeaponPoolType").GetString());
+        Assert.True(profile.RootElement.GetProperty("Guns").GetArrayLength() >= 64);
 
         var package = Path.Combine(root, "GunGameCursedRandom", "Thunderstore", "HLin_Mods-GunGame_Cursed_Random");
         Assert.True(File.Exists(Path.Combine(package, "manifest.json")));
