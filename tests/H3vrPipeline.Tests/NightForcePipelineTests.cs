@@ -56,6 +56,28 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_source_sync_is_guarded_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var syncStart = pipeline.IndexOf("function Sync-UnityProjectSource", StringComparison.Ordinal);
+        var syncEnd = pipeline.IndexOf("function Invoke-DotNetBuild", syncStart, StringComparison.Ordinal);
+
+        Assert.True(syncStart >= 0 && syncEnd > syncStart,
+            "Pipeline must provide a guarded Unity-source synchronization action.");
+        var sync = pipeline[syncStart..syncEnd];
+
+        Assert.Contains("'SyncUnitySource'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("SyncUnitySource", wrapper, StringComparison.Ordinal);
+        Assert.Contains("SyncUnitySource requires -Query <branch>.", sync, StringComparison.Ordinal);
+        Assert.Contains("Get-UnityProjectRoot", sync, StringComparison.Ordinal);
+        Assert.Contains("git -C $projectRoot fetch origin --prune", sync, StringComparison.Ordinal);
+        Assert.Contains("git -C $projectRoot checkout $Branch", sync, StringComparison.Ordinal);
+        Assert.Contains("git -C $projectRoot pull --ff-only", sync, StringComparison.Ordinal);
+        Assert.DoesNotContain("reset --hard", sync, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Runtime_item_id_audit_is_read_only_and_available_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
