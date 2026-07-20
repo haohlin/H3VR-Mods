@@ -193,9 +193,10 @@ function Sync-UnityProjectSource {
     }
 
     $projectRoot = Get-UnityProjectRoot
-    & cmd.exe /d /c "git -C \"$projectRoot\" rev-parse --is-inside-work-tree >NUL 2>NUL"
+    $sourceRoot = Join-Path $projectRoot 'Assets\Projects'
+    & cmd.exe /d /c "git -C \"$sourceRoot\" rev-parse --is-inside-work-tree >NUL 2>NUL"
     if ($LASTEXITCODE -ne 0) {
-        throw 'Windows Unity project is not a Git worktree; cannot perform guarded source sync.'
+        throw 'Windows Unity source checkout is not a Git worktree; cannot perform guarded source sync.'
     }
 
     $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
@@ -204,19 +205,19 @@ function Sync-UnityProjectSource {
         throw 'Windows Unity project is open. Close the editor before source sync.'
     }
 
-    & git -C $projectRoot diff --quiet
+    & git -C $sourceRoot diff --quiet
     if ($LASTEXITCODE -ne 0) {
         throw 'Windows Unity project has tracked changes; refusing source sync.'
     }
-    & git -C $projectRoot diff --cached --quiet
+    & git -C $sourceRoot diff --cached --quiet
     if ($LASTEXITCODE -ne 0) {
         throw 'Windows Unity project has staged changes; refusing source sync.'
     }
 
-    Invoke-CheckedNative { & git -C $projectRoot fetch origin --prune }
-    Invoke-CheckedNative { & git -C $projectRoot checkout $Branch }
-    Invoke-CheckedNative { & git -C $projectRoot pull --ff-only }
-    $commit = (& git -C $projectRoot rev-parse HEAD).Trim()
+    Invoke-CheckedNative { & git -C $sourceRoot fetch origin --prune }
+    Invoke-CheckedNative { & git -C $sourceRoot checkout $Branch }
+    Invoke-CheckedNative { & git -C $sourceRoot pull --ff-only }
+    $commit = (& git -C $sourceRoot rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) {
         throw 'Could not resolve synchronized Windows Unity source commit.'
     }
