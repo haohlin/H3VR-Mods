@@ -64,6 +64,7 @@ that progression rather than the archived wheel-angle list.
 | Native PIP optic | Replace the obsolete custom scope runtime with H3VR's PIP scope/controller/interactions while preserving user-adjusted prefab transforms. | 2026-07-20 |
 | Reticle scaling boundary | The archived shader started at `0.846` and multiplied by `M / 7`. `0.846` is mesh/UV-shader-specific, so the native PIP implementation preserves the transferable `M / 7` FFP behavior and uses angular reticle canvases. | 2026-07-20 |
 | Native PIP presentation repair | Remove serialized legacy presentation, normalize the supported PIP optical axis, and preserve authored controls while restoring native interaction feedback. | 2026-07-20 |
+| Private recovered-prefab boundary | Generic importer may resolve a full GUID-plus-local-ID script pointer into a private inspection candidate, but copies no recovered C# and may never supply release/runtime content. ST6T comparison is diagnostic; NightForce remains authored native PIP. | 2026-07-20 |
 
 ## Known limits / backlog
 
