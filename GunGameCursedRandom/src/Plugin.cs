@@ -97,7 +97,13 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (patchName.EndsWith("Prefix", StringComparison.Ordinal))
         {
-            harmony.Patch(original, prefix: new HarmonyMethod(patch));
+            var prefix = new HarmonyMethod(patch);
+            if (patchName == "SpawnAndEquipPrefix")
+            {
+                prefix.priority = Priority.First;
+            }
+
+            harmony.Patch(original, prefix: prefix);
         }
         else
         {
@@ -140,7 +146,13 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static bool SpawnAndEquipPrefix(object __instance)
     {
-        return instance == null || !instance.randomGunsEnabled.Value || !instance.TryStartRandomSpawn(__instance);
+        if (instance == null || !instance.randomGunsEnabled.Value)
+        {
+            return true;
+        }
+
+        instance.Logger.LogInfo("Cursed random GunGame override requested.");
+        return !instance.TryStartRandomSpawn(__instance);
     }
 
     private bool TryStartRandomSpawn(object progression)
@@ -319,23 +331,17 @@ public sealed class Plugin : BaseUnityPlugin
         FVRPhysicalObject loadedFeed)
     {
         var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
-        var slots = new[]
+        var emptySlots = new[]
             {
                 GetQuickbeltSlot("AmmoQuickbeltSlot", 0),
                 GetQuickbeltSlot("ExtraQuickbeltSlot", 1)
             }
-            .Where(slot => slot != null)
+            .Where(slot => slot != null && slot.CurObject == null)
             .Distinct()
             .ToList();
-        for (var index = 0; index < spares.Count && index < slots.Count; index++)
+        for (var index = 0; index < spares.Count && index < emptySlots.Count; index++)
         {
-            var slot = slots[index];
-            if (slot.CurObject != null)
-            {
-                slot.CurObject.ClearQuickbeltState();
-            }
-
-            spares[index].ForceObjectIntoInventorySlot(slot);
+            spares[index].ForceObjectIntoInventorySlot(emptySlots[index]);
             spares[index].m_isSpawnLock = true;
         }
     }

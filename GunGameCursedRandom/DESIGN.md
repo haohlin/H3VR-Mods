@@ -48,6 +48,7 @@ GunGame SpawnAndEquip when enabled
 | Random progression defaults on once. | Lets a missing UI row not block core runtime testing; later UI choices persist. | 2026-07-20 |
 | Reuse the Auto Loading row as startup UI template. | Adds one native-looking option without Unity scene edits. | 2026-07-19 |
 | Keep selected profile for enemy mode and run length only. | GunGame still needs its normal lifecycle; firearm profile contents are ignored. | 2026-07-19 |
+| Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
 
 ## Known limits / backlog
 

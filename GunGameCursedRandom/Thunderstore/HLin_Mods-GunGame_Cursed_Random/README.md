@@ -5,8 +5,8 @@ starting a run to use H3VR's existing Item Spawner random-gun button for every
 GunGame start, promotion, and demotion.
 
 GunGame still owns Sosigs, kill requirements, player hand setting, run length,
-and quickbelt selection. Weapon pool choices no longer select firearms while
-this option is enabled.
+and quickbelt selection. Filled Ammo and Extra quickbelt slots remain intact.
+Weapon pool choices no longer select firearms while this option is enabled.
 
 Each completed random spawn logs its firearm, generated feeds, and attachments
 to BepInEx.
