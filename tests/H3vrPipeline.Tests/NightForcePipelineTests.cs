@@ -344,6 +344,23 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Package_command_reports_version_and_hash_without_artifact_path()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var packageStart = pipeline.IndexOf("'Package' {", StringComparison.Ordinal);
+        var packageEnd = pipeline.IndexOf("'Deploy' {", packageStart, StringComparison.Ordinal);
+
+        Assert.True(packageStart >= 0 && packageEnd > packageStart,
+            "Pipeline must expose the package action dispatch.");
+        var package = pipeline[packageStart..packageEnd];
+
+        Assert.Contains("Packaged $Mod version", package, StringComparison.Ordinal);
+        Assert.Contains("SHA-256", package, StringComparison.Ordinal);
+        Assert.DoesNotContain("Format-List", package, StringComparison.Ordinal);
+        Assert.DoesNotContain("ZipPath", package, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unsafe_private_scope_imports_can_be_moved_to_private_quarantine()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

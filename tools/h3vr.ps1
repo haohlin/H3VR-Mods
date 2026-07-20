@@ -1613,7 +1613,10 @@ switch ($Action) {
         Invoke-Build -ModConfig $modConfig -BuildConfiguration (Get-EffectiveBuildConfiguration -ModConfig $modConfig)
     }
     'Test' { Invoke-Test }
-    'Package' { New-Package (Get-ModConfig $Mod) | Format-List }
+    'Package' {
+        $package = New-Package (Get-ModConfig $Mod)
+        Write-Host "Packaged $Mod version $($package.Version). SHA-256: $($package.Sha256)"
+    }
     'Deploy' { Invoke-Deploy (Get-ModConfig $Mod) }
     'Logs' { Invoke-LogAction 'all' }
     'TailLogs' { Invoke-LogAction 'tail' }
