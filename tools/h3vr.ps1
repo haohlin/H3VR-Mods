@@ -933,38 +933,17 @@ function Invoke-LogAction {
 function Test-FileContainsUtf8Text {
     param(
         [string]$Path,
-        [byte[]]$Needle
+        [string]$Needle
     )
 
     try {
-        $bytes = [IO.File]::ReadAllBytes($Path)
+        $contents = [IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8)
     }
     catch {
         return $false
     }
-    if ($Needle.Length -eq 0 -or $bytes.Length -lt $Needle.Length) {
-        return $false
-    }
-
-    for ($start = 0; $start -le $bytes.Length - $Needle.Length; $start++) {
-        if ($bytes[$start] -ne $Needle[0]) {
-            continue
-        }
-
-        $found = $true
-        for ($offset = 1; $offset -lt $Needle.Length; $offset++) {
-            if ($bytes[$start + $offset] -ne $Needle[$offset]) {
-                $found = $false
-                break
-            }
-        }
-
-        if ($found) {
-            return $true
-        }
-    }
-
-    return $false
+    return -not [string]::IsNullOrEmpty($Needle) -and
+        $contents.IndexOf($Needle, [StringComparison]::Ordinal) -ge 0
 }
 
 function Find-InstalledItemId {
@@ -974,7 +953,6 @@ function Find-InstalledItemId {
         throw 'AuditItemId requires -Query <ItemID>.'
     }
 
-    $needle = [Text.Encoding]::UTF8.GetBytes($ItemId)
     $packageDirectories = @(Get-ChildItem -LiteralPath $EnvironmentConfig.r2modman.pluginsRoot -Directory |
         Where-Object { $_.Name -like 'HLin*' -or $_.Name -like '*NightForce*' })
     Write-Host "Auditing $($packageDirectories.Count) candidate package(s) for ItemID text '$ItemId'."
@@ -983,7 +961,7 @@ function Find-InstalledItemId {
     foreach ($directory in $packageDirectories) {
         $matchedFiles = @()
         foreach ($file in @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File)) {
-            if (Test-FileContainsUtf8Text -Path $file.FullName -Needle $needle) {
+            if (Test-FileContainsUtf8Text -Path $file.FullName -Needle $ItemId) {
                 $matchedFiles += $file.Name
             }
         }
