@@ -316,6 +316,9 @@ public sealed class NightForcePipelineTests
         Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunProjectSmokeTest", action, StringComparison.Ordinal);
         Assert.Contains("[VanillaScopeReferenceImporter] PASS:", action, StringComparison.Ordinal);
         Assert.Contains("Windows Unity project is open", action, StringComparison.Ordinal);
+        Assert.Contains("Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", action, StringComparison.Ordinal);
+        Assert.Contains("Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("-ArgumentList $arguments -Wait -PassThru", action, StringComparison.Ordinal);
     }
 
     [Fact]

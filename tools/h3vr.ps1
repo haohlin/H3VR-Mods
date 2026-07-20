@@ -1162,7 +1162,12 @@ function Invoke-UnityVanillaScopeImportSmokeTest {
             '-executeMethod', $methodName,
             '-logFile', ('"{0}"' -f $logPath)
         )
-        $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
+        $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
+        $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
+        if (-not $process.HasExited) {
+            $process.WaitForExit()
+            $process.Refresh()
+        }
         $deadline = (Get-Date).AddSeconds(300)
         do {
             $passed = (Test-Path -LiteralPath $logPath) -and
@@ -1182,6 +1187,9 @@ function Invoke-UnityVanillaScopeImportSmokeTest {
         if ($attempt -eq 1 -and -not $failed) {
             Write-Warning 'Unity recompiled scripts before running the importer smoke test; retrying once.'
             continue
+        }
+        if (-not $workerCompleted) {
+            throw 'Unity never started the vanilla importer batch worker.'
         }
         if ($process.ExitCode -ne 0) {
             throw "Unity vanilla importer smoke test failed with exit code $($process.ExitCode). See $logPath"
