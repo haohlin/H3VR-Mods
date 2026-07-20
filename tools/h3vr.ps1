@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1198,6 +1198,89 @@ function Invoke-UnityVanillaScopeImportSmokeTest {
     }
 }
 
+function Invoke-UnityVanillaPrefabSmokeTest {
+    param([string]$PrefabName)
+
+    if ([string]::IsNullOrWhiteSpace($PrefabName)) {
+        throw 'UnityVanillaPrefabSmokeTest requires -Query <prefab name>.'
+    }
+    if ($PrefabName -notmatch '^[A-Za-z0-9][A-Za-z0-9._ -]*\.prefab$') {
+        throw 'UnityVanillaPrefabSmokeTest requires a leaf .prefab name containing only letters, digits, spaces, dots, underscores, or hyphens.'
+    }
+
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before importer smoke test.'
+    }
+
+    $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
+    Ensure-Directory $logDirectory
+    $logPath = Join-Path $logDirectory 'vanilla-prefab-importer-smoke.log'
+    $methodName = 'HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabSmokeTest'
+    $successMarker = '[VanillaScopeReferenceImporter] PASS:'
+    $previousPrefabName = [Environment]::GetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', 'Process')
+
+    try {
+        [Environment]::SetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', $PrefabName, 'Process')
+        for ($attempt = 1; $attempt -le 2; $attempt++) {
+            [IO.File]::WriteAllText($logPath, [string]::Empty)
+            Write-Host "Running private vanilla prefab importer smoke test for '$PrefabName' with Unity batch mode (attempt $attempt/2)."
+            $arguments = @(
+                '-batchmode',
+                '-nographics',
+                '-quit',
+                '-projectPath', ('\"{0}\"' -f $projectRoot),
+                '-executeMethod', $methodName,
+                '-logFile', ('\"{0}\"' -f $logPath)
+            )
+            $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -PassThru
+            $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot -CompletionTimeoutSeconds 300
+            if (-not $process.HasExited) {
+                $process.WaitForExit()
+                $process.Refresh()
+            }
+            $deadline = (Get-Date).AddSeconds(300)
+            do {
+                $passed = (Test-Path -LiteralPath $logPath) -and
+                    (Select-String -LiteralPath $logPath -Pattern $successMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
+                $failed = (Test-Path -LiteralPath $logPath) -and
+                    (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
+                if ($passed) {
+                    Write-Host "Private vanilla prefab importer smoke test passed for '$PrefabName'."
+                    return
+                }
+                if ($failed) {
+                    break
+                }
+                Start-Sleep -Seconds 1
+            } while ((Get-Date) -lt $deadline)
+
+            if ($attempt -eq 1 -and -not $failed) {
+                Write-Warning 'Unity recompiled scripts before running the importer smoke test; retrying once.'
+                continue
+            }
+            if (-not $workerCompleted) {
+                throw 'Unity never started the vanilla importer batch worker.'
+            }
+            if ($process.ExitCode -ne 0) {
+                throw 'Unity vanilla prefab importer smoke test failed. Inspect the private Unity batch log.'
+            }
+            throw 'Unity did not complete the vanilla prefab importer smoke test. Inspect the private Unity batch log.'
+        }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('H3VR_VANILLA_PREFAB_NAME', $previousPrefabName, 'Process')
+    }
+}
+
 function Get-UnityVanillaScopeImportStatus {
     $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-scope-importer-smoke.log'
     $projectRoot = Get-UnityProjectRoot
@@ -1611,6 +1694,7 @@ switch ($Action) {
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
     'UnityAssetRipStatus' { Get-UnityAssetRipImportStatus }
     'UnityVanillaImportSmokeTest' { Invoke-UnityVanillaScopeImportSmokeTest }
+    'UnityVanillaPrefabSmokeTest' { Invoke-UnityVanillaPrefabSmokeTest $Query }
     'UnityVanillaImportStatus' { Get-UnityVanillaScopeImportStatus }
     'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
