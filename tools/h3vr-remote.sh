@@ -15,6 +15,8 @@ while IFS='=' read -r key value || [[ -n "$key" ]]; do
     H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY)
       export "$key=$value"
       ;;
+    H3VR_PRIVATE_*)
+      ;;
     *)
       printf 'Unsupported private H3VR configuration key: %s\n' "$key" >&2
       exit 2
