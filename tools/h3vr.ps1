@@ -1711,8 +1711,11 @@ function Move-PrivateVanillaScopeImportsToQuarantine {
         throw 'Windows Unity project is open. Close the editor before quarantining vanilla scope imports.'
     }
 
-    $sourceDirectory = Join-Path $projectRoot 'Assets\Projects\NightForcePlus\PrivateVanillaScopeReferences'
-    if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
+    $sourceDirectories = @(
+        Join-Path $projectRoot 'Assets\Projects\PrivateVanillaPrefabReferences'
+        Join-Path $projectRoot 'Assets\Projects\NightForcePlus\PrivateVanillaScopeReferences'
+    ) | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+    if ($sourceDirectories.Count -eq 0) {
         Write-Host 'No private vanilla scope imports require quarantine.'
         return
     }
@@ -1724,9 +1727,17 @@ function Move-PrivateVanillaScopeImportsToQuarantine {
 
     $quarantineRoot = Join-Path $assetLab 'quarantine\unity-vanilla-scope-imports'
     Ensure-Directory $quarantineRoot
-    $destinationDirectory = Join-Path $quarantineRoot ('PrivateVanillaScopeReferences-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-    Move-Item -LiteralPath $sourceDirectory -Destination $destinationDirectory
-    Write-Host 'Quarantined unsafe private vanilla scope imports outside the Unity project. Original files were moved, not deleted.'
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    foreach ($sourceDirectory in $sourceDirectories) {
+        $destinationDirectory = Join-Path $quarantineRoot ((Split-Path -Leaf $sourceDirectory) + '-' + $timestamp)
+        $suffix = 1
+        while (Test-Path -LiteralPath $destinationDirectory) {
+            $destinationDirectory = Join-Path $quarantineRoot ((Split-Path -Leaf $sourceDirectory) + '-' + $timestamp + '-' + $suffix)
+            $suffix++
+        }
+        Move-Item -LiteralPath $sourceDirectory -Destination $destinationDirectory
+        Write-Host 'Quarantined private vanilla prefab references outside the Unity project. Original files were moved, not deleted.'
+    }
 }
 
 function Invoke-Publish {
