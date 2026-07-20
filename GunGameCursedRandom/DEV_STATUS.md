@@ -9,11 +9,11 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Current unvalidated source replaces custom startup-panel and direct Harmony prefixes with selectable `Cursed Random` profile plus `Progression.WeaponChangedEvent` subscription. | Windows build/test pending after H3VR closes. |
-| Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.WeaponChangedEvent`, profile loader, and GunGame Ammo/Extra quickbelt slots inspected. | Verified source API; current profile/event behavior pending. |
-| Automated checks | Windows `Test` passed `101/101` for the previous diagnostic package. The selectable-profile checks are unrun. | Historical only. |
-| Build / package | Windows release build completed with `0` warnings and `0` errors. Diagnostic package SHA-256 `CB839BCD738754334E2CB18F4DF1D75CA5662CEEA73C36FB875C8EDDA31DB3E0`. | Passed. |
-| Deploy / VR | Diagnostic package remains deployed to active r2modman Default profile. | New profile/event implementation not yet built or deployed. |
+| Source | Selectable-profile implementation committed as `c0bc640`; custom panel and direct Harmony prefixes removed. | Windows parity proven. |
+| Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.WeaponChangedEvent`, profile loader, and GunGame Ammo/Extra quickbelt slots inspected. | Source API verified; current runtime behavior pending. |
+| Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `102/102`. | Passed. |
+| Build / package | Windows release build passed `0` warnings and `0` errors. Package SHA-256 `F5BD06AEA80ADBEE47D91E05B53E28526597F44E5D841D4C20D0C6D5043508C5`. | Passed. |
+| Deploy / VR | Candidate deployed to active r2modman Default profile. | Human VR smoke test pending. |
 
 ### Open blockers
 
@@ -28,7 +28,7 @@ State: `active`
 | State | Item | Acceptance condition |
 | --- | --- | --- |
 | `[x]` | Inspect root-cause runtime log. | Direct Harmony prefixes registered but never entered; custom `GameSettings` lookup never found live settings. |
-| `[>]` | Build and deploy profile/event implementation. | Windows `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass after H3VR closes. |
+| `[x]` | Build and deploy profile/event implementation. | Windows `Verify`, `Test`, `Build`, `Package`, and `Deploy` passed for `c0bc640`. |
 | `[ ]` | Human VR smoke test. | Selected Cursed Random start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
 ### Deferred
@@ -44,10 +44,10 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Profile payload | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Pending after profile payload change. |
-| Pipeline | `h3vr-remote run Test` | Passed: `101/101`. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Pending profile/event candidate. |
-| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Pending profile/event candidate. |
+| Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
+| Pipeline | `h3vr-remote run Test` | Passed: `102/102`. |
+| Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Passed. |
+| Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed to Default profile. |
 
 ### Manual H3VR acceptance
 
