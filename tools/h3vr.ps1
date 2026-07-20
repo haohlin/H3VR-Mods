@@ -977,6 +977,7 @@ function Find-InstalledItemId {
     $needle = [Text.Encoding]::UTF8.GetBytes($ItemId)
     $packageDirectories = @(Get-ChildItem -LiteralPath $EnvironmentConfig.r2modman.pluginsRoot -Directory |
         Where-Object { $_.Name -like 'HLin*' -or $_.Name -like '*NightForce*' })
+    Write-Host "Auditing $($packageDirectories.Count) candidate package(s) for ItemID text '$ItemId'."
     $auditMatches = @()
 
     foreach ($directory in $packageDirectories) {
