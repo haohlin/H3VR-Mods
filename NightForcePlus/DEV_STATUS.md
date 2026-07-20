@@ -4,8 +4,8 @@
 
 ## Status
 
-Last verified: `2026-07-18`
-State: `1.0.5 published; H3VR-verified`
+Last verified: `2026-07-20`
+State: `1.0.5 native-PIP candidate locally deployed; H3VR acceptance pending`
 
 ### Verified now
 
@@ -22,10 +22,15 @@ State: `1.0.5 published; H3VR-verified`
 | Release documentation overlay | Source `main` documentation replaced only ZIP `README.md` and added `CHANGELOG.md`; every existing non-document archive entry kept its content hash. `H3vrPipeline validate` passed. Release SHA-256 `0C6E24310314E3132CA9FA9F660B9FDE5AFB1351AE02EBA0C50FD38C590F2021`. | Passed. |
 | Pipeline wrapper | Windows `h3vr-remote run Test` passed `85/85`; NightForcePlus descriptor and wrapper command are covered. Preflight reports generated source current. | Passed. |
 | Windows Unity source | Editor closed; Unity source checkout is on release `main`. | Source synced. |
+| Native PIP migration | `PIPScope`, controller, front/rear PIP lenses, direct-hand magnification/elevation/windage interactions, and attachment references are serialized. `ScopeShaderZoom` is absent at runtime. | Windows runtime suite passed. |
+| Native magnification | Smooth 7--35x geometric magnification and matching native geometric ring positions are serialized. No archived wheel-angle mapping is used. | Windows runtime suite passed. |
+| Reticle visual scaling | Archived custom shader behavior was `0.846 * (M / 7)`. Native FFP preserves the transferable `M / 7` apparent-scale multiplier. Named MOA-XT, MIL-XT, and TREMOR3 canvases have measured angular FOVs. | Windows runtime suite passed. |
+| Current candidate package | Pipeline tests passed `100/100`; Windows Unity batch build completed; runtime PIP/gravity checks and archive validation passed. Candidate SHA-256 `D52569AA66CB7E0A735781ADD7191C0D5956DF1746C651697F0CB7676712C25C`. | Passed. |
+| Current candidate deployment | Validated native-PIP candidate deployed locally with a pipeline-created VR receipt. It is not a public release. | Deployed; manual acceptance pending. |
 
 ### Open blockers
 
-None.
+Manual H3VR acceptance remains required for the native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, and visual centering/subtension.
 
 ## Plan
 
@@ -35,12 +40,16 @@ None.
 | `[x]` | Validate Unity/MeatKit package on Windows. | Runtime tests, wrapper tests, packages, manifests, and DLL metadata pass. |
 | `[x]` | Perform H3VR acceptance. | User verified both deployed candidates in H3VR. |
 | `[x]` | Publish with explicit authorization. | BubbleLevelSet `2.0.4` published first. Documentation-only archive overlay preserved non-document payload hashes, package validation passed, and exact Thunderstore download URL returned HTTP `200` for `1.0.5`. |
+| `[x]` | Replace custom scope runtime with native PIP scope. | Serialized PIP components, geometric magnification, reticle canvases, and Windows batch checks pass. |
+| `[x]` | Deploy native-PIP candidate locally. | Validated candidate is installed with a VR receipt. |
+| `[ ]` | Perform native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, and visual alignment pass in H3VR. |
 
 ### Deferred
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P2 | Reticle, art, or UI refresh | Shared behavior and regression safety take priority. |
+| P2 | Generic ATACR reticle calibration | It has no verified reticle-unit source data; retain it as visual-only until source artwork/subtensions are available. |
+| P2 | Reticle, art, or UI refresh | Tune named reticle visual baselines only after native-PIP manual acceptance. |
 
 ## Testing
 
@@ -59,14 +68,17 @@ None.
 | Scope level and cant | Scope bubble centers level, follows gravity, stops in tube, settles without jitter. | User verified release candidate in H3VR. |
 | Scope reversed/180-degree mount | Bubble remains on same world-uphill side. | User verified release candidate in H3VR. |
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
-| Optic controls | Zoom, reticle, zero, elevation, and windage remain functional. | User verified release candidate in H3VR. |
+| Native optic spawn/grab/mount | Item Spawner entry appears; scope picks up and mounts normally. | Pending candidate VR test. |
+| Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work. | Pending candidate VR test. |
+| Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
+| Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 
 ### Release gate
 
 - [x] Current Windows source and managed DLL status checked.
-- [x] Automated checks pass.
-- [x] Package payload/version verified.
-- [x] Deployment receipt created.
-- [x] User H3VR acceptance completed.
-- [x] BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
-- [x] Exact Thunderstore download URL returned HTTP `200` for `1.0.5`.
+- [x] Automated checks pass: pipeline `100/100`; Unity runtime PIP/gravity suite passes.
+- [x] Fresh MeatKit package created from the exact profile.
+- [x] Local deployment receipt for the native-PIP candidate.
+- [ ] User H3VR acceptance for native PIP interaction and reticle visuals.
+- [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
+- [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.
