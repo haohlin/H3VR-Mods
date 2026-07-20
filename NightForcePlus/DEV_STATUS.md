@@ -5,13 +5,13 @@
 ## Status
 
 Last verified: `2026-07-20`
-State: `1.0.5 native-PIP repair built as a local candidate; package/deploy and H3VR acceptance pending`
+State: `1.0.5 native-PIP physical-optics repair built as a local candidate; package/deploy and H3VR acceptance pending`
 
 ### Verified now
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Unity source | `H3VR-unity-projects/NightForcePlus` versioned and clean before migration branch. | Verified. |
+| Unity source | `H3VR-unity-projects/NightForcePlus` commit `8c1210c` contains the physical PIP repair, generated centered mesh, and preserved authored control overrides. Windows files match the committed hashes. | Verified. |
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Black mount content is no longer packaged. NightForce requests it from BubbleLevelSet by object ID. | Package boundary validated. |
 | Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`; MeatKit compiles that one source into each package while preserving existing scope component identity and fields. | Windows Unity suite passed. |
@@ -29,7 +29,8 @@ State: `1.0.5 native-PIP repair built as a local candidate; package/deploy and H
 | Prior candidate deployment | Earlier native-PIP candidate deployed locally with a pipeline-created VR receipt. User runtime report superseded it. It is not a public release. | Superseded by repaired candidate. |
 | Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. | Root cause traced to serialized legacy presentation plus invalid native PIP axis/clip data. |
 | Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
-| PIP optical gizmo placement | `NightForcePlus_PIPScope`/camera and `NightForcePipLensRear` share local Z `-0.017600005`; `NightForcePipLensFront` is local Z `0.3324`, exactly `frontLensOffset` (`0.35`) ahead of the scope anchor. The second orange ring is PIPScope's computed front-view exit-pupil guide, about `0.101 m` beyond the objective at 35x. | Verified from current prefab and native `PIPScope.OnDrawGizmosSelected`; no transform change required. |
+| PIP optical placement | Original `Tango6.003_0` lens mesh had its visible plane `0.115426 m` ahead of its Transform pivot, so prior pivot-only alignment claim was false. New `NightForcePipLensCentered.asset` centers that plane. Rear PIP plane is the measured eyepiece end at local Z `-0.13655871`; front PIP plane is the visible objective glass at local Z `0.25538534`; native separation/clip plane is `0.39194405 m`. | Windows Unity runtime suite and fresh MeatKit build passed. |
+| PIP physical diameter | Rear effective diameter is `42.8 mm`; front effective diameter matches the visible objective-glass mesh at `59.794 mm`. Serialized front/rear lens scales are `1.057317` / `1.4771477`; native front-lens gizmo remains a diagnostic guide, not visible game geometry. | Serialized geometry tests passed. |
 | Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
 | Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
 
@@ -48,6 +49,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | `[x]` | Replace custom scope runtime with native PIP scope. | Serialized PIP components, geometric magnification, reticle canvases, and Windows batch checks pass. |
 | `[x]` | Deploy native-PIP candidate locally. | Validated candidate is installed with a VR receipt. |
 | `[x]` | Repair native PIP presentation and interaction data. | Legacy presentation removed; positive optical axis, native camera, controls, and feedback pass serialized checks. |
+| `[x]` | Calibrate native PIP physical lens planes. | Center-pivot mesh, measured eyepiece/objective planes, effective diameters, camera clip spacing, and focused serialized checks pass in Windows Unity batch mode. |
 | `[x]` | Build and deploy isolated legacy review variant. | Fresh `NightForcePlusLegacy` package validates, deploys to Default profile, and registers as a separate local r2modman mod. |
 | `[ ]` | Package and deploy repaired native-PIP candidate. | Source/package validation succeeds through updated pipeline and local receipt matches current source. |
 | `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
@@ -83,6 +85,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
+| Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
 
 ### Release gate
 
