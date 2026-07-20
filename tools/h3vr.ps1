@@ -897,6 +897,7 @@ function New-R2modmanLocalPackageYamlEntry {
     param([object]$LocalManifest)
 
     $packageName = [string]$LocalManifest.name
+    $quotedName = ConvertTo-YamlQuotedScalar $packageName
     $dependencies = @($LocalManifest.dependencies)
     $dependencyLines = if ($dependencies.Count -eq 0) {
         @('  dependencies: []')
@@ -909,7 +910,7 @@ function New-R2modmanLocalPackageYamlEntry {
 
     $lines = @(
         '- manifestVersion: 2'
-        ('  name: {0}' -f (ConvertTo-YamlQuotedScalar $packageName))
+        ('  name: {0}' -f $quotedName)
         ('  authorName: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.authorName))
         ('  websiteUrl: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.websiteUrl))
         ('  displayName: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.displayName))
