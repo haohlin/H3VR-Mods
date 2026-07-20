@@ -996,6 +996,7 @@ function Find-InstalledItemId {
         }
     }
 
+    Write-Host "ItemID audit found $($auditMatches.Count) matching package(s)."
     if ($auditMatches.Count -eq 0) {
         Write-Host "No HLin or NightForce package contains ItemID text '$ItemId'."
         return
