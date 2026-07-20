@@ -204,6 +204,7 @@ public sealed class NightForcePipelineTests
 
         Assert.Contains("H3VR_PRIVATE_ASSET_LAB", wrapper, StringComparison.Ordinal);
         Assert.Contains("asset_lab_prefix", wrapper, StringComparison.Ordinal);
+        Assert.Contains("case \"$H3VR_PRIVATE_ASSET_LAB\"", wrapper, StringComparison.Ordinal);
         Assert.DoesNotContain("H3VR-PrivateScopeLab", wrapper, StringComparison.Ordinal);
     }
 
