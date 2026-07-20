@@ -334,6 +334,8 @@ public sealed class NightForcePipelineTests
         Assert.Contains("UnityVanillaImportStatus", wrapper, StringComparison.Ordinal);
         Assert.Contains("vanilla-scope-importer-smoke.log", status, StringComparison.Ordinal);
         Assert.Contains("Script rebind:", status, StringComparison.Ordinal);
+        Assert.Contains("Write-Host (\"Script rebind:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Write-Host \"Script rebind:", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
     }

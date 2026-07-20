@@ -1214,8 +1214,8 @@ function Get-UnityVanillaScopeImportStatus {
     }
 
     $latest = $rebindMatches[$rebindMatches.Count - 1]
-    Write-Host "Script rebind: $($latest.Groups['bound'].Value)/$($latest.Groups['total'].Value) refs; " +
-        "unresolved=$($latest.Groups['unresolved'].Value); ambiguous=$($latest.Groups['ambiguous'].Value)"
+    Write-Host ("Script rebind: $($latest.Groups['bound'].Value)/$($latest.Groups['total'].Value) refs; " +
+        "unresolved=$($latest.Groups['unresolved'].Value); ambiguous=$($latest.Groups['ambiguous'].Value)")
 }
 
 function Get-PrivateAssetArchiveStatus {
