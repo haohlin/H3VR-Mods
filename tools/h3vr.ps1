@@ -615,12 +615,11 @@ function Get-UnityBuildStatus {
         (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
     $hasFailureMarker = (Test-Path -LiteralPath $logPath) -and
         (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure' -Quiet -ErrorAction SilentlyContinue)
-    $runtimeDiagnosticLines = if (Test-Path -LiteralPath $logPath) {
-        @(Select-String -LiteralPath $logPath -Pattern '\[NightForcePlusRuntime\]' -ErrorAction SilentlyContinue)
-    }
-    else {
-        @()
-    }
+    $runtimeDiagnosticLines = @(
+        if (Test-Path -LiteralPath $logPath) {
+            Select-String -LiteralPath $logPath -Pattern '\[NightForcePlusRuntime\]' -ErrorAction SilentlyContinue
+        }
+    )
     $runtimeDiagnostics = $runtimeDiagnosticLines.Count
     $lastRuntimeDiagnostic = if ($runtimeDiagnostics -gt 0) {
         ($runtimeDiagnosticLines[-1].Line -replace '[A-Za-z]:\\[^\s]+', '<private-path>').Trim()

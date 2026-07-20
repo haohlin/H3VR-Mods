@@ -97,6 +97,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("Build failure marker present:", status, StringComparison.Ordinal);
         Assert.Contains("NightForce runtime diagnostics:", status, StringComparison.Ordinal);
         Assert.Contains("Last NightForce runtime diagnostic:", status, StringComparison.Ordinal);
+        Assert.Contains("$runtimeDiagnosticLines = @(", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Package path", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Log path", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
