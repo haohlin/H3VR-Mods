@@ -407,9 +407,11 @@ public sealed class NightForcePipelineTests
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
         var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaPrefabAudit", StringComparison.Ordinal);
+        Assert.True(actionStart >= 0,
+            "Pipeline must expose a generic private prefab serialized-field audit action.");
         var statusStart = pipeline.IndexOf("function Get-UnityVanillaPrefabImportStatus", actionStart, StringComparison.Ordinal);
 
-        Assert.True(actionStart >= 0 && statusStart > actionStart,
+        Assert.True(statusStart > actionStart,
             "Pipeline must expose a generic private prefab serialized-field audit action.");
         var action = pipeline[actionStart..statusStart];
         var statusEnd = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", statusStart, StringComparison.Ordinal);
