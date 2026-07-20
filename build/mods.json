@@ -136,7 +136,7 @@
       "versionProfileRelativePath": "Assets\\Projects\\NightForcePlus\\Profile-NightForcePlus.asset",
       "packageRelativePath": "AssetBundles\\NightForcePlus\\{version}\\HLin_Mods-NightForcePlus-{version}.zip",
       "unityBuildMethod": "HLin_Mods.BubbleLevelScope.Editor.NightForcePlusRuntimeTests.BuildNightForcePlusPackage",
-      "unityBuildSuccessMarker": "[NightForcePlusRuntime] MeatKit package built from exact profile:",
+      "unityBuildSuccessMarker": "[NightForcePlusRuntime] MeatKit package built from exact profile.",
       "patchTargets": []
     },
     "Teleport": {
