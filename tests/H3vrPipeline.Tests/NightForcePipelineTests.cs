@@ -55,6 +55,23 @@ public sealed class NightForcePipelineTests
         Assert.Contains("Resolve-PipelineConfigPath -Path $ModsConfigPath", pipeline, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Runtime_item_id_audit_is_read_only_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var auditStart = pipeline.IndexOf("function Find-InstalledItemId", StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("switch ($Action)", StringComparison.Ordinal);
+        var audit = pipeline[auditStart..auditEnd];
+
+        Assert.Contains("'AuditItemId'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("AuditItemId", wrapper, StringComparison.Ordinal);
+        Assert.Contains("AuditItemId requires -Query <ItemID>.", audit, StringComparison.Ordinal);
+        Assert.Contains("$EnvironmentConfig.r2modman.pluginsRoot", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
