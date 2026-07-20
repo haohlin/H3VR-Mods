@@ -639,6 +639,7 @@ function Invoke-Test {
     $previousRuntimeTestFlag = $env:H3VR_METADATA_EXPORTER_TESTS
     try {
         $env:H3VR_METADATA_EXPORTER_TESTS = '1'
+        Test-R2modmanLocalPackageYamlEntry
         Invoke-CheckedNative { & dotnet test (Join-Path $RepoRoot 'tests\H3vrPipeline.Tests\H3vrPipeline.Tests.csproj') }
     }
     finally {
@@ -892,6 +893,133 @@ function ConvertTo-YamlQuotedScalar {
     return "'" + ($Value -replace "'", "''") + "'"
 }
 
+function New-R2modmanLocalPackageYamlEntry {
+    param([object]$LocalManifest)
+
+    $dependencies = @($LocalManifest.dependencies)
+    $dependencyLines = if ($dependencies.Count -eq 0) {
+        @('  dependencies: []')
+    }
+    else {
+        @('  dependencies:') + @($dependencies | ForEach-Object {
+            ('    - {0}' -f (ConvertTo-YamlQuotedScalar $_))
+        })
+    }
+
+    $lines = @(
+        '- manifestVersion: 2'
+        ('  name: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.name))
+        ('  authorName: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.authorName))
+        ('  websiteUrl: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.websiteUrl))
+        ('  displayName: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.displayName))
+        ('  description: {0}' -f (ConvertTo-YamlQuotedScalar $LocalManifest.description))
+        "  gameVersion: ''"
+        "  networkMode: ''"
+        "  packageType: ''"
+        "  installMode: ''"
+        ('  installedAtTime: {0}' -f $LocalManifest.installedAtTime)
+        '  loaders: []'
+    ) + $dependencyLines + @(
+        '  incompatibilities: []'
+        '  optionalDependencies: []'
+        '  versionNumber:'
+        ('    major: {0}' -f $LocalManifest.versionNumber.major)
+        ('    minor: {0}' -f $LocalManifest.versionNumber.minor)
+        ('    patch: {0}' -f $LocalManifest.versionNumber.patch)
+        '  enabled: true'
+        '  onlineSource: false'
+    )
+
+    return [string]::Join("`r`n", [string[]]$lines)
+}
+
+function Remove-R2modmanLocalPackageYamlEntries {
+    param(
+        [string]$Yaml,
+        [string]$Name
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Yaml)) {
+        return ''
+    }
+
+    $entryStarts = [regex]::Matches($Yaml, '(?m)^-\s+manifestVersion:\s*\d+\s*(?:\r?\n|$)')
+    $output = New-Object System.Text.StringBuilder
+    $cursor = 0
+    for ($index = 0; $index -lt $entryStarts.Count; $index++) {
+        $start = $entryStarts[$index].Index
+        $end = if ($index + 1 -lt $entryStarts.Count) { $entryStarts[$index + 1].Index } else { $Yaml.Length }
+        $entry = $Yaml.Substring($start, $end - $start)
+        if ($entry -match [regex]::Escape($Name)) {
+            [void]$output.Append($Yaml.Substring($cursor, $start - $cursor))
+            $cursor = $end
+        }
+    }
+
+    [void]$output.Append($Yaml.Substring($cursor))
+    return $output.ToString().Trim()
+}
+
+function Test-R2modmanLocalPackageYamlEntry {
+    $name = 'HLin_Mods-GunGame_Cursed_Random'
+    $localManifest = [pscustomobject]@{
+        name = $name
+        authorName = 'HLin_Mods'
+        websiteUrl = ''
+        displayName = 'GunGame_Cursed_Random'
+        description = 'test'
+        installedAtTime = 0
+        dependencies = @('Kodeman-GunGame-1.0.2')
+        versionNumber = [pscustomobject]@{ major = 1; minor = 0; patch = 0 }
+    }
+    $entry = New-R2modmanLocalPackageYamlEntry $localManifest
+    $quotedName = ConvertTo-YamlQuotedScalar $name
+    if ($entry -notmatch ('(?m)^  name: ' + [regex]::Escape($quotedName) + '$')) {
+        throw 'r2modman YAML entry must keep name and scalar on one line.'
+    }
+    if ($entry -match '(?m)^  name:\s*$') {
+        throw 'r2modman YAML entry must not split name from its scalar.'
+    }
+
+    $brokenEntry = "- manifestVersion: 2`r`n  name:`r`n$quotedName`r`n  onlineSource: false"
+    $remaining = Remove-R2modmanLocalPackageYamlEntries -Yaml ("- manifestVersion: 2`r`n  name: 'Other-Mod'`r`n  onlineSource: false`r`n" + $brokenEntry) -Name $name
+    if ($remaining -match [regex]::Escape($name) -or $remaining -notmatch 'Other-Mod') {
+        throw 'r2modman YAML repair must remove only the target malformed entry.'
+    }
+}
+
+function Set-R2modmanLocalPackageYamlEntry {
+    param(
+        [string]$ModsPath,
+        [string]$Existing,
+        [string]$Name,
+        [string]$Entry
+    )
+
+    $validEntryPattern = '(?ms)^-\s+manifestVersion:\s*2\s*\r?\n\s+name:\s*["'']?' + [regex]::Escape($Name) + '["'']?\s*\r?$'
+    if ($Existing -match $validEntryPattern) {
+        return
+    }
+
+    $remaining = Remove-R2modmanLocalPackageYamlEntries -Yaml $Existing -Name $Name
+    $updated = if ([string]::IsNullOrWhiteSpace($remaining) -or $remaining -eq '[]') {
+        $Entry
+    }
+    else {
+        $remaining + "`r`n" + $Entry
+    }
+
+    $tempPath = $ModsPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+    [System.IO.File]::WriteAllText($tempPath, $updated, [System.Text.UTF8Encoding]::new($false))
+    if (Test-Path -LiteralPath $ModsPath) {
+        $backupPath = $ModsPath + '.before-cursed-random-' + (Get-Date).ToString('yyyyMMdd-HHmmss') + '.bak'
+        [System.IO.File]::Replace($tempPath, $ModsPath, $backupPath, $true)
+    }
+    else {
+        [System.IO.File]::Move($tempPath, $ModsPath)
+    }
+}
+
 function Register-R2modmanLocalPackage {
     param(
         [object]$ModConfig,
@@ -957,44 +1085,8 @@ function Register-R2modmanLocalPackage {
 
     $modsPath = Join-Path $profileRoot 'mods.yml'
     $existing = if (Test-Path -LiteralPath $modsPath) { Get-Content -LiteralPath $modsPath -Raw } else { '' }
-    $entryPattern = '(?m)^\s*name:\s*["'']?' + [regex]::Escape($name) + '["'']?\s*$'
-    if ($existing -notmatch $entryPattern) {
-        $dependencyLines = if ($manifest.dependencies.Count -eq 0) {
-            '  dependencies: []'
-        }
-        else {
-            "  dependencies:`r`n" + (($manifest.dependencies | ForEach-Object { "    - " + (ConvertTo-YamlQuotedScalar $_) }) -join "`r`n")
-        }
-        $entry = @(
-            '- manifestVersion: 2',
-            '  name: ' + (ConvertTo-YamlQuotedScalar $name),
-            '  authorName: ' + (ConvertTo-YamlQuotedScalar $manifest.author),
-            '  websiteUrl: ' + (ConvertTo-YamlQuotedScalar $manifest.website_url),
-            '  displayName: ' + (ConvertTo-YamlQuotedScalar $manifest.name),
-            '  description: ' + (ConvertTo-YamlQuotedScalar $manifest.description),
-            "  gameVersion: ''",
-            "  networkMode: ''",
-            "  packageType: ''",
-            "  installMode: ''",
-            '  installedAtTime: ' + $localManifest.installedAtTime,
-            '  loaders: []',
-            $dependencyLines,
-            '  incompatibilities: []',
-            '  optionalDependencies: []',
-            '  versionNumber:',
-            '    major: ' + $localManifest.versionNumber.major,
-            '    minor: ' + $localManifest.versionNumber.minor,
-            '    patch: ' + $localManifest.versionNumber.patch,
-            '  enabled: true',
-            '  onlineSource: false'
-        ) -join "`r`n"
-        if ([string]::IsNullOrWhiteSpace($existing) -or $existing.Trim() -eq '[]') {
-            Set-Content -LiteralPath $modsPath -Value $entry -Encoding UTF8
-        }
-        else {
-            Add-Content -LiteralPath $modsPath -Value ("`r`n" + $entry) -Encoding UTF8
-        }
-    }
+    $entry = New-R2modmanLocalPackageYamlEntry $localManifest
+    Set-R2modmanLocalPackageYamlEntry -ModsPath $modsPath -Existing $existing -Name $name -Entry $entry
 
     Write-Host "Registered $name as an r2modman local package."
 }
