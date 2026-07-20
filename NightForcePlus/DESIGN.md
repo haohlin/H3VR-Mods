@@ -39,7 +39,7 @@ that progression rather than the archived wheel-angle list.
 - Local-X travel stays within configured hard stops under inversion and rapid rotation.
 - Normal and 180-degree mounting move toward one shared world-uphill side.
 - BubbleLevel keeps released 3.25-degree calibration; NightForce starts at 2.64 degrees.
-- User-adjusted control and mount transforms, mesh, and UI wiring remain unchanged.
+- User-adjusted control and mount transforms, mesh, and attachment wiring remain unchanged.
 - The optic uses native PIP components only; no `ScopeShaderZoom` runtime component or
   archived magnification-angle mapping remains.
 - No static legacy scope Canvas or render camera is serialized. `PIPScopeController`
