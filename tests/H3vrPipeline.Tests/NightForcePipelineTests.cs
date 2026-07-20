@@ -78,6 +78,29 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_build_status_reports_current_marker_and_source_package_without_exposing_private_paths()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var statusStart = pipeline.IndexOf("function Get-UnityBuildStatus", StringComparison.Ordinal);
+        var statusEnd = pipeline.IndexOf("function Get-GunGameStagingPath", statusStart, StringComparison.Ordinal);
+
+        Assert.True(statusStart >= 0 && statusEnd > statusStart,
+            "Pipeline must expose a read-only Unity build status action.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityBuildStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityBuildStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Get-UnityPackageSourcePath", status, StringComparison.Ordinal);
+        Assert.Contains("Select-String -LiteralPath $logPath", status, StringComparison.Ordinal);
+        Assert.Contains("Get-FileSha256", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Package path", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Log path", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_source_sync_is_guarded_and_available_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
