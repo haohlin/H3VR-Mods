@@ -237,7 +237,7 @@ function Sync-UnityProjectSource {
         }
 
         Ensure-Directory $sourceRoot
-        Copy-Item -LiteralPath (Join-Path $stagingRoot 'NightForcePlus') -Destination $sourceRoot -Recurse -Force
+        Copy-Item -LiteralPath $sourceModRoot -Destination $sourceRoot -Recurse -Force
         Copy-Item -LiteralPath $sourceMeta -Destination $targetMeta -Force
 
         foreach ($sourceFile in @(Get-ChildItem -LiteralPath $sourceModRoot -Recurse -File)) {
