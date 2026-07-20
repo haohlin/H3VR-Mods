@@ -9,11 +9,11 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Working tree adds no-behavior tracing on `GameManager.StartGame`, `Progression.Promote`, and `Progression.Demote`, plus post-scene runtime method identity and current Harmony-prefix owner probes. | Windows revalidation pending. |
+| Source | Commit `c33d7f6` adds no-behavior tracing on `GameManager.StartGame`, `Progression.Promote`, and `Progression.Demote`, plus post-scene runtime method identity and current Harmony-prefix owner probes. | Windows Verify passed. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.SpawnAndEquip`, `GameSettings.Start`, and GunGame Ammo/Extra quickbelt slots inspected. | Verified. |
-| Automated checks | Prior Windows checks apply only to forced-prefix source; focused test now asserts root-cause trace hooks and GameManager target registration. | Revalidation pending. |
-| Build / package | Prior package SHA-256 `EA9A194D44B22084D5E7BDF050F853B4A64CBF622DF96FB09F47B748F0F8A8D2` proved plugin load and hook registration but no hook entry. | Diagnostic package pending. |
-| Deploy / VR | Runtime log proved plugin load and `SpawnAndEquip` hook registration, then no `SpawnAndEquip` entry. | Root-cause trace deployment pending. |
+| Automated checks | Windows `Test` passed `101/101`; focused test asserts root-cause trace hooks and GameManager target registration. | Passed. |
+| Build / package | Windows release build completed with `0` warnings and `0` errors. Diagnostic package SHA-256 `CB839BCD738754334E2CB18F4DF1D75CA5662CEEA73C36FB875C8EDDA31DB3E0`. | Passed. |
+| Deploy / VR | Diagnostic package deployed to active r2modman Default profile; Windows deployment receipt created. | Root-cause runtime trace pending. |
 
 ### Open blockers
 
@@ -27,7 +27,7 @@ State: `active`
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Build and deploy root-cause diagnostic trace. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` pass. |
+| `[x]` | Build and deploy root-cause diagnostic trace. | `Verify`, `Test`, `Build`, `Package`, and `Deploy` passed. |
 | `[>]` | Inspect root-cause runtime log. | Runtime component assembly, patch owners, GameManager start, and progression transition entries identify missing call versus method replacement. |
 | `[ ]` | Human VR smoke test. | Default-enabled start/promotion/demotion replace old gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -44,10 +44,10 @@ State: `active`
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
-| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Pending diagnostic source. |
-| Pipeline | `h3vr-remote run Test` | Pending diagnostic source. |
-| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Pending diagnostic source. |
-| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Pending diagnostic source. |
+| Harmony targets | `h3vr-remote run Verify -Mod GunGameCursedRandom` | Passed. |
+| Pipeline | `h3vr-remote run Test` | Passed: `101/101`. |
+| Build / package | `h3vr-remote run Build -Mod GunGameCursedRandom`; `Package` | Passed: `0` warnings, `0` errors; package SHA recorded above. |
+| Deploy | `h3vr-remote run Deploy -Mod GunGameCursedRandom` | Passed; diagnostic deployment receipt created. |
 
 ### Manual H3VR acceptance
 
@@ -61,8 +61,8 @@ State: `active`
 ### Release gate
 
 - [x] Current Windows source status checked.
-- [ ] Automated checks pass.
-- [ ] Package payload/version verified.
-- [ ] Deployment receipt created.
+- [x] Automated checks pass.
+- [x] Package payload/version verified.
+- [x] Deployment receipt created.
 - [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.
