@@ -228,6 +228,13 @@ using the GUI again. Save assets in their owning project root and commit matchin
 3. Commit reviewed assets and matching `.meta` files. Sync the exact commit to
    Windows only with its Unity editor closed; never build a dirty or stale
    Unity checkout.
+   For a historical or local-only variant that must coexist in one MeatKit
+   project, move its owned assets into a uniquely named
+   `Assets/Projects/<Variant>` folder while preserving their GUIDs. Do not
+   clone the full project, replace shared configuration, or run a current-mod
+   migration on archived assets. Build it through ignored explicit
+   `-EnvironmentConfigPath` and `-ModsConfigPath` sidecars that retain the
+   same project root but use a unique package and deployment folder.
 4. Run `h3vr-remote run Test`, then `h3vr-remote run Build <ModName>`. Accept
    the Unity build only when it exits successfully, writes the descriptor's
    current success marker, and produces a fresh expected source ZIP. Unity 5.6
