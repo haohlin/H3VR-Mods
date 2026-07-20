@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
@@ -1362,6 +1362,15 @@ function Get-PrivateAssetRipGraph {
     Write-Host "Graph nodes: $($visited.Count); unresolved GUIDs: $($unresolved.Count)."
 }
 
+function Get-UnityAssetRipImportStatus {
+    $projectRoot = Get-UnityProjectRoot
+    $assetRoot = Join-Path $projectRoot 'Assets\main-game\Assets'
+    $scopePath = Join-Path $assetRoot 'weaponry\attachements\scope\prefabs\LT3x9Scope.prefab'
+
+    Write-Host "Unity full-rip import: $(if (Test-Path -LiteralPath $assetRoot -PathType Container) { 'present' } else { 'absent' })"
+    Write-Host "LT3x9Scope prefab in Unity import: $(if (Test-Path -LiteralPath $scopePath -PathType Leaf) { 'present' } else { 'absent' })"
+}
+
 function Assert-RemoteVersionIsNew {
     param(
         [object]$ModConfig,
@@ -1462,6 +1471,7 @@ switch ($Action) {
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
     'FindAssetRip' { Find-PrivateAssetRip $Query }
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
+    'UnityAssetRipStatus' { Get-UnityAssetRipImportStatus }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {

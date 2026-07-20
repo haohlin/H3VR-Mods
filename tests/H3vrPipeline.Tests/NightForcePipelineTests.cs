@@ -250,6 +250,26 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Remove-Item", graph, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Unity_asset_rip_status_is_read_only_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var statusStart = pipeline.IndexOf("function Get-UnityAssetRipImportStatus", StringComparison.Ordinal);
+        var statusEnd = pipeline.IndexOf("function Assert-RemoteVersionIsNew", statusStart, StringComparison.Ordinal);
+
+        Assert.True(statusStart >= 0 && statusEnd > statusStart,
+            "Pipeline must expose a read-only Unity asset-rip import status action.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityAssetRipStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityAssetRipStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Assets\\main-game\\Assets", status, StringComparison.Ordinal);
+        Assert.Contains("LT3x9Scope.prefab", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
