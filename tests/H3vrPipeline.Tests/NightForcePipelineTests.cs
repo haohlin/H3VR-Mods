@@ -457,6 +457,9 @@ public sealed class NightForcePipelineTests
         Assert.Contains("'QuarantineVanillaScopeImports'", pipeline, StringComparison.Ordinal);
         Assert.Contains("QuarantineVanillaScopeImports", wrapper, StringComparison.Ordinal);
         Assert.Contains("H3VR_PRIVATE_ASSET_LAB", action, StringComparison.Ordinal);
+        Assert.Contains("Assets\\Projects\\PrivateVanillaPrefabReferences", action, StringComparison.Ordinal);
+        Assert.Contains("$sourceDirectories", action, StringComparison.Ordinal);
+        Assert.Contains("foreach ($sourceDirectory in $sourceDirectories)", action, StringComparison.Ordinal);
         Assert.Contains("Move-Item -LiteralPath $sourceDirectory", action, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
         Assert.Contains("moved, not deleted", action, StringComparison.Ordinal);
