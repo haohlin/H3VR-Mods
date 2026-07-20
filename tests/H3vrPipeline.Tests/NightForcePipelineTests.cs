@@ -87,7 +87,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("$stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'", sync, StringComparison.Ordinal);
         Assert.Contains("NightForcePlus-source.zip", sync, StringComparison.Ordinal);
         Assert.Contains("Expand-Archive", sync, StringComparison.Ordinal);
-        Assert.Contains("Copy-Item -LiteralPath (Join-Path $extractRoot 'NightForcePlus')", sync, StringComparison.Ordinal);
+        Assert.Contains("Copy-Item -LiteralPath $sourceModRoot", sync, StringComparison.Ordinal);
         Assert.Contains("Get-FileSha256", sync, StringComparison.Ordinal);
         Assert.DoesNotContain("reset --hard", sync, StringComparison.Ordinal);
     }
