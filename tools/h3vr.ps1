@@ -1314,18 +1314,19 @@ function Get-PrivateAssetRipExportRoots {
     param([string]$AssetLab)
 
     $frontier = @($AssetLab)
+    $allRoots = [System.Collections.Generic.List[string]]::new()
     # The current AssetRipper export places ExportedProject four levels below
     # the private archive root. Keep this search bounded while reaching it.
     for ($depth = 0; $depth -le 4 -and $frontier.Count -gt 0; $depth++) {
         $roots = @($frontier | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'Assets') -PathType Container })
-        if ($roots.Count -gt 0) {
-            return $roots
+        foreach ($root in $roots) {
+            $allRoots.Add($root)
         }
         $frontier = @($frontier | ForEach-Object {
             Get-ChildItem -LiteralPath $_ -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
         })
     }
-    return @()
+    return @($allRoots)
 }
 
 function Resolve-PrivateAssetRipSourceFile {
