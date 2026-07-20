@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-20`
-State: `1.0.5 native-PIP physical-optics repair built as a local candidate; package/deploy and H3VR acceptance pending`
+State: `native-PIP runtime diagnosis in progress; current candidate registration is conflicted and Windows Unity source synchronization is blocked safely`
 
 ### Verified now
 
@@ -28,6 +28,8 @@ State: `1.0.5 native-PIP physical-optics repair built as a local candidate; pack
 | Current candidate package | Pipeline tests passed `100/100`; Windows Unity batch build completed; runtime PIP/gravity checks and archive validation passed. Candidate SHA-256 `D52569AA66CB7E0A735781ADD7191C0D5956DF1746C651697F0CB7676712C25C`. | Passed. |
 | Prior candidate deployment | Earlier native-PIP candidate deployed locally with a pipeline-created VR receipt. User runtime report superseded it. It is not a public release. | Superseded by repaired candidate. |
 | Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. | Root cause traced to serialized legacy presentation plus invalid native PIP axis/clip data. |
+| Runtime ItemID conflict | H3VR reports that `NightForcePlus` is already registered, so the repaired candidate can be skipped while a different installed scope is spawned. Both current and Legacy packages are enabled; the Legacy package also has its own `NightForcePlusLegacy` identity text. | Current candidate is not a reliable runtime subject until its Item Spawner identity is isolated. |
+| Windows Unity source sync | The configured Windows MeatKit project is not a Git worktree. The guarded sync action stops before any source changes instead of copying over an unversioned import. | Blocked pending the authoritative Windows Unity checkout or explicit safe synchronization procedure. |
 | Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
 | PIP optical placement | Original `Tango6.003_0` lens mesh had its visible plane `0.115426 m` ahead of its Transform pivot, so prior pivot-only alignment claim was false. New `NightForcePipLensCentered.asset` centers that plane. Rear PIP plane is the measured eyepiece end at local Z `-0.13655871`; front PIP plane is the visible objective glass at local Z `0.25538534`; native separation/clip plane is `0.39194405 m`. | Windows Unity runtime suite and fresh MeatKit build passed. |
 | PIP physical diameter | Rear effective diameter is `42.8 mm`; front effective diameter matches the visible objective-glass mesh at `59.794 mm`. Serialized front/rear lens scales are `1.057317` / `1.4771477`; native front-lens gizmo remains a diagnostic guide, not visible game geometry. | Serialized geometry tests passed. |
@@ -52,6 +54,8 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | `[x]` | Repair native PIP presentation and interaction data. | Legacy presentation removed; positive optical axis, native camera, controls, and feedback pass serialized checks. |
 | `[x]` | Calibrate native PIP physical lens planes. | Center-pivot mesh, measured eyepiece/objective planes, effective diameters, camera clip spacing, and focused serialized checks pass in Windows Unity batch mode. |
 | `[x]` | Build and deploy isolated legacy review variant. | Fresh `NightForcePlusLegacy` package validates, deploys to Default profile, and registers as a separate local r2modman mod. |
+| `[ ]` | Isolate the repaired PIP Item Spawner identity. | Object definition and Item Spawner entry consistently use `NightForcePlusPIP` / `NightForcePlus PIP`, then both enabled packages register without a duplicate ItemID. |
+| `[ ]` | Synchronize the tested Unity source to Windows. | Windows build project is a known clean Git worktree on the source branch, or a separately reviewed source-sync procedure is provided; no unversioned project is overwritten. |
 | `[ ]` | Package and deploy repaired native-PIP candidate. | Source/package validation succeeds through updated pipeline and local receipt matches current source. |
 | `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
 | `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
@@ -80,7 +84,7 @@ Manual H3VR acceptance remains required for repaired native PIP candidate: Item 
 | Scope level and cant | Scope bubble centers level, follows gravity, stops in tube, settles without jitter. | User verified release candidate in H3VR. |
 | Scope reversed/180-degree mount | Bubble remains on same world-uphill side. | User verified release candidate in H3VR. |
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
-| Native optic spawn/grab/mount | Item Spawner entry appears; scope picks up and mounts normally. | Pending candidate VR test. |
+| Native optic spawn/grab/mount | `NightForcePlus PIP` entry appears independently from `NightForcePlusLegacy`; scope picks up and mounts normally. | Pending source synchronization and candidate VR test. |
 | Legacy optic review | `NightForcePlusLegacy` appears as separate Item Spawner entry and can be compared with current native candidate. | Pending VR test. |
 | Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work. | Pending candidate VR test. |
 | Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
