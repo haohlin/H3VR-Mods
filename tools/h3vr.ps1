@@ -511,6 +511,33 @@ function Wait-ForUnityProjectBatchWorker {
     throw "Unity batch worker did not exit before timeout for project: $ProjectRoot"
 }
 
+function Wait-ForUnityBuildOutput {
+    param(
+        [string]$LogPath,
+        [string]$SuccessMarker,
+        [string]$PackagePath,
+        [int]$TimeoutSeconds = 900
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $hasMarker = (Test-Path -LiteralPath $LogPath) -and
+            (Select-String -LiteralPath $LogPath -Pattern $SuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
+        if ($hasMarker -and (Test-Path -LiteralPath $PackagePath)) {
+            return $true
+        }
+
+        if ((Test-Path -LiteralPath $LogPath) -and
+            (Select-String -LiteralPath $LogPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure' -Quiet -ErrorAction SilentlyContinue)) {
+            return $false
+        }
+
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
+
+    return $false
+}
+
 function Invoke-UnityBuild {
     param([object]$ModConfig)
 
@@ -547,17 +574,15 @@ function Invoke-UnityBuild {
             '-logFile', ('"{0}"' -f $logPath)
         )
         $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
-        $workerCompleted = Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot
-        if ($process.ExitCode -ne 0 -and -not $workerCompleted) {
+        $buildCompleted = Wait-ForUnityBuildOutput -LogPath $logPath -SuccessMarker $ModConfig.unityBuildSuccessMarker -PackagePath $packagePath
+        if ($process.ExitCode -ne 0 -and -not $buildCompleted) {
             throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
         }
         if ($process.ExitCode -ne 0) {
             Write-Warning "Unity launcher exited with code $($process.ExitCode), but detached batch worker completed."
         }
 
-        if ((Test-Path -LiteralPath $logPath) -and
-            (Select-String -LiteralPath $logPath -Pattern $ModConfig.unityBuildSuccessMarker -SimpleMatch -Quiet)) {
-            $buildCompleted = $true
+        if ($buildCompleted) {
             break
         }
 
