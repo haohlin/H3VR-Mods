@@ -1213,6 +1213,55 @@ function Find-PrivateAssetRip {
     }
 }
 
+function Resolve-PrivateAssetRipSourceFile {
+    param(
+        [string]$AssetLab,
+        [string]$ManifestSourcePath
+    )
+
+    $assetsOffset = $ManifestSourcePath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+    if ($assetsOffset -lt 0) {
+        $assetsOffset = $ManifestSourcePath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+    }
+    if ($assetsOffset -lt 0) {
+        throw 'Archived manifest entry does not resolve below an Assets directory.'
+    }
+
+    $relativeAssetPath = $ManifestSourcePath.Substring($assetsOffset + 1)
+    $candidateRoots = @($AssetLab) + @(Get-ChildItem -LiteralPath $AssetLab -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+    foreach ($candidateRoot in $candidateRoots) {
+        $candidate = Join-Path $candidateRoot $relativeAssetPath
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return [pscustomobject]@{
+                SourcePath = $candidate
+                AssetsRoot = Join-Path $candidateRoot 'Assets'
+            }
+        }
+    }
+
+    $leafName = Split-Path -Leaf $ManifestSourcePath
+    $matches = @(Get-ChildItem -LiteralPath $AssetLab -Filter $leafName -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
+        $candidateOffset = $_.FullName.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+        if ($candidateOffset -lt 0) {
+            $candidateOffset = $_.FullName.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        $candidateOffset -ge 0 -and $_.FullName.Substring($candidateOffset + 1).Equals($relativeAssetPath, [System.StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($matches.Count -eq 1) {
+        $resolvedPath = $matches[0].FullName
+        $resolvedOffset = $resolvedPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+        if ($resolvedOffset -lt 0) {
+            $resolvedOffset = $resolvedPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        return [pscustomobject]@{
+            SourcePath = $resolvedPath
+            AssetsRoot = $resolvedPath.Substring(0, $resolvedOffset + 7)
+        }
+    }
+
+    throw 'Archived manifest entry is indexed, but its source file is unavailable in the private asset lab.'
+}
+
 function Get-PrivateAssetRipGraph {
     param([string]$PrefabName)
 
@@ -1252,18 +1301,9 @@ function Get-PrivateAssetRipGraph {
         throw "Archived prefab name '$expectedName' is ambiguous. Use a unique prefab name."
     }
 
-    $rootPath = $prefabEntries[0]
-    $assetsOffset = $rootPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
-    if ($assetsOffset -lt 0) {
-        $assetsOffset = $rootPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
-    }
-    if ($assetsOffset -lt 0) {
-        throw 'Archived prefab does not resolve below an Assets directory.'
-    }
-    $assetsRoot = $rootPath.Substring(0, $assetsOffset + 7)
-    if (-not (Test-Path -LiteralPath $rootPath -PathType Leaf) -or -not (Test-Path -LiteralPath $assetsRoot -PathType Container)) {
-        throw 'Archived prefab source files are unavailable.'
-    }
+    $resolvedRoot = Resolve-PrivateAssetRipSourceFile -AssetLab $assetLab -ManifestSourcePath $prefabEntries[0]
+    $rootPath = $resolvedRoot.SourcePath
+    $assetsRoot = $resolvedRoot.AssetsRoot
 
     $guidToAssetPath = @{}
     foreach ($meta in Get-ChildItem -LiteralPath $assetsRoot -Filter '*.meta' -File -Recurse) {
@@ -1299,7 +1339,11 @@ function Get-PrivateAssetRipGraph {
         }
     }
 
-    $safeRoot = $rootPath.Substring($assetsOffset + 1)
+    $rootOffset = $rootPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
+    if ($rootOffset -lt 0) {
+        $rootOffset = $rootPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
+    }
+    $safeRoot = $rootPath.Substring($rootOffset + 1)
     Write-Host "Asset graph root: $safeRoot"
     foreach ($assetPath in $visited | Sort-Object) {
         if ($assetPath -eq $rootPath) {
