@@ -1423,12 +1423,21 @@ function Get-PrivateAssetRipGraph {
 }
 
 function Get-UnityAssetRipImportStatus {
-    $projectRoot = Get-UnityProjectRoot
-    $assetRoot = Join-Path $projectRoot 'Assets\main-game\Assets'
-    $scopePath = Join-Path $assetRoot 'weaponry\attachements\scope\prefabs\LT3x9Scope.prefab'
+    $assetLab = [Environment]::GetEnvironmentVariable('H3VR_PRIVATE_ASSET_LAB')
+    if ([string]::IsNullOrWhiteSpace($assetLab)) {
+        throw 'H3VR_PRIVATE_ASSET_LAB is not configured on Windows.'
+    }
 
-    Write-Host "Unity full-rip import: $(if (Test-Path -LiteralPath $assetRoot -PathType Container) { 'present' } else { 'absent' })"
-    Write-Host "LT3x9Scope prefab in Unity import: $(if (Test-Path -LiteralPath $scopePath -PathType Leaf) { 'present' } else { 'absent' })"
+    $assetRoot = Join-Path $assetLab 'exports\H3VRFull\AssetRipperProject\ExportedProject\Assets'
+    $scopePrefabs = if (Test-Path -LiteralPath $assetRoot -PathType Container) {
+        @(Get-ChildItem -LiteralPath $assetRoot -Recurse -Filter 'ST6T*.prefab' -File -ErrorAction SilentlyContinue)
+    }
+    else {
+        @()
+    }
+
+    Write-Host "Latest private AssetRipper export: $(if (Test-Path -LiteralPath $assetRoot -PathType Container) { 'present' } else { 'absent' })"
+    Write-Host "ST6T scope prefabs in latest private export: $($scopePrefabs.Count)"
 }
 
 function Assert-RemoteVersionIsNew {

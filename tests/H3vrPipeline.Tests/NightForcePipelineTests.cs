@@ -265,8 +265,10 @@ public sealed class NightForcePipelineTests
 
         Assert.Contains("'UnityAssetRipStatus'", pipeline, StringComparison.Ordinal);
         Assert.Contains("UnityAssetRipStatus", wrapper, StringComparison.Ordinal);
-        Assert.Contains("Assets\\main-game\\Assets", status, StringComparison.Ordinal);
-        Assert.Contains("LT3x9Scope.prefab", status, StringComparison.Ordinal);
+        Assert.Contains("H3VR_PRIVATE_ASSET_LAB", status, StringComparison.Ordinal);
+        Assert.Contains("exports\\H3VRFull\\AssetRipperProject\\ExportedProject\\Assets", status, StringComparison.Ordinal);
+        Assert.Contains("ST6T*.prefab", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("main-game", status, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
     }

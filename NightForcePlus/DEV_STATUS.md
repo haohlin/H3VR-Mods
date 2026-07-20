@@ -37,14 +37,14 @@ State: `native-PIP candidate deployed; fresh H3VR-session registration and VR ac
 | Fresh Unity source package | Unity emitted the NightForce build success marker and wrote a new source ZIP after static contract validation. The older wrapper can report a launcher exit before Unity 5.6's detached batch worker exits; pipeline now waits for that worker. | Package/deploy must run through updated wrapper after Git parity. |
 | Repaired candidate deployment | Windows pipeline synced to `codex/nightforce-runtime`; automated suite passed `106/106`. Corrected completion-marker punctuation rejected neither fresh build nor package; validated current package deployed to active local profile while H3VR was closed. | Fresh H3VR startup and VR acceptance pending. |
 | Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
-| Vanilla scope reference archive | Private H3VRFull manifest indexes `169,718` entries and locates the `LT3x9Scope` visual set, but its selected prefab has no readable source file in the configured materialized export. The existing Unity `main-game` import is present but has no `LT3x9Scope` prefab. | Archive index is not sufficient evidence for a dependency-closed import; restore a verified raw export outside Unity first. |
-| Private vanilla importer | Unity source branch `codex/vanilla-scope-importer` adds `HLin Mods > Private > Vanilla Scope Reference Importer`. It copies one prefab's GUID-closed visual subset, creates a clean no-game-script visual prefab, makes Standard-shader inspection fallbacks when needed, and writes a private import report. Output under `PrivateVanillaScopeReferences` is ignored. | Synced to Windows MeatKit-Lite; Unity batch build status is ready with its success marker and no failure marker. |
+| Vanilla scope reference archive | Authoritative source is the latest private AssetRipper export under `H3VR_PRIVATE_ASSET_LAB/exports/H3VRFull/AssetRipperProject/ExportedProject/Assets`. The old Unity full-rip import is deprecated and must not be used. | Raw-export spot check and dependency-closed scope import pending. |
+| Private vanilla importer | Unity source branch `codex/vanilla-scope-importer` adds `HLin Mods > Private > Vanilla Scope Reference Importer`. `Latest rip` selects authoritative raw export; importer copies one prefab's GUID-closed subset, matches source script type identity to current MeatKit `MonoScript` GUIDs, rewrites only `m_Script`, and creates a strict rebound candidate only when every source script maps uniquely. It excludes recovered C# source and writes a private report. | Latest source hash-synced to Windows; Unity compile/build and raw-export smoke test pending. |
 
 ### Open blockers
 
 Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR.
 
-The vanilla-reference import is blocked separately: the configured archive is manifest-indexed but lacks a readable selected prefab. Do not import game scripts or use the existing `main-game` rip as a runtime base; restore the raw export, then import only the selected dependency closure.
+The vanilla-reference task must use only the authoritative raw export. Do not import recovered C# source into Unity. Smoke test must show full unique script rebinding, linked visual closure, no missing components, and current MeatKit package build.
 
 ## Plan
 
@@ -64,8 +64,8 @@ The vanilla-reference import is blocked separately: the configured archive is ma
 | `[x]` | Package and deploy repaired native-PIP candidate. | Pipeline tests passed; current package validated and deployed while H3VR was closed. |
 | `[ ]` | Perform legacy variant H3VR acceptance. | Item Spawner shows `NightForcePlusLegacy`; it spawns, picks up, mounts, and renders as historical baseline. |
 | `[ ]` | Perform repaired native-PIP H3VR acceptance. | Item Spawner, pickup, rail mount, controls, reticles, non-black view, and visual alignment pass in H3VR. |
-| `[ ]` | Restore a verified vanilla-scope visual reference. | A raw export outside Unity contains the selected prefab and complete mesh/material/texture/shader closure; a private on-demand inspection slice imports with no missing visual references. |
-| `[ ]` | Perform first importer smoke test. | Import one prefab from a selected exported `Assets` folder; resulting visual prefab renders with linked meshes/materials and has no missing recovered game MonoBehaviours. |
+| `[ ]` | Verify latest raw scope export and import one scope. | The configured latest raw export contains selected scope prefab plus complete mesh/material/texture/shader closure; no Unity full-rip import is used. |
+| `[ ]` | Perform strict importer smoke test. | One scope import rewrites every `m_Script` to one current MeatKit `MonoScript`, creates `ReboundCandidate`, links meshes/materials, and has no missing components. |
 
 ### Deferred
 
