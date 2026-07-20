@@ -60,10 +60,15 @@ public sealed class NightForcePipelineTests
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var fileSearchStart = pipeline.IndexOf("function Test-FileContainsUtf8Text", StringComparison.Ordinal);
         var auditStart = pipeline.IndexOf("function Find-InstalledItemId", StringComparison.Ordinal);
+        var fileSearchEnd = auditStart;
         var auditEnd = pipeline.IndexOf("function Assert-RemoteVersionIsNew", auditStart, StringComparison.Ordinal);
+        Assert.True(fileSearchStart >= 0 && fileSearchEnd > fileSearchStart,
+            "Pipeline must use a bounded managed file-content search for ItemID auditing.");
         Assert.True(auditStart >= 0, "Pipeline must expose a read-only ItemID audit.");
         Assert.True(auditEnd > auditStart, "Pipeline must dispatch the ItemID audit action.");
+        var fileSearch = pipeline[fileSearchStart..fileSearchEnd];
         var audit = pipeline[auditStart..auditEnd];
 
         Assert.Contains("'AuditItemId'", pipeline, StringComparison.Ordinal);
@@ -77,6 +82,8 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Format-Table", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
+        Assert.Contains("[IO.File]::ReadAllText", fileSearch, StringComparison.Ordinal);
+        Assert.DoesNotContain("for ($start", fileSearch, StringComparison.Ordinal);
     }
 
     private static string RepositoryRoot
