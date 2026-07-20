@@ -211,6 +211,9 @@ public sealed class NightForcePipelineTests
 
         Assert.Contains("$depth -le 4", roots, StringComparison.Ordinal);
         Assert.Contains("Join-Path $_ 'Assets'", roots, StringComparison.Ordinal);
+        Assert.Contains("$allRoots", roots, StringComparison.Ordinal);
+        Assert.Contains("return @($allRoots)", roots, StringComparison.Ordinal);
+        Assert.DoesNotContain("return $roots", roots, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", roots, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", roots, StringComparison.Ordinal);
     }
