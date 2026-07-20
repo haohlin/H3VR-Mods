@@ -199,6 +199,23 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Private_asset_archive_root_discovery_reaches_the_current_export_layout()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var rootsStart = pipeline.IndexOf("function Get-PrivateAssetRipExportRoots", StringComparison.Ordinal);
+        var rootsEnd = pipeline.IndexOf("function Resolve-PrivateAssetRipSourceFile", rootsStart, StringComparison.Ordinal);
+
+        Assert.True(rootsStart >= 0 && rootsEnd > rootsStart,
+            "Pipeline must discover materialized AssetRipper export roots.");
+        var roots = pipeline[rootsStart..rootsEnd];
+
+        Assert.Contains("$depth -le 4", roots, StringComparison.Ordinal);
+        Assert.Contains("Join-Path $_ 'Assets'", roots, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", roots, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", roots, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Private_asset_lab_configuration_is_forwarded_without_entering_repository_files()
     {
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));

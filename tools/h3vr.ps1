@@ -1314,7 +1314,9 @@ function Get-PrivateAssetRipExportRoots {
     param([string]$AssetLab)
 
     $frontier = @($AssetLab)
-    for ($depth = 0; $depth -le 3 -and $frontier.Count -gt 0; $depth++) {
+    # The current AssetRipper export places ExportedProject four levels below
+    # the private archive root. Keep this search bounded while reaching it.
+    for ($depth = 0; $depth -le 4 -and $frontier.Count -gt 0; $depth++) {
         $roots = @($frontier | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'Assets') -PathType Container })
         if ($roots.Count -gt 0) {
             return $roots
