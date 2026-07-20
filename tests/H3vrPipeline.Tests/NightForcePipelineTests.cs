@@ -402,6 +402,32 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Full_private_prefab_audit_is_query_bound_and_reports_serialized_field_coverage()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaPrefabAudit", StringComparison.Ordinal);
+        var statusStart = pipeline.IndexOf("function Get-UnityVanillaPrefabImportStatus", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && statusStart > actionStart,
+            "Pipeline must expose a generic private prefab serialized-field audit action.");
+        var action = pipeline[actionStart..statusStart];
+        var statusEnd = pipeline.IndexOf("function Get-UnityVanillaScopeImportStatus", statusStart, StringComparison.Ordinal);
+        Assert.True(statusEnd > statusStart,
+            "Pipeline must report generic private prefab audit state through the bounded status reader.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityVanillaPrefabAuditNightForce'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabAuditNightForce", wrapper, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaPrefabAuditNightForce requires -Query <prefab name>.", action, StringComparison.Ordinal);
+        Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.RunRequestedPrefabAuditAgainstNightForce", action, StringComparison.Ordinal);
+        Assert.Contains("Wait-ForVanillaPrefabImporterResult", action, StringComparison.Ordinal);
+        Assert.Contains("[VanillaScopeReferenceImporter] AUDIT:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_vanilla_scope_import_status_is_read_only_and_exposed_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
