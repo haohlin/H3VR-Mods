@@ -57,8 +57,13 @@ public sealed class ModStateDocumentationTests
     {
         var workflow = File.ReadAllText(Path.Combine(RepositoryRoot, ".github", "workflows", "verify.yml"));
 
-        Assert.Contains("Verify H3VR Portable Checks", workflow, StringComparison.Ordinal);
+        Assert.Contains("Verify Portable Source", workflow, StringComparison.Ordinal);
+        Assert.Contains("runs-on: ubuntu-latest", workflow, StringComparison.Ordinal);
         Assert.Contains("dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("windows-latest", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("h3vr-remote", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("h3vr.ps1", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("powershell", workflow, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("-Action Package", workflow, StringComparison.Ordinal);
     }
 
