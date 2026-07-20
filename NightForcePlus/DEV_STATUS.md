@@ -5,13 +5,13 @@
 ## Status
 
 Last verified: `2026-07-20`
-State: `native-PIP candidate and reusable private-reference tooling deployed; fresh H3VR acceptance pending`
+State: `native-PIP scope repair and private-reference audit deployed; fresh H3VR acceptance pending`
 
 ### Verified now
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Unity source | `H3VR-unity-projects/NightForcePlus` commit `8c1210c` contains the physical PIP repair, generated centered mesh, and preserved authored control overrides. Windows files match the committed hashes. | Verified. |
+| Unity source | `H3VR-unity-projects/NightForcePlus` commit `9a8304e` contains physical PIP calibration, active native controller interface, and retired legacy scope renderer. Windows source payload hash verification passed. | Verified. |
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Black mount content is no longer packaged. NightForce requests it from BubbleLevelSet by object ID. | Package boundary validated. |
 | Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`; MeatKit compiles that one source into each package while preserving existing scope component identity and fields. | Windows Unity suite passed. |
@@ -20,8 +20,8 @@ State: `native-PIP candidate and reusable private-reference tooling deployed; fr
 | Package candidate | MeatKit package and archive validation passed. SHA-256 `B5ABFF605116697FD64BCAED276A5FD98BDC36988A5771CDD0463E44C61CAF7C`. | Passed. |
 | Deployment / H3VR | Validated `1.0.5` package deployed after BubbleLevelSet `2.0.4`; installed manifest confirms the BubbleLevelSet dependency. User verified the mod in H3VR before release authorization. | Passed. |
 | Release documentation overlay | Source `main` documentation replaced only ZIP `README.md` and added `CHANGELOG.md`; every existing non-document archive entry kept its content hash. `H3vrPipeline validate` passed. Release SHA-256 `0C6E24310314E3132CA9FA9F660B9FDE5AFB1351AE02EBA0C50FD38C590F2021`. | Passed. |
-| Pipeline wrapper | Dedicated macOS and Windows `codex/nightforce-runtime` worktrees are current. Windows `h3vr-remote run --worktree codex/nightforce-runtime Test` passed `120/120`; branch-selected actions reuse machine-local configuration without exposing paths. | Passed. |
-| Windows Unity source | Editor closed; guarded source payload from `codex/vanilla-scope-importer` commit `6bc576f` synchronized with verified hashes. | Source synced. |
+| Pipeline wrapper | Dedicated macOS and Windows `codex/nightforce-runtime` worktrees are current. Windows `h3vr-remote run --worktree codex/nightforce-runtime Test` passed `121/121`; branch-selected actions reuse machine-local configuration without exposing paths. | Passed. |
+| Windows Unity source | Editor closed; guarded source payload from `codex/vanilla-scope-importer` commit `9a8304e` synchronized with verified hashes. | Source synced. |
 | Native PIP migration | `PIPScope`, controller, front/rear PIP lenses, direct-hand magnification/elevation/windage interactions, and attachment references are serialized. `ScopeShaderZoom` is absent at runtime. | Windows runtime suite passed. |
 | Native magnification | Smooth 7--35x geometric magnification and matching native geometric ring positions are serialized. No archived wheel-angle mapping is used. | Windows runtime suite passed. |
 | Reticle visual scaling | Archived custom shader behavior was `0.846 * (M / 7)`. Native FFP preserves the transferable `M / 7` apparent-scale multiplier. Named MOA-XT, MIL-XT, and TREMOR3 canvases have measured angular FOVs. | Windows runtime suite passed. |
@@ -41,6 +41,9 @@ State: `native-PIP candidate and reusable private-reference tooling deployed; fr
 | Reusable private prefab importer | Unity source branch `codex/vanilla-scope-importer` commit `6bc576f` accepts a leaf `.prefab` request through a temporary process variable, resolves exactly one raw-export prefab, copies only its visual closure, and rebinds the full `m_Script` GUID plus local file ID only when exact current native identities are known. The headless wrapper validates query shape, retry markers, status, comparison, and recoverable quarantine. | Windows pipeline `120/120`; raw export and recovered C# remain private and excluded from packages. |
 | ST6T private candidate | `ST6T_1_6x24mm_Black.prefab` generic smoke created a private rebound candidate with `10/10` script references rebound, `0` unresolved, and `0` ambiguous. | Verified; private inspection only, never runtime/release source. |
 | ST6T vs NightForce comparison | Required native gap is `none`. ST6T-only type is `UnityEngine.SphereCollider`; NightForce-only types are `FistVR.FVRFireArmAttachmentMount` and authored `HLin_Mods.BubbleLevelScope.BubbleLevelScope`. | No recovered ST6T runtime component is needed in NightForce; authored mount and bubble additions remain intentional. |
+| ST6T field and physical audit | Rebound ST6T candidate has `10/10` script references, `0` unresolved, and `0` ambiguous. Private audit captured serialized fields, active state, sibling/component sequence, local transforms, mesh bounds, and material slots. | `0` required native field schemas missing; `0` unreadable properties. Candidate/NightForce structural differences are recorded only in private inspection report. |
+| Native controller lifecycle | `_Interface` serialized `PIPScopeController` inactive, preventing native Unity lifecycle from initializing an attachment interface that is not force-interactable. | Prefab now enables `_Interface`; Windows runtime PIP checks and fresh MeatKit build pass. |
+| Legacy scope renderer | `ScopeRendererNightforce` remained enabled with legacy scope presentation material while native PIP lens uses `PIPScope`. It could render over native PIP glass. | Prefab and idempotent repair now disable only that named legacy renderer; Windows runtime checks and fresh package pass. |
 
 ### Open blockers
 
@@ -69,6 +72,8 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | `[x]` | Verify latest raw scope export and import one scope. | Archive inventory contains the expected asset classes; ST6T visual closure imports from raw export only. |
 | `[x]` | Generalize and validate private prefab importer. | Query-bound headless smoke/status/quarantine actions pass pipeline tests; exact script pointer rebinding creates only private candidates. |
 | `[x]` | Compare ST6T with authored NightForce. | ST6T candidate is `10/10` rebound with no missing required native NightForce component; component differences are reported and intentional. |
+| `[x]` | Audit ST6T fields, component sequence, and physical layout against NightForce. | Private report records all readable serialized fields plus node/component/visual layout; no required native field schema is absent. |
+| `[x]` | Repair inactive native controller and legacy scope renderer. | `_Interface` active; `ScopeRendererNightforce` disabled; fresh Windows Unity build, package validation, and local deployment passed. |
 
 ### Deferred
 
@@ -88,6 +93,7 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | Pipeline | `h3vr.ps1 -Action Test`, then `Build` and `Package` | Windows output reports zero failures and expected package. |
 | Private vanilla prefab smoke | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabSmokeTest -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Completion marker, no failure marker, and full rebind summary prove a private candidate only. |
 | Private comparison | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabCompareNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Comparison marker reports required-native gap and symmetric component-type differences without modifying authored prefab content. |
+| Private field/layout audit | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabAuditNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Audit marker has `0` missing required-native field schemas and `0` unreadable properties; private report retains fields, node order, transforms, bounds, and materials. |
 
 ### Manual H3VR acceptance
 
@@ -98,19 +104,19 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | Black mount dependency | BubbleLevelSet-supplied mount behavior remains correct. | User verified release candidate in H3VR. |
 | Native optic spawn/grab/mount | `NightForcePlus PIP` entry appears independently from `NightForcePlusLegacy`; scope picks up and mounts normally. | Pending source synchronization and candidate VR test. |
 | Legacy optic review | `NightForcePlusLegacy` appears as separate Item Spawner entry and can be compared with current native candidate. | Pending VR test. |
-| Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work. | Pending candidate VR test. |
+| Native optic controls | Smooth magnification plus elevation/windage/zero direct controls work; inactive-controller failure does not recur. | Pending candidate VR test. |
 | Reticle selection and illumination | All listed reticles cycle and illuminate correctly. | Pending candidate VR test. |
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
-| Native PIP presentation | No legacy menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
+| Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
 
 ### Release gate
 
 - [x] Current Windows source and managed DLL status checked.
-- [x] Automated checks pass: pipeline `120/120`; Unity runtime PIP/gravity suite passes.
+- [x] Automated checks pass: pipeline `121/121`; Unity runtime PIP/gravity suite passes; fresh package validated and deployed locally.
 - [x] Fresh MeatKit source package created from the exact profile after physical PIP repair; SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`.
 - [x] Pipeline package/deploy receipt for the repaired candidate.
-- [x] Generic private importer/comparison validates ST6T against authored NightForce; fresh local `1.0.5` package deployed from source SHA-256 `B6530A59098295B0125161B5418FC2FF8CDAD093429F00F57048FA4AD390FA58`.
+- [x] Generic private importer and field/layout audit validate ST6T against authored NightForce; fresh repaired `1.0.5` candidate package validated and deployed locally.
 - [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.
