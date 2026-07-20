@@ -208,6 +208,27 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("H3VR-PrivateScopeLab", wrapper, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Private_asset_archive_search_is_read_only_and_available_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var searchStart = pipeline.IndexOf("function Find-PrivateAssetRip", StringComparison.Ordinal);
+        var searchEnd = pipeline.IndexOf("function Assert-RemoteVersionIsNew", searchStart, StringComparison.Ordinal);
+
+        Assert.True(searchStart >= 0 && searchEnd > searchStart,
+            "Pipeline must expose a read-only private asset-archive search action.");
+        var search = pipeline[searchStart..searchEnd];
+
+        Assert.Contains("'FindAssetRip'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("FindAssetRip", wrapper, StringComparison.Ordinal);
+        Assert.Contains("FindAssetRip requires -Query <text>.", search, StringComparison.Ordinal);
+        Assert.Contains("Get-Content -LiteralPath $manifest.FullName", search, StringComparison.Ordinal);
+        Assert.Contains("Asset match:", search, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", search, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", search, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
