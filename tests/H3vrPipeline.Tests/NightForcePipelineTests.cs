@@ -60,25 +60,35 @@ public sealed class NightForcePipelineTests
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var prepareStart = pipeline.IndexOf("function Prepare-UnityProjectSourceSync", StringComparison.Ordinal);
         var syncStart = pipeline.IndexOf("function Sync-UnityProjectSource", StringComparison.Ordinal);
+        var prepareEnd = syncStart;
         var syncEnd = syncStart < 0
             ? -1
             : pipeline.IndexOf("function Invoke-DotNetBuild", syncStart, StringComparison.Ordinal);
 
+        Assert.True(prepareStart >= 0 && prepareEnd > prepareStart,
+            "Pipeline must prepare an atomic Unity-source upload before synchronization.");
         Assert.True(syncStart >= 0 && syncEnd > syncStart,
             "Pipeline must provide a guarded Unity-source synchronization action.");
+        var prepare = pipeline[prepareStart..prepareEnd];
         var sync = pipeline[syncStart..syncEnd];
 
+        Assert.Contains("'PrepareUnitySourceSync'", pipeline, StringComparison.Ordinal);
         Assert.Contains("'SyncUnitySource'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("PrepareUnitySourceSync", wrapper, StringComparison.Ordinal);
         Assert.Contains("SyncUnitySource", wrapper, StringComparison.Ordinal);
+        Assert.Contains("PrepareUnitySourceSync requires -Query <branch>.", prepare, StringComparison.Ordinal);
+        Assert.Contains("NightForcePlus-source.zip", prepare, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", prepare, StringComparison.Ordinal);
         Assert.Contains("SyncUnitySource requires -Query <branch>.", sync, StringComparison.Ordinal);
         Assert.Contains("Get-UnityProjectRoot", sync, StringComparison.Ordinal);
         Assert.Contains("Join-Path $projectRoot 'Assets\\Projects'", sync, StringComparison.Ordinal);
         Assert.Contains("$stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') 'unity-source-sync'", sync, StringComparison.Ordinal);
-        Assert.Contains("git clone --depth 1 --branch $Branch", sync, StringComparison.Ordinal);
-        Assert.Contains("Copy-Item -LiteralPath (Join-Path $stagingRoot 'NightForcePlus')", sync, StringComparison.Ordinal);
+        Assert.Contains("NightForcePlus-source.zip", sync, StringComparison.Ordinal);
+        Assert.Contains("Expand-Archive", sync, StringComparison.Ordinal);
+        Assert.Contains("Copy-Item -LiteralPath (Join-Path $extractRoot 'NightForcePlus')", sync, StringComparison.Ordinal);
         Assert.Contains("Get-FileSha256", sync, StringComparison.Ordinal);
-        Assert.DoesNotContain("git -C $sourceRoot checkout", sync, StringComparison.Ordinal);
         Assert.DoesNotContain("reset --hard", sync, StringComparison.Ordinal);
     }
 
