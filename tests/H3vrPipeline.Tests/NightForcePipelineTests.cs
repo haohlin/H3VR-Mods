@@ -356,6 +356,8 @@ public sealed class NightForcePipelineTests
         Assert.Contains("'UnityVanillaImportStatus'", pipeline, StringComparison.Ordinal);
         Assert.Contains("UnityVanillaImportStatus", wrapper, StringComparison.Ordinal);
         Assert.Contains("vanilla-scope-importer-smoke.log", status, StringComparison.Ordinal);
+        Assert.Contains("$batchWorkers", status, StringComparison.Ordinal);
+        Assert.Contains("Unity batch worker:", status, StringComparison.Ordinal);
         Assert.Contains("Script rebind:", status, StringComparison.Ordinal);
         Assert.Contains("Write-Host (\"Script rebind:", status, StringComparison.Ordinal);
         Assert.DoesNotContain("Write-Host \"Script rebind:", status, StringComparison.Ordinal);
