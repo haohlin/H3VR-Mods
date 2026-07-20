@@ -73,6 +73,8 @@ public sealed class NightForcePipelineTests
             StringComparison.Ordinal);
         Assert.DoesNotContain("Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", build,
             StringComparison.Ordinal);
+        Assert.Contains("Remove-Item -LiteralPath $logPath -Force -ErrorAction Stop", build,
+            StringComparison.Ordinal);
     }
 
     [Fact]
