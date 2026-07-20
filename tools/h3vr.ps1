@@ -894,10 +894,7 @@ function ConvertTo-YamlQuotedScalar {
 }
 
 function New-R2modmanLocalPackageYamlEntry {
-    param(
-        [object]$LocalManifest,
-        [switch]$Trace
-    )
+    param([object]$LocalManifest)
 
     $packageName = [string]$LocalManifest.name
     $quotedName = ConvertTo-YamlQuotedScalar $packageName
@@ -935,19 +932,7 @@ function New-R2modmanLocalPackageYamlEntry {
         '  onlineSource: false'
     )
 
-    if ($Trace) {
-        for ($index = 0; $index -lt $lines.Count; $index++) {
-            Write-Host ('r2modman YAML trace line[' + $index + ']: type=' + $lines[$index].GetType().FullName + '; value=' + ($lines[$index] -replace "`r`n", '<CRLF>'))
-        }
-    }
-
-    $yaml = [string]::Join("`r`n", [string[]]$lines)
-    if ($Trace) {
-        $nameOffset = $yaml.IndexOf('  name:')
-        $nameCodes = @($yaml.Substring($nameOffset, 48).ToCharArray() | ForEach-Object { [int][char]$_ }) -join ','
-        Write-Host ('r2modman YAML trace joined name codes=' + $nameCodes)
-    }
-    return $yaml
+    return [string]::Join("`r`n", [string[]]$lines)
 }
 
 function Remove-R2modmanLocalPackageYamlEntries {
@@ -989,11 +974,10 @@ function Test-R2modmanLocalPackageYamlEntry {
         dependencies = @('Kodeman-GunGame-1.0.2')
         versionNumber = [pscustomobject]@{ major = 1; minor = 0; patch = 0 }
     }
-    $entry = New-R2modmanLocalPackageYamlEntry -LocalManifest $localManifest -Trace
+    $entry = New-R2modmanLocalPackageYamlEntry $localManifest
     $quotedName = ConvertTo-YamlQuotedScalar $name
-    $nameLine = '  name: {0}' -f $quotedName
-    if ($entry -notmatch ('(?m)^  name: ' + [regex]::Escape($quotedName) + '$')) {
-        throw ('r2modman YAML entry must keep name and scalar on one line. quotedParts=' + @($quotedName).Count + '; quoted=' + ($quotedName -replace "`r`n", '<CRLF>') + '; directLine=' + ($nameLine -replace "`r`n", '<CRLF>') + '; actual=' + ($entry -replace "`r`n", ' | '))
+    if ($entry -notmatch ('(?m)^  name: ' + [regex]::Escape($quotedName) + '\r?$')) {
+        throw 'r2modman YAML entry must keep name and scalar on one line.'
     }
     if ($entry -match '(?m)^  name:\s*$') {
         throw 'r2modman YAML entry must not split name from its scalar.'
