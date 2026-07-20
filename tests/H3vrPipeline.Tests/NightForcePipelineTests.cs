@@ -72,6 +72,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("$EnvironmentConfig.r2modman.pluginsRoot", audit, StringComparison.Ordinal);
         Assert.Contains("Auditing $($packageDirectories.Count) candidate package(s)", audit, StringComparison.Ordinal);
         Assert.Contains("Write-Host \"ItemID match: $($match.Package) [$($match.Files)]\"", audit, StringComparison.Ordinal);
+        Assert.Contains("foreach ($match in ($auditMatches | Sort-Object Package))", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Format-Table", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
