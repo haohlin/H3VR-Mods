@@ -1173,6 +1173,7 @@ function Get-PrivateAssetArchiveStatus {
     Write-Host "Texture2D entries: $($counts.Texture2D)"
     Write-Host "Shader entries: $($counts.Shader)"
     Write-Host "Prefab entries: $($counts.Prefab)"
+    Write-Host "Materialized export roots: $(@(Get-PrivateAssetRipExportRoots -AssetLab $assetLab).Count)"
 }
 
 function Find-PrivateAssetRip {
@@ -1213,6 +1214,31 @@ function Find-PrivateAssetRip {
     }
 }
 
+function Get-PrivateAssetRipExportRoots {
+    param([string]$AssetLab)
+
+    $roots = [System.Collections.Generic.List[string]]::new()
+    $pending = [System.Collections.Generic.Queue[object]]::new()
+    $pending.Enqueue([pscustomobject]@{ Path = $AssetLab; Depth = 0 })
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    while ($pending.Count -gt 0) {
+        $current = $pending.Dequeue()
+        if (-not $seen.Add($current.Path)) {
+            continue
+        }
+        if (Test-Path -LiteralPath (Join-Path $current.Path 'Assets') -PathType Container) {
+            $roots.Add($current.Path)
+        }
+        if ($current.Depth -ge 3) {
+            continue
+        }
+        foreach ($directory in Get-ChildItem -LiteralPath $current.Path -Directory -ErrorAction SilentlyContinue) {
+            $pending.Enqueue([pscustomobject]@{ Path = $directory.FullName; Depth = ($current.Depth + 1) })
+        }
+    }
+    return $roots
+}
+
 function Resolve-PrivateAssetRipSourceFile {
     param(
         [string]$AssetLab,
@@ -1228,7 +1254,7 @@ function Resolve-PrivateAssetRipSourceFile {
     }
 
     $relativeAssetPath = $ManifestSourcePath.Substring($assetsOffset + 1)
-    $candidateRoots = @($AssetLab) + @(Get-ChildItem -LiteralPath $AssetLab -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+    $candidateRoots = @(Get-PrivateAssetRipExportRoots -AssetLab $AssetLab)
     foreach ($candidateRoot in $candidateRoots) {
         $candidate = Join-Path $candidateRoot $relativeAssetPath
         if (Test-Path -LiteralPath $candidate -PathType Leaf) {
@@ -1239,27 +1265,7 @@ function Resolve-PrivateAssetRipSourceFile {
         }
     }
 
-    $leafName = Split-Path -Leaf $ManifestSourcePath
-    $matches = @(Get-ChildItem -LiteralPath $AssetLab -Filter $leafName -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
-        $candidateOffset = $_.FullName.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
-        if ($candidateOffset -lt 0) {
-            $candidateOffset = $_.FullName.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
-        }
-        $candidateOffset -ge 0 -and $_.FullName.Substring($candidateOffset + 1).Equals($relativeAssetPath, [System.StringComparison]::OrdinalIgnoreCase)
-    })
-    if ($matches.Count -eq 1) {
-        $resolvedPath = $matches[0].FullName
-        $resolvedOffset = $resolvedPath.IndexOf('\Assets\', [System.StringComparison]::OrdinalIgnoreCase)
-        if ($resolvedOffset -lt 0) {
-            $resolvedOffset = $resolvedPath.IndexOf('/Assets/', [System.StringComparison]::OrdinalIgnoreCase)
-        }
-        return [pscustomobject]@{
-            SourcePath = $resolvedPath
-            AssetsRoot = $resolvedPath.Substring(0, $resolvedOffset + 7)
-        }
-    }
-
-    throw 'Archived manifest entry is indexed, but its source file is unavailable in the private asset lab.'
+    throw 'Archived manifest entry is indexed, but no materialized exported-project root contains its source file.'
 }
 
 function Get-PrivateAssetRipGraph {
