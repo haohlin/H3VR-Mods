@@ -43,6 +43,13 @@ Windows is the source of truth. Do not create an authoritative checkout or store
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
 
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
+
 ## Cross-session mod state
 
 Chat memory is only a convenience; tracked mod records are source of truth for

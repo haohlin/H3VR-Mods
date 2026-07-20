@@ -65,6 +65,13 @@ raw SSH in normal H3VR workflow.
 
 Do not treat a macOS build as an H3VR compatibility check.
 
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
+
 ## Cross-session mod state
 
 Tracked mod records, not chat history, preserve working state. Every active
