@@ -78,6 +78,7 @@ public sealed class GunGameCursedRandomTests
         var pipeline = File.ReadAllText(Path.Combine(root, "tools", "h3vr.ps1"));
 
         Assert.Contains("function New-R2modmanLocalPackageYamlEntry", pipeline);
+        Assert.Contains("function Test-R2modmanLocalPackageYamlEntryIsValid", pipeline);
         Assert.Contains("function Test-R2modmanLocalPackageYamlEntry", pipeline);
         Assert.Contains("Test-R2modmanLocalPackageYamlEntry", pipeline);
     }
