@@ -15,6 +15,9 @@ while IFS='=' read -r key value || [[ -n "$key" ]]; do
     H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY)
       export "$key=$value"
       ;;
+    H3VR_PRIVATE_ASSET_LAB)
+      export "$key=$value"
+      ;;
     H3VR_PRIVATE_*)
       ;;
     *)
@@ -57,5 +60,25 @@ remote_command=""
 for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1" -Action "$action" "$@"; do
   remote_command+="$(windows_quote "$argument") "
 done
+
+if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
+  powershell_quote() {
+    local value="$1"
+    value=${value//\'/\'\'}
+    printf "'%s'" "$value"
+  }
+
+  encoded_script="\$env:H3VR_PRIVATE_ASSET_LAB = $(powershell_quote "$H3VR_PRIVATE_ASSET_LAB"); & $(powershell_quote "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1") -Action $(powershell_quote "$action")"
+  for argument in "$@"; do
+    if [[ "$argument" =~ ^-[A-Za-z][A-Za-z0-9]*$ ]]; then
+      encoded_script+=" $argument"
+    else
+      encoded_script+=" $(powershell_quote "$argument")"
+    fi
+  done
+  encoded_command="$(printf '%s' "$encoded_script" | iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\n')"
+
+  exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded_command"
+fi
 
 exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$remote_command"
