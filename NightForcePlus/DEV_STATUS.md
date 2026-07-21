@@ -4,8 +4,8 @@
 
 ## Status
 
-Last verified: `2026-07-21`
-State: `native-PIP acceptance pending; fresh ST6T, LT3x9, and EVU 1-10 local candidate package deployed to Default profile, awaiting H3VR restart and VR acceptance`
+Last verified: `2026-07-22`
+State: `native-PIP acceptance pending; NightForce and ST6T/LT3x9/EVU 1-10 local packages redeployed with explicit mod-content Item Spawner metadata, awaiting fresh H3VR startup and VR acceptance`
 
 ### Verified now
 
@@ -47,7 +47,8 @@ State: `native-PIP acceptance pending; fresh ST6T, LT3x9, and EVU 1-10 local can
 | Cross-reference gaps | Each candidate has `0` required native component/field-schema gap against NightForce. All carry `UnityEngine.SphereCollider`; NightForce instead carries its authored physical layout. Its extra `FVRFireArmAttachmentMount` is shared by EVU; its `BubbleLevelScope` is intentional. | Do not add a recovered component or alter physical layout without a runtime collision/interaction defect. |
 | Native controller lifecycle | Current game `FVRFireArmAttachment` calls `OnAttach()` then activates `AttachmentInterface`, and deactivates it on detach. Rebound ST6T serializes its `PIPScopeController` object inactive. | NightForce `_Interface` now serializes inactive and the runtime test enforces mount-time activation semantics. |
 | Native PIP presentation | Rebound ST6T uses `Unlit/PIPScope` on both PIP lenses. NightForce had `PIPScope`; a prior repair also disabled `ScopeRendererNightforce`, which removed its authored reticle fallback in user testing. | NightForce now retains enabled `ScopeRendererNightforce` and forces both native PIP lenses to `Unlit/PIPScope`; fresh private audit confirms shader and controller active-state parity. |
-| Local recovered scope package | Fresh local preparation completed with ST6T, LT3x9, and EVU 1–10. Exact package marker names all three candidates; three-bundle ZIP guard passed; package `0.0.1` SHA-256 `73CB4F44EDFB50592252DAA41EEBF68F9595A7337623407EE4F457D4ED7F12E5` deployed through Default-profile pipeline while H3VR was stopped. | Fresh H3VR restart and manual acceptance pending; no public release or distribution. |
+| Mod-content Item Spawner metadata | User rule: every authored item must set `FVRObject.IsModContent: 1` and matching `SpawnerEntry.IsModded: 1`. NightForce source assets and generic local-candidate generator now enforce both; Windows Unity runtime tests and local preparation verifier enforce them too. | Fresh runtime registration proof pending. |
+| Local recovered scope package | Fresh local preparation completed with ST6T, LT3x9, and EVU 1–10. Exact package marker names all three candidates; three-bundle ZIP guard passed; package `0.0.1` SHA-256 `A71C71B61249C9F08AB1A4F67631CF54682E2737CE3D37F6390CA37F826EE500` deployed through Default-profile pipeline while H3VR was stopped. | Fresh H3VR restart and manual acceptance pending; no public release or distribution. |
 
 ### Open blockers
 
@@ -80,7 +81,8 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | `[x]` | Import and audit two high-power variable reference scopes. | Classic 3–12x and EVU 1–10x complete full private import/rebind/audit with zero unresolved/ambiguous scripts and zero required-native gap. |
 | `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, `ScopeRendererNightforce` stays enabled, and both PIP lenses use `Unlit/PIPScope`; Windows build/package/private audit pass. |
 | `[x]` | Build and deploy ST6T, LT3x9, and EVU 1–10 local candidates. | All three candidates rebind every script exactly, receive unique object/spawner/build metadata, build into `LocalVanillaScopeCandidates`, pass its three-bundle ZIP guard, and deploy through the Default-profile pipeline while H3VR is closed. |
-| `[ ]` | Deploy corrected native-PIP candidate locally. | H3VR is closed, exact validated package replaces the Default-profile candidate, then a fresh startup/VR test begins. |
+| `[x]` | Deploy corrected native-PIP candidate locally. | H3VR was closed; exact validated package replaced Default-profile candidate. Fresh startup/VR test remains required. |
+| `[ ]` | Verify post-restart Item Spawner registration. | BepInEx/OtherLoader log confirms each package bundle loaded and Item Spawner exposes NightForce, ST6T, LT3x9, and EVU 1–10 entries. |
 
 ### Deferred
 
@@ -118,9 +120,9 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
-| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh package deployed; pending user VR test. |
-| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh package deployed; pending user VR test. |
-| Recovered EVU 1–10 local candidate | `Local Test Recovered EVU 1-10x28` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh package deployed; pending user VR test. |
+| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
+| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
+| Recovered EVU 1–10 local candidate | `Local Test Recovered EVU 1-10x28` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
 
 ### Release gate
 
