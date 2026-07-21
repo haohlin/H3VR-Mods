@@ -55,6 +55,11 @@ public sealed class NightForcePipelineTests
         Assert.Equal(
             "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack and LocalRecoveredLT3x9.",
             candidates.GetProperty("unityBuildSuccessMarker").GetString());
+        var requiredEntries = candidates.GetProperty("unityRequiredPackageEntries")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ToArray();
+        Assert.Equal(new[] { "hlin-localrecoveredst6tblack", "hlin-localrecoveredlt3x9" }, requiredEntries);
     }
 
     [Fact]
@@ -81,6 +86,9 @@ public sealed class NightForcePipelineTests
         Assert.Contains("[VanillaScopeLocalRuntime] PREPARED:", action, StringComparison.Ordinal);
         Assert.Contains("Windows Unity project is open", action, StringComparison.Ordinal);
         Assert.Contains("Wait-ForVanillaPrefabImporterResult", action, StringComparison.Ordinal);
+        Assert.Contains("function Assert-UnityPackageRequiredEntries", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Assert-UnityPackageRequiredEntries -ModConfig $ModConfig -PackagePath $packagePath", pipeline,
+            StringComparison.Ordinal);
         Assert.Contains("Preparation marker:", status, StringComparison.Ordinal);
         Assert.DoesNotContain("H3VR_PRIVATE_ASSET_LAB", action, StringComparison.Ordinal);
         Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);

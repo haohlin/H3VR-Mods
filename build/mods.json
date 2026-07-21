@@ -150,6 +150,10 @@
       "packageRelativePath": "AssetBundles\\LocalVanillaScopeCandidates\\{version}\\HLin_Mods-LocalVanillaScopeCandidates-{version}.zip",
       "unityBuildMethod": "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
       "unityBuildSuccessMarker": "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack and LocalRecoveredLT3x9.",
+      "unityRequiredPackageEntries": [
+        "hlin-localrecoveredst6tblack",
+        "hlin-localrecoveredlt3x9"
+      ],
       "patchTargets": []
     },
     "Teleport": {

@@ -205,6 +205,39 @@ function Get-UnityPackageSourcePath {
     return $expectedPath
 }
 
+function Assert-UnityPackageRequiredEntries {
+    param(
+        [object]$ModConfig,
+        [string]$PackagePath
+    )
+
+    $requiredEntriesProperty = $ModConfig.PSObject.Properties['unityRequiredPackageEntries']
+    if ($null -eq $requiredEntriesProperty) {
+        return
+    }
+
+    $requiredEntries = @($requiredEntriesProperty.Value)
+    if ($requiredEntries.Count -eq 0) {
+        return
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+    try {
+        $entryNames = @($archive.Entries | ForEach-Object { $_.FullName.ToLowerInvariant() })
+        foreach ($requiredEntry in $requiredEntries) {
+            $token = ([string]$requiredEntry).ToLowerInvariant()
+            if ([string]::IsNullOrWhiteSpace($token) -or
+                @($entryNames | Where-Object { $_.Contains($token) }).Count -eq 0) {
+                throw "Unity package for $Mod is missing required entry token '$requiredEntry'."
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
 function Prepare-UnityProjectSourceSync {
     param([string]$Branch)
 
@@ -644,6 +677,8 @@ function Invoke-UnityBuild {
         throw "Unity did not complete $($ModConfig.unityBuildMethod) with a package artifact."
     }
 
+    Assert-UnityPackageRequiredEntries -ModConfig $ModConfig -PackagePath $packagePath
+
     return $packagePath
 }
 
@@ -959,6 +994,7 @@ function New-UnityPackage {
     if (-not (Test-Path -LiteralPath $sourcePackagePath)) {
         throw 'Unity package does not exist after the requested build step.'
     }
+    Assert-UnityPackageRequiredEntries -ModConfig $ModConfig -PackagePath $sourcePackagePath
 
     $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
     Ensure-Directory $artifactDirectory
