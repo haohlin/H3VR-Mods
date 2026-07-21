@@ -114,6 +114,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("FVRFireArmClip", source);
         Assert.Contains("ReloadClipWithType", source);
         Assert.Contains("spares.Count == 0 && emptySlots.Count > 0", source);
+        Assert.Contains("DestroyTrackedEquipment();\n        yield return null;", source);
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
         Assert.Contains("managedFeed.Slot.CurObject != managedFeed.Object", source);
