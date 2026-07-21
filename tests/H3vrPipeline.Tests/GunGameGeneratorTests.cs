@@ -905,7 +905,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans()
+    public void Runtime_schedules_nonblocking_one_five_ten_and_thirty_minute_startup_modded_rescans()
     {
         var source = File.ReadAllText(PluginSourcePath);
         var warmupMethod = source.IndexOf("private void ScheduleStartupProfileWarmup()", StringComparison.Ordinal);
@@ -916,6 +916,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
         Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
         Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested; policy replacement eligible.\", true));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(1800f, \"startup 30-minute final rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
         Assert.Contains("private IEnumerator RequestStartupModdedRescan(", source, StringComparison.Ordinal);
         Assert.Contains("bool enablePolicyReplacement)", source, StringComparison.Ordinal);
         Assert.Contains("new WaitForSecondsRealtime(delaySeconds)", source, StringComparison.Ordinal);
@@ -924,6 +925,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("startup 1-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 5-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 10-minute rescan requested; policy replacement eligible.", source, StringComparison.Ordinal);
+        Assert.Contains("startup 30-minute final rescan requested.", source, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
@@ -976,13 +978,12 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("AddEventHandler", source, StringComparison.Ordinal);
         Assert.Contains("RemoveEventHandler", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
-        Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
         Assert.Contains("RestorePersistedRuntimeProfilesForSelector", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoaderStatusProbe", source, StringComparison.Ordinal);
         Assert.Contains("if (instance.selectorTracker.Observe(loader))", source, StringComparison.Ordinal);
-        Assert.Contains("// reloads. Restore only once, but always request a fresh catalog", source, StringComparison.Ordinal);
+        Assert.Contains("// reloads. Restore only once; scheduled startup warmup owns", source, StringComparison.Ordinal);
         Assert.DoesNotContain("PrepareModdedProfilesForSelector", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateModdedProfileLoadingDisplay", source, StringComparison.Ordinal);
@@ -995,6 +996,22 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("OnDemandGenerationGate", source, StringComparison.Ordinal);
         Assert.DoesNotContain("WeaponPoolLoaderAwakePostfix", source, StringComparison.Ordinal);
         Assert.DoesNotContain("WatchForGunGamePoolLoader", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_selector_and_GunGame_teardown_never_request_post_startup_modded_refreshes()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+        var selectorHandler = source.IndexOf("private static void WeaponPoolLoaderReady()", StringComparison.Ordinal);
+        var selectorLocator = source.IndexOf("private object FindGunGamePoolLoader()", StringComparison.Ordinal);
+
+        Assert.True(selectorHandler >= 0 && selectorLocator > selectorHandler);
+        var selectorBody = source.Substring(selectorHandler, selectorLocator - selectorHandler);
+        Assert.Contains("RestorePersistedRuntimeProfilesForSelector", selectorBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequestModdedRefresh();", selectorBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GunGame.Scripts.GameManager", source, StringComparison.Ordinal);
     }
 
     [Fact]
