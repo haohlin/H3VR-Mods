@@ -95,6 +95,27 @@ public sealed class GunGameCursedRandomTests
     }
 
     [Fact]
+    public void Cursed_random_mod_intercepts_weapon_buffer_and_preserves_unmanaged_quickbelt_items()
+    {
+        var root = FindRepositoryRoot();
+        var source = File.ReadAllText(Path.Combine(root, "GunGameCursedRandom", "src", "Plugin.cs"));
+        using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "build", "mods.json")));
+        var mod = config.RootElement.GetProperty("mods").GetProperty("GunGameCursedRandom");
+
+        Assert.Contains("WeaponBufferSpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source);
+        Assert.Contains("suppressing native placeholder", source);
+        Assert.Contains("ManagedQuickbeltFeed", source);
+        Assert.Contains("managedQuickbeltFeeds.Add", source);
+        Assert.Contains("managedFeed.Slot.CurObject == managedFeed.Object", source);
+        Assert.DoesNotContain("activeRandomEquipment.AddRange", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeforeGameStartedEvent", source, StringComparison.Ordinal);
+        Assert.Contains(
+            mod.GetProperty("externalPatchTargets").EnumerateArray(),
+            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Weapons.WeaponBuffer" &&
+                target.GetProperty("method").GetString() == "SpawnAsync");
+    }
+
+    [Fact]
     public void Local_r2modman_registration_has_an_executable_yaml_regression_check()
     {
         var root = FindRepositoryRoot();
