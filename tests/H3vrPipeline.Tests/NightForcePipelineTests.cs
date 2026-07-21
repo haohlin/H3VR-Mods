@@ -53,13 +53,18 @@ public sealed class NightForcePipelineTests
             "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
             candidates.GetProperty("unityBuildMethod").GetString());
         Assert.Equal(
-            "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack and LocalRecoveredLT3x9.",
+            "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack, LocalRecoveredLT3x9, and LocalRecoveredEVU1x10.",
             candidates.GetProperty("unityBuildSuccessMarker").GetString());
         var requiredEntries = candidates.GetProperty("unityRequiredPackageEntries")
             .EnumerateArray()
             .Select(value => value.GetString())
             .ToArray();
-        Assert.Equal(new[] { "hlin-localrecoveredst6tblack", "hlin-localrecoveredlt3x9" }, requiredEntries);
+        Assert.Equal(new[]
+        {
+            "hlin-localrecoveredst6tblack",
+            "hlin-localrecoveredlt3x9",
+            "hlin-localrecoveredevu1x10"
+        }, requiredEntries);
     }
 
     [Fact]
@@ -608,6 +613,11 @@ public sealed class NightForcePipelineTests
         Assert.DoesNotContain("Unity package does not exist: $sourcePackagePath", package,
             StringComparison.Ordinal);
         Assert.Contains("configured r2modman Default profile", deploy, StringComparison.Ordinal);
+        Assert.Contains("Get-Process -Name 'h3vr'", deploy, StringComparison.Ordinal);
+        Assert.Contains("H3VR is running. Close H3VR before deployment.", deploy, StringComparison.Ordinal);
+        Assert.True(deploy.IndexOf("Get-Process -Name 'h3vr'", StringComparison.Ordinal) <
+            deploy.IndexOf("New-Package $ModConfig", StringComparison.Ordinal),
+            "Deploy must refuse an active H3VR process before it creates or replaces a package.");
         Assert.DoesNotContain("Deployed $Mod to $target", deploy, StringComparison.Ordinal);
         Assert.DoesNotContain("VR receipt: $vrReceipt", deploy, StringComparison.Ordinal);
     }

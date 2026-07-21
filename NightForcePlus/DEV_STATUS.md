@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-21`
-State: `native-PIP acceptance pending; fully rebound ST6T and LT3x9 local runtime candidate package deployed to Default profile for user VR testing`
+State: `native-PIP acceptance pending; ST6T, LT3x9, and EVU 1-10 local candidate package rebuild pending before a fresh Default-profile deployment`
 
 ### Verified now
 
@@ -47,7 +47,7 @@ State: `native-PIP acceptance pending; fully rebound ST6T and LT3x9 local runtim
 | Cross-reference gaps | Each candidate has `0` required native component/field-schema gap against NightForce. All carry `UnityEngine.SphereCollider`; NightForce instead carries its authored physical layout. Its extra `FVRFireArmAttachmentMount` is shared by EVU; its `BubbleLevelScope` is intentional. | Do not add a recovered component or alter physical layout without a runtime collision/interaction defect. |
 | Native controller lifecycle | Current game `FVRFireArmAttachment` calls `OnAttach()` then activates `AttachmentInterface`, and deactivates it on detach. Rebound ST6T serializes its `PIPScopeController` object inactive. | NightForce `_Interface` now serializes inactive and the runtime test enforces mount-time activation semantics. |
 | Native PIP presentation | Rebound ST6T uses `Unlit/PIPScope` on both PIP lenses. NightForce had `PIPScope`; a prior repair also disabled `ScopeRendererNightforce`, which removed its authored reticle fallback in user testing. | NightForce now retains enabled `ScopeRendererNightforce` and forces both native PIP lenses to `Unlit/PIPScope`; fresh private audit confirms shader and controller active-state parity. |
-| Local recovered scope package | Local runtime preparation completed with exact ST6T `10/10` and LT3x9 `11/11` script rebinding, zero unresolved, and zero ambiguous references. `LocalVanillaScopeCandidates` `0.0.1` build marker and two-required-bundle ZIP guard passed, then package deployed through Default-profile pipeline. | Ready for user H3VR test; no public release or distribution. |
+| Local recovered scope package | Earlier local preparation completed with exact ST6T `10/10` and LT3x9 `11/11` script rebinding, zero unresolved, and zero ambiguous references. Its two-bundle package receipt exists, but user reports neither entry appeared in Item Spawner. EVU 1–10 (`12/12` rebound) is now included in source; fresh three-bundle build and deployment are required. | Rebuild pending; no current VR acceptance or public release. |
 
 ### Open blockers
 
@@ -79,7 +79,7 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | `[x]` | Audit ST6T fields, component sequence, and physical layout against NightForce. | Private report records all readable serialized fields plus node/component/visual layout; no required native field schema is absent. |
 | `[x]` | Import and audit two high-power variable reference scopes. | Classic 3–12x and EVU 1–10x complete full private import/rebind/audit with zero unresolved/ambiguous scripts and zero required-native gap. |
 | `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, `ScopeRendererNightforce` stays enabled, and both PIP lenses use `Unlit/PIPScope`; Windows build/package/private audit pass. |
-| `[x]` | Build and deploy fully rebound ST6T and LT3x9 local candidates. | Both candidates rebind every script exactly, receive unique object/spawner/build metadata, build into `LocalVanillaScopeCandidates`, pass its two-bundle ZIP guard, and deploy through the Default-profile pipeline. |
+| `[ ]` | Build and deploy ST6T, LT3x9, and EVU 1–10 local candidates. | All three candidates rebind every script exactly, receive unique object/spawner/build metadata, build into `LocalVanillaScopeCandidates`, pass its three-bundle ZIP guard, and deploy through the Default-profile pipeline while H3VR is closed. |
 | `[ ]` | Deploy corrected native-PIP candidate locally. | H3VR is closed, exact validated package replaces the Default-profile candidate, then a fresh startup/VR test begins. |
 
 ### Deferred
@@ -101,7 +101,7 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Private vanilla prefab smoke | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabSmokeTest -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Completion marker, no failure marker, and full rebind summary prove a private candidate only. |
 | Private comparison | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabCompareNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Comparison marker reports required-native gap and symmetric component-type differences without modifying authored prefab content. |
 | Private field/layout audit | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabAuditNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Audit marker has `0` missing required-native field schemas and `0` unreadable properties; private report retains fields, node order, transforms, bounds, and materials. |
-| Local runtime candidate preparation | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaRuntimeCandidatePrepare` then `UnityVanillaRuntimeCandidateStatus` | Preparation marker confirms fully rebound ST6T and LT3x9 candidates plus unique local metadata. |
+| Local runtime candidate preparation | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaRuntimeCandidatePrepare` then `UnityVanillaRuntimeCandidateStatus` | Preparation marker confirms fully rebound ST6T, LT3x9, and EVU 1–10 candidates plus unique local metadata. |
 | Local runtime candidate package | `Build`, `Package`, and `Deploy` for `VanillaScopeCandidatesLocal` | Fresh MeatKit marker, validated package, and Default-profile deployment receipt. |
 
 ### Manual H3VR acceptance
@@ -118,8 +118,9 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
-| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Package deployed; pending user VR test. |
-| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Package deployed; pending user VR test. |
+| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh three-scope package/deployment pending. |
+| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh three-scope package/deployment pending. |
+| Recovered EVU 1–10 local candidate | `Local Test Recovered EVU 1-10x28` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Fresh three-scope package/deployment pending. |
 
 ### Release gate
 
@@ -128,8 +129,8 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 - [x] Fresh MeatKit source package created from the exact profile after physical PIP repair; SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`.
 - [x] Pipeline package/deploy receipt for the repaired candidate.
 - [x] Generic private importer and field/layout audit validate ST6T against authored NightForce; fresh repaired `1.0.5` candidate package validated and deployed locally.
-- [x] Local-only ST6T/LT3x9 runtime candidate package has exact rebind evidence, build-marker evidence, two-bundle archive proof, and Default-profile deployment receipt.
-- [ ] User H3VR acceptance for local ST6T/LT3x9 candidate spawning, PIP/reticle render, rail mount, and controls.
+- [ ] Fresh local-only ST6T/LT3x9/EVU 1–10 runtime candidate package has exact rebind evidence, build-marker evidence, three-bundle archive proof, and Default-profile deployment receipt.
+- [ ] User H3VR acceptance for local ST6T/LT3x9/EVU 1–10 candidate spawning, PIP/reticle render, rail mount, and controls.
 - [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.

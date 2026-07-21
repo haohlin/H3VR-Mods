@@ -1142,6 +1142,11 @@ Result: PENDING
 function Invoke-Deploy {
     param([object]$ModConfig)
 
+    $runningH3vr = @(Get-Process -Name 'h3vr' -ErrorAction SilentlyContinue)
+    if ($runningH3vr.Count -gt 0) {
+        throw 'H3VR is running. Close H3VR before deployment.'
+    }
+
     $package = New-Package $ModConfig
     $deployStaging = Join-Path (Join-Path $BuildRoot 'staging') ("deploy-" + $Mod)
     Remove-Item -LiteralPath $deployStaging -Recurse -Force -ErrorAction SilentlyContinue
