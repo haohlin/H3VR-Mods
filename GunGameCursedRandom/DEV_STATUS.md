@@ -17,7 +17,7 @@ State: `active`
 | Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 | Feed repair candidate | `1d9afbe` changes all 64 tiers to live `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and release build `0` warnings/errors passed. | Await H3VR close for deploy. |
 | Direct-spawn deployment | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deployed at `67c366`, VR proof pending. |
-| Profile-label candidate | `c5b5130` changes profile JSON and runtime selection constant to `HLin-Random Cursed`; focused test requires exact match. | Windows test/deploy pending. |
+| Profile-label candidate | `c5b5130` changes profile JSON and runtime selection constant to `HLin-Random Cursed`; focused test requires exact match. | Windows `Test` `105/105`, `Verify`, and build `0` warnings/errors passed; deploy pending H3VR close. |
 
 ### Open blockers
 
@@ -28,7 +28,6 @@ State: `active`
 | VR behavior | Confirm gun hand retrieval, feed loading, quickbelt spare, attachment logging, and previous-item cleanup. | Human VR test. |
 | r2modman UI | Confirm Default profile opens and shows Cursed local package after repaired YAML. | User reopen test. |
 | H3VR process | Source repair is ready but must not overwrite loaded profile files. | User closes H3VR, then deploy. |
-| Windows test resolver | `h3vr-remote run Test` stops before discovery with `Unsupported private H3VR configuration key: H3VR_PRIVATE_ASSET_LAB`. | Repair private wrapper/config outside this mod, then rerun Windows checks. |
 
 ## Plan
 
@@ -40,7 +39,8 @@ State: `active`
 | `[x]` | Repair Cursed placeholder feed. | All 64 entries use `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and build passed for `1d9afbe`. |
 | `[x]` | Implement direct Cursed spawn and narrow quickbelt cleanup. | `72aac16` passes Windows `Test` `105/105`, `Verify`, and build. |
 | `[x]` | Deploy direct-spawn profile after H3VR closes. | Default profile received `72aac16`; fresh trace and VR proof remain pending. |
-| `[ ]` | Validate profile-label rename. | Windows `Test`, `Verify`, and `Build` pass; Default profile receives `HLin-Random Cursed` only after H3VR closes. |
+| `[x]` | Validate profile-label rename. | Windows `Test` `105/105`, `Verify`, and `Build` pass for `d1c2353`. |
+| `[ ]` | Deploy profile-label rename after H3VR closes. | Default profile receives `HLin-Random Cursed`; profile list shows exact label. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select HLin-Random Cursed`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected HLin-Random Cursed start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -59,7 +59,7 @@ State: `active`
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
 | Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
 | Pipeline | `h3vr-remote run Test` | Passed: `105/105` for `72aac16`. |
-| Profile-label test | `h3vr-remote run Test` | Pending: wrapper stopped before discovery on unsupported private `H3VR_PRIVATE_ASSET_LAB` key. |
+| Profile-label test | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom` | Passed: `105/105`; Verify passed; build `0` warnings/errors for `d1c2353`. |
 | Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
