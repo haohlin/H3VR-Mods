@@ -13,7 +13,7 @@ Sosig, kill, and run lifecycle.
 | Ship `GunGameWeaponPool_Cursed_Random.json` for normal GunGame profile selection. | Edit GunGame maps or prefabs. |
 | Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` after HLin-Random Cursed profile transitions. | Reimplement H3VR random-gun, ammo, or attachment selection. |
 | Subscribe to `Progression.WeaponChangedEvent`; retain native promotion/demotion and Sosig behavior. | Change GunGame progression counts, enemies, or selected quickbelt slots. |
-| Give spawned firearm to configured GunGame hand; load first compatible feed; put up to two spares in GunGame Ammo and Extra quickbelt slots. | Guarantee compatibility for every modded Item Spawner object. |
+| Give spawned firearm to configured GunGame hand; load first compatible feed; ensure one matching spawn-locked spare in an empty GunGame Ammo or Extra quickbelt slot. | Guarantee compatibility for every modded Item Spawner object. |
 
 ## Architecture
 
@@ -27,7 +27,8 @@ Native GunGame WeaponBuffer.SpawnAsync
   -> returns empty native coroutine; no placeholder G17 or G17 magazine
   -> wait for vanilla random result
   -> remove previous Cursed gun and only spare feeds still in Cursed-managed slots
-  -> load, hand-equip, quickbelt up to two spare feeds, log loadout
+  -> load, hand-equip, clone one loaded feed through its vanilla FVRObject wrapper if no spare exists
+  -> quickbelt spawn-lock spare in empty Ammo/Extra slot, log loadout
 ```
 
 ## Invariants
@@ -46,6 +47,9 @@ Native GunGame WeaponBuffer.SpawnAsync
 - Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
   by Cursed are removed on transition. Moved feeds and every other quickbelt
   object remain player-owned.
+- A loaded magazine, clip, speedloader, or cartridge gets one matching spare
+  only when an assigned Ammo or Extra slot is empty; no player-owned slot is
+  replaced.
 - Log one completed random loadout with firearm, feeds, and attachments.
 
 ## Decisions
@@ -58,6 +62,7 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Remove custom Atlas-panel behavior. | New profile is visible through GunGame's existing profile loader; no scene lifecycle/UI clone is needed. | 2026-07-20 |
 | Intercept `WeaponBuffer.SpawnAsync`. | It is GunGame's actual two-argument spawn coroutine. Returning an empty coroutine after random API start prevents visible placeholder G17 spawn while preserving native progression flow. | 2026-07-22 |
 | Track only Cursed-owned gun and slot-bound spares. | Broad object tracking deleted feeds after players moved them. Identity-checking only Cursed's original spare slots preserves all other quickbelt content. | 2026-07-22 |
+| Clone loaded feed from its FVRObject wrapper. | H3VR's random-gun button instantiates `FVRObject.GetGameObject()`; matching that native construction yields one compatible spare without a second weapon roll. | 2026-07-22 |
 
 ## Known limits / backlog
 
