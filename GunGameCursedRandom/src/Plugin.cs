@@ -191,12 +191,6 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
-        if (weaponBufferSpawnHookInstalled)
-        {
-            Trace("WeaponChangedEvent observed after direct WeaponBuffer replacement; no post-spawn replacement needed.");
-            return;
-        }
-
         var progression = FindLiveProgression(progressionType);
         if (progression == null)
         {
@@ -206,10 +200,11 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (spawningRandomGun || replacementQueued)
         {
-            Logger.LogWarning(CursedProfileName + " transition ignored because a random replacement is already pending.");
+            Trace("WeaponChangedEvent observed while random spawn is pending; no post-spawn fallback needed.");
             return;
         }
 
+        Trace("WeaponChangedEvent found no pending direct random spawn; using post-spawn fallback.");
         replacementQueued = true;
         Logger.LogInfo(CursedProfileName + " selected: native GunGame weapon transition observed; replacing profile equipment.");
         StartCoroutine(ReplaceNativeEquipment(progression));
