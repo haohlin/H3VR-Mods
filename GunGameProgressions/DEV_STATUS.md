@@ -6,12 +6,14 @@ cross-session handoff source of truth.
 
 ## Status
 
-Last verified: `2026-07-19`
+Last verified: `2026-07-22`
 
 State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore publish passed.`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
+| Post-ten-minute refresh lifecycle | The one/five/ten-minute startup callbacks are one-shot, but refresh hooks remain subscribed afterward. Every `WeaponPoolLoader.WeaponLoadedEvent` requests a fresh Modded snapshot, including a repeat event from a selector reload; `GunGame.Scripts.GameManager.OnDestroy` requests one when a GunGame session ends. `moddedRefreshRunning` permits one active pass and coalesces any request arriving during it into a following sequential pass. | Current release source: `Plugin.cs` selector-ready handler, GunGame teardown Harmony postfix, and refresh loop. |
+| Performance hypothesis | A post-ten-minute GunGame selector reload or session teardown can therefore cause another complete capture/build. The Unity thread synchronously snapshots the whole registry before its two-millisecond yield budget, capture allocates per-entry lists, and merge/build runs even when the candidate later loses the strict-growth persistence check. | Current release source audit. No long-duration runtime trace, allocation profile, OOM, or crash stack has yet confirmed the reported failure root cause. |
 | Public release | `1.4.1` is published. | Exact Thunderstore download URL returned HTTP `200` after publish. |
 | Golden Vanilla | Policy 19 tracked offline Rot and Mixed files contain `660` unique firearms. BrownBess is removed by the new global blacklist. | Windows generator, `--verify`, and focused baseline test. |
 | Installed runtime before candidate | Vanilla profiles contain `657`; Modded profiles contain `47`. | Windows installed profile inspection. |
@@ -90,6 +92,7 @@ State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore pub
 | In progress | Diversify equal-rank compatible optic choices. | Policy `21` balances only equal-rank candidates; Windows generator/test/verify/build/package must prove retained mount/role routes, regenerated fallback pools, and no lifecycle diff. |
 | Complete | Release 1.4.1. | Fallback refresh, SourceStatus, Verify, Test `98/98`, main Release rebuild/package/deploy, Thunderstore publish, and exact-download HTTP `200` passed. |
 | Pending | Human/runtime-observe game-wide startup warmup. | Start H3VR, remain outside GunGame through ten minutes, then open/reload GunGame. BepInEx shows initial and scheduled scans; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
+| In progress | Measure post-ten-minute refreshes during GunGame map enter, selector reload, and exit. | A long-duration live trace identifies each refresh reason, catalog count, main-thread capture time, worker time, and managed-memory trend; it distinguishes GunGame lifecycle events from ordinary non-GunGame map transitions. |
 
 ## Testing
 
@@ -102,6 +105,7 @@ State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore pub
 | 1.4.1 release | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test`; shared-generator fallback refresh; `Build`; `Package`; `Deploy`; `Publish`; exact download. | Passed from `main`: cache current; Harmony targets resolve; `98/98`; both fallback profiles match policy 21 shared resolver; Release package deployed and published; exact download returned HTTP `200`. |
 | One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
 | Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Live partial pass: initial and one-minute scans ran without selector interaction and wrote Runtime 02/04. Five-/ten-minute runtime observations and selector restore remain pending. |
+| Post-ten-minute lifecycle performance | After the ten-minute startup callback, enter, reload, and exit a GunGame map; separately transition through a non-GunGame map. Capture BepInEx trace, profiler/managed-memory data, and any crash stack. | Selector-ready and GunGame teardown requests are correlated with full captures. No refresh is attributed to an ordinary non-GunGame transition unless it actually fires one of those GunGame hooks. |
 | Policy-version replacement gate | `h3vr.ps1 -Action Test`; then retain a saved Modded receipt from an older policy and observe early plus ten-minute scans. | Passed static/worker guard: early snapshots keep equal/smaller pair; runtime observation remains required for ten-minute timing. |
 | Runtime 05 release boundary | `h3vr.ps1 -Action Test`, then `Build`/`Package`/`Deploy` default Release; `Build`/`Package -GunGameBuildConfiguration Debug`; Debug publish guard. | Passed: `97/97`; Release ZIP has `0` Runtime 05 files and installed exporter reports disabled; Debug exporter reports enabled; Debug package is isolated and publish is rejected. |
 | Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
