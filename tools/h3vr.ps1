@@ -1113,9 +1113,17 @@ function Register-R2modmanLocalPackage {
     Write-Host "Registered $name as an r2modman local package."
 }
 
+function Assert-H3vrStopped {
+    $h3vrProcesses = @(Get-Process -Name 'h3vr' -ErrorAction SilentlyContinue)
+    if ($h3vrProcesses.Count -gt 0) {
+        throw 'H3VR is running. Close it before deployment.'
+    }
+}
+
 function Invoke-Deploy {
     param([object]$ModConfig)
 
+    Assert-H3vrStopped
     $package = New-Package $ModConfig
     $deployStaging = Join-Path (Join-Path $BuildRoot 'staging') ("deploy-" + $Mod)
     Remove-Item -LiteralPath $deployStaging -Recurse -Force -ErrorAction SilentlyContinue
@@ -1126,6 +1134,7 @@ function Invoke-Deploy {
     $target = Join-Path $EnvironmentConfig.r2modman.pluginsRoot $ModConfig.deploymentFolder
     $backupRoot = Join-Path (Join-Path $BuildRoot 'receipts') 'backups'
     Ensure-Directory $backupRoot
+    Assert-H3vrStopped
     if (Test-Path -LiteralPath $target) {
         Copy-Item -LiteralPath $target -Destination (Join-Path $backupRoot ("$($ModConfig.deploymentFolder)-" + (Get-Date).ToString('yyyyMMdd-HHmmss'))) -Recurse
         Remove-Item -LiteralPath $target -Recurse -Force
