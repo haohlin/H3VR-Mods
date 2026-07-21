@@ -183,23 +183,24 @@ exists.
 
 | Situation | Required behavior |
 | --- | --- |
-| Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools, request a fresh Modded capture, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. |
+| Startup | Keep the last complete Modded profiles from the prior run selectable immediately; generate Vanilla pools, request a fresh Modded capture, and schedule non-blocking Modded rescans at one, five, ten, and thirty real-time minutes. |
 | Any Modded refresh request | Snapshot currently registered Modded catalog immediately; build/write on background worker. |
 | Loader reports complete | Allows confirmed-empty snapshot to remove stale saved profiles. |
 | Loader remains `Loading` or unavailable | Does not veto a usable non-empty snapshot. |
-| Selector opens while Modded profiles are pending | Restore only the saved complete Modded pair. Keep Vanilla choices usable; no selector-side polling, UI clone, capture, or build work. |
+| Selector opens while Modded profiles are pending | Restore only the saved complete Modded pair. Keep Vanilla choices usable; no selector-side polling, UI clone, capture, build work, or refresh request. |
 | Complete Modded replacement | Build candidate off play path. Replace saved pair only when both generated Modded pools contain eligible weapons **and** candidate count is strictly greater than saved count. Equal/smaller or unproven saved count keeps saved pair. |
 | Confirmed empty Modded snapshot | Remove the saved Modded pair. This prevents disabled mods from leaving stale object IDs behind. |
-| Partial capture, capture failure, or build failure | Keep the previous saved Modded pair unchanged and request a later background refresh. |
+| Partial capture, capture failure, or build failure | Keep the previous saved Modded pair unchanged until the next scheduled startup refresh. |
 | Generated ID is missing, has the wrong category, or throws while spawning | Clear the bad buffer, skip that loadout, and promote to the next weapon on the following frame. Do not crash or freeze the session. |
 
 The loader signal is authoritative only for content exposing it. Its reflection
 metadata is read once per background attempt and failures log once. It never
-polls. One-, five-, and ten-minute rescans, selector entries/reloads, and GunGame
-session exits request another background snapshot. Modded files and receipt stay in the
-installed plugin folder across H3VR restarts: the selector restores that last
-complete pair first, then a completed fresh candidate replaces it for a later
-selector load.
+polls. Only immediate startup plus one-, five-, ten-, and thirty-minute callbacks
+request background snapshots. The thirty-minute callback is final; selector
+entries/reloads and GunGame session exits only restore saved choices. Modded files
+and receipt stay in the installed plugin folder across H3VR restarts: the selector
+restores that last complete pair first, then a completed scheduled candidate
+replaces it for a later selector load.
 
 ## Offline fallback contract
 

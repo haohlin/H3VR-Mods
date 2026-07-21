@@ -28,10 +28,8 @@ H3VR registry ──> catalog capture ──> shared builder ──> Runtime 01 
 
 Local Debug build only ──> Compatibility Probe builder ──> Runtime 05
 
-GunGame WeaponPoolLoader event ──> restore saved Modded choices
-                                └─> request background refresh if needed
-
-GunGame session end ──> request another non-blocking Modded refresh
+GunGame WeaponPoolLoader event ──> restore saved Modded choices only
+                                └─> never request a catalog refresh
 ```
 
 The plugin is a BepInEx/Harmony overlay. It listens to Kodeman GunGame's shared
@@ -62,15 +60,15 @@ path. The normal shared resolver already controls its Vanilla eligibility.
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
+| Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, ten, and thirty real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
-| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded choices once, request fresh background snapshot. A local Debug build also restores its saved Compatibility Probe choice. |
+| GunGame selector opens or reloads | Keep Vanilla usable and restore saved Modded choices once. A local Debug build also restores its saved Compatibility Probe choice. It never requests a catalog snapshot. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
 | One and five minutes after plugin startup | Request non-blocking rescans for late-loading content. Each complete candidate follows strict count-growth replacement. |
 | Ten minutes after plugin startup | Request another non-blocking rescan and permit one complete candidate from a newer generation-policy version to replace a saved pair even when its count is smaller. |
-| GunGame closes | Request another background refresh for late-loading mods. |
-| Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
+| Thirty minutes after plugin startup | Request the final non-blocking rescan. No selector, map entry/reload/exit, or other post-startup event may request another refresh. |
+| Registry unavailable | Stop that attempt immediately; a later scheduled startup callback is the only retry path. |
 
 There is no Modded loading row or live-insertion path. Selector restore clones
 at most one existing GunGame choice per already-persisted runtime pool (02, 04,
@@ -111,9 +109,9 @@ loader-complete empty snapshot removes stale pools.
 
 This lifecycle is release baseline. Scope/feed/blacklist policy work may change
 only shared builder and generated profiles. It must not change startup
-scheduling, one/five/ten-minute rescans, selector restore behavior, background
-worker ownership, loader-read cadence, persistence replacement, or GunGame-close
-refresh behavior without separate lifecycle design and test change.
+scheduling, one/five/ten/thirty-minute rescans, selector restore behavior,
+background worker ownership, loader-read cadence, or persistence replacement
+without separate lifecycle design and test change.
 
 ## Compatibility and runtime safety
 
@@ -174,10 +172,11 @@ resolve Vanilla entries for feed/optic compatibility, but persists only Runtime
 it never waits for a global loader-completion signal or polls registry. If
 GunGame's selector type arrives late, event subscription retries only every ten
 seconds and stops after success. Startup does one immediate snapshot plus one-,
-five-, and ten-minute rescans. Only the ten-minute callback opens the
-policy-version replacement gate. The event log records each completed scan's
-wall-clock duration for live measurement. Design goal is responsive game, not a
-fixed artificial loading delay.
+five-, ten-, and thirty-minute rescans. The thirty-minute callback is final:
+GunGame selector, map, and teardown events never request another scan. Only the
+ten-minute callback opens the policy-version replacement gate. The event log
+records each completed scan's wall-clock duration for live measurement. Design
+goal is responsive game, not a fixed artificial loading delay.
 
 ### Prefab-materialization boundary
 
@@ -237,7 +236,7 @@ playtest report
 
 | Priority | Item | Definition of done |
 | --- | --- | --- |
-| P0 | Validate background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
+| P0 | Validate fixed-schedule Modded refresh. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no post-thirty-minute scan from GunGame map entry, reload, or exit. |
 | P0 | Verify catalog-only release candidate. | Windows runtime restores golden vanilla weapons and includes catalog-proven Modded firearms without prefab materialization. |
 | P1 | Classify Runtime 05 results. | Use spawn-safety log gun/feed/optic IDs to classify each failure. Add only confirmed broken entries to the shared global blacklist. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |
