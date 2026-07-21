@@ -1,10 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
-    [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'Teleport', 'RemoveWhiteOut')]
+    [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaScopeCandidatesLocal', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
     [string]$EnvironmentConfigPath,
@@ -1461,6 +1461,80 @@ function Invoke-UnityVanillaPrefabAudit {
     }
 }
 
+function Invoke-UnityVanillaRuntimeCandidatePreparation {
+    $projectRoot = Get-UnityProjectRoot
+    $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
+    if ([string]::IsNullOrWhiteSpace($unityConfig.editorExecutable) -or
+        -not (Test-Path -LiteralPath $unityConfig.editorExecutable)) {
+        throw 'Unity editor is not configured. Set H3VR_UNITY_EXECUTABLE in private configuration.'
+    }
+
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if ($openEditors.Count -gt 0) {
+        throw 'Windows Unity project is open. Close the editor before local runtime candidate preparation.'
+    }
+
+    $logDirectory = Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs'
+    Ensure-Directory $logDirectory
+    $logPath = Join-Path $logDirectory 'vanilla-runtime-candidate-prepare.log'
+    $methodName = 'HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.PrepareLocalRuntimeCandidates'
+    $successMarker = '[VanillaScopeLocalRuntime] PREPARED:'
+
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        [IO.File]::WriteAllText($logPath, [string]::Empty)
+        Write-Host "Preparing fully rebound local vanilla scope runtime candidates with Unity batch mode (attempt $attempt/2)."
+        $arguments = @(
+            '-batchmode',
+            '-nographics',
+            '-quit',
+            '-projectPath', ('"{0}"' -f $projectRoot),
+            '-executeMethod', $methodName,
+            '-logFile', ('"{0}"' -f $logPath)
+        )
+        Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments | Out-Null
+        $passed = Wait-ForVanillaPrefabImporterResult -LogPath $logPath -SuccessMarker $successMarker
+        if ($passed) {
+            Write-Host 'Local vanilla scope runtime candidates prepared.'
+            return
+        }
+        $failed = (Test-Path -LiteralPath $logPath) -and
+            (Select-String -LiteralPath $logPath -Pattern 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:' -Quiet -ErrorAction SilentlyContinue)
+
+        if ($attempt -eq 1 -and -not $failed) {
+            Write-Warning 'Unity recompiled scripts before preparing local runtime candidates; retrying once.'
+            continue
+        }
+        if ($failed) {
+            throw 'Unity local runtime candidate preparation failed. Inspect the private Unity batch log.'
+        }
+        throw 'Unity did not complete local runtime candidate preparation. Inspect the private Unity batch log.'
+    }
+}
+
+function Get-UnityVanillaRuntimeCandidateStatus {
+    $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-runtime-candidate-prepare.log'
+    $projectRoot = Get-UnityProjectRoot
+    $batchWorkers = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" -and $_.CommandLine -like '*-batchmode*' })
+    Write-Host "Unity batch worker: $(if ($batchWorkers.Count -gt 0) { 'running' } else { 'not running' })"
+    if (-not (Test-Path -LiteralPath $logPath)) {
+        Write-Host 'Local runtime candidate preparation log: absent.'
+        return
+    }
+
+    $content = Get-Content -LiteralPath $logPath -Raw
+    if ($null -eq $content) {
+        $content = [string]::Empty
+    }
+    $prepared = $content.Contains('[VanillaScopeLocalRuntime] PREPARED:')
+    $failed = [regex]::IsMatch($content, 'executeMethod method .* threw exception|Aborting batchmode due to failure|\[VanillaScopeReferenceImporter\] FAIL:')
+
+    Write-Host 'Local runtime candidate preparation log: present.'
+    Write-Host "Preparation marker: $(if ($prepared) { 'present' } else { 'absent' })"
+    Write-Host "Failure marker: $(if ($failed) { 'present' } else { 'absent' })"
+}
+
 function Get-UnityVanillaPrefabImportStatus {
     $logPath = Join-Path (Join-Path (Join-Path $BuildRoot 'staging') 'unity-logs') 'vanilla-prefab-importer-smoke.log'
     $projectRoot = Get-UnityProjectRoot
@@ -1934,6 +2008,8 @@ switch ($Action) {
     'UnityVanillaPrefabSmokeTest' { Invoke-UnityVanillaPrefabSmokeTest $Query }
     'UnityVanillaPrefabCompareNightForce' { Invoke-UnityVanillaPrefabComparison $Query }
     'UnityVanillaPrefabAuditNightForce' { Invoke-UnityVanillaPrefabAudit $Query }
+    'UnityVanillaRuntimeCandidatePrepare' { Invoke-UnityVanillaRuntimeCandidatePreparation }
+    'UnityVanillaRuntimeCandidateStatus' { Get-UnityVanillaRuntimeCandidateStatus }
     'UnityVanillaPrefabImportStatus' { Get-UnityVanillaPrefabImportStatus }
     'UnityVanillaImportStatus' { Get-UnityVanillaScopeImportStatus }
     'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }

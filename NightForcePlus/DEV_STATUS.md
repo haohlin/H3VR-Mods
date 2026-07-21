@@ -5,7 +5,7 @@
 ## Status
 
 Last verified: `2026-07-21`
-State: `native-PIP scope repair rebuilt and package-validated; corrected local deployment and fresh H3VR acceptance pending`
+State: `native-PIP acceptance pending; fully rebound ST6T and LT3x9 local runtime candidates being built for Default-profile testing`
 
 ### Verified now
 
@@ -39,7 +39,7 @@ State: `native-PIP scope repair rebuilt and package-validated; corrected local d
 | Legacy review variant | Legacy assets live beside current source in `Assets/Projects/NightForcePlusLegacy`. Its profile, prefab, bundle, Item Spawner ID/path, package, and r2modman Default-profile record use `NightForcePlusLegacy`; current NightForcePlus prefab/profile were rechecked unchanged. | Windows batch build, package validation, and local deployment passed; VR acceptance pending. |
 | Vanilla scope reference archive | Authoritative source is the latest private AssetRipper export under `H3VR_PRIVATE_ASSET_LAB/exports/H3VRFull/AssetRipperProject/ExportedProject/Assets`. Archive inventory passed: 169,718 manifest entries, including 1,966 prefabs plus mesh/material/texture/shader classes. The old Unity full-rip import is deprecated and was not used. | Verified. |
 | Reusable private prefab importer | Unity source branch `codex/vanilla-scope-importer` commit `12b7af2` accepts a leaf `.prefab` request through a temporary process variable, resolves exactly one raw-export prefab, copies only its visual closure, and rebinds the full `m_Script` GUID plus local file ID only when exact current native identities are known. The headless wrapper validates query shape, retry markers, status, comparison, and recoverable quarantine. | Windows pipeline `121/121`; raw export and recovered C# remain private and excluded from packages. |
-| ST6T private candidate | `ST6T_1_6x24mm_Black.prefab` generic smoke created a private rebound candidate with `10/10` script references rebound, `0` unresolved, and `0` ambiguous. | Verified; private inspection only, never runtime/release source. |
+| ST6T private candidate | `ST6T_1_6x24mm_Black.prefab` generic smoke created a private rebound candidate with `10/10` script references rebound, `0` unresolved, and `0` ambiguous. | Eligible for explicit local-only runtime packaging after rebuilt candidate metadata verifies. No public release or distribution. |
 | ST6T vs NightForce comparison | Required native gap is `none`. ST6T-only type is `UnityEngine.SphereCollider`; NightForce-only types are `FistVR.FVRFireArmAttachmentMount` and authored `HLin_Mods.BubbleLevelScope.BubbleLevelScope`. | No recovered ST6T runtime component is needed in NightForce; authored mount and bubble additions remain intentional. |
 | ST6T field and physical audit | Rebound ST6T candidate has `10/10` script references, `0` unresolved, and `0` ambiguous. Private audit captured serialized fields, active state, sibling/component sequence, local transforms, mesh bounds, and material slots. | `0` required native field schemas missing; `0` unreadable properties. Candidate/NightForce structural differences are recorded only in private inspection report. |
 | High-power reference candidates | `Classic3-12x42mmScope.prefab` rebound `10/10`; `EVU_1_10x28mm.prefab` rebound `12/12`. Both have `0` unresolved and `0` ambiguous script pointers. | Full private visual import, script rebind, comparison, and field/layout audit passed for both. |
@@ -52,7 +52,7 @@ State: `native-PIP scope repair rebuilt and package-validated; corrected local d
 
 Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR.
 
-The vanilla-reference task must use only the authoritative raw export. Do not import recovered C# source into Unity. Full GUID-plus-local-ID rebinding can create a private inspection candidate only after every reference resolves exactly; no recovered prefab, script, or material may become a release/runtime source. Any playable PIP scope stays an authored native-template prefab.
+The vanilla-reference task uses only the authoritative raw export. Do not import recovered C# source into Unity. Full GUID-plus-local-ID rebinding must resolve every reference exactly before candidate packaging. User-authorized local-only packages may include fully rebound candidates with unique IDs, profile, and deployment folder. Keep raw exports, candidates, and local packages out of Git, GitHub, Thunderstore, and public distribution.
 
 ## Plan
 
@@ -78,6 +78,7 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | `[x]` | Audit ST6T fields, component sequence, and physical layout against NightForce. | Private report records all readable serialized fields plus node/component/visual layout; no required native field schema is absent. |
 | `[x]` | Import and audit two high-power variable reference scopes. | Classic 3–12x and EVU 1–10x complete full private import/rebind/audit with zero unresolved/ambiguous scripts and zero required-native gap. |
 | `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, `ScopeRendererNightforce` stays enabled, and both PIP lenses use `Unlit/PIPScope`; Windows build/package/private audit pass. |
+| `[ ]` | Build and deploy fully rebound ST6T and LT3x9 local candidates. | Both candidates rebind every script exactly, receive unique object/spawner/build metadata, build into `LocalVanillaScopeCandidates`, and deploy through the Default-profile pipeline. |
 | `[ ]` | Deploy corrected native-PIP candidate locally. | H3VR is closed, exact validated package replaces the Default-profile candidate, then a fresh startup/VR test begins. |
 
 ### Deferred
@@ -99,6 +100,8 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | Private vanilla prefab smoke | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabSmokeTest -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Completion marker, no failure marker, and full rebind summary prove a private candidate only. |
 | Private comparison | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabCompareNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Comparison marker reports required-native gap and symmetric component-type differences without modifying authored prefab content. |
 | Private field/layout audit | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabAuditNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Audit marker has `0` missing required-native field schemas and `0` unreadable properties; private report retains fields, node order, transforms, bounds, and materials. |
+| Local runtime candidate preparation | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaRuntimeCandidatePrepare` then `UnityVanillaRuntimeCandidateStatus` | Preparation marker confirms fully rebound ST6T and LT3x9 candidates plus unique local metadata. |
+| Local runtime candidate package | `Build`, `Package`, and `Deploy` for `VanillaScopeCandidatesLocal` | Fresh MeatKit marker, validated package, and Default-profile deployment receipt. |
 
 ### Manual H3VR acceptance
 
@@ -114,6 +117,8 @@ The vanilla-reference task must use only the authoritative raw export. Do not im
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
+| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Pending local package and VR test. |
+| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Pending local package and VR test. |
 
 ### Release gate
 

@@ -139,6 +139,19 @@
       "unityBuildSuccessMarker": "[NightForcePlusRuntime] MeatKit package built from exact profile.",
       "patchTargets": []
     },
+    "VanillaScopeCandidatesLocal": {
+      "kind": "unity",
+      "packageName": "LocalVanillaScopeCandidates",
+      "namespace": "HLin_Mods",
+      "community": "h3vr",
+      "deploymentFolder": "HLin_Mods-LocalVanillaScopeCandidates",
+      "layout": "legacy-flat",
+      "versionProfileRelativePath": "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-LocalVanillaScopeCandidates.asset",
+      "packageRelativePath": "AssetBundles\\LocalVanillaScopeCandidates\\{version}\\HLin_Mods-LocalVanillaScopeCandidates-{version}.zip",
+      "unityBuildMethod": "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
+      "unityBuildSuccessMarker": "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack and LocalRecoveredLT3x9.",
+      "patchTargets": []
+    },
     "Teleport": {
       "patchTargets": [
         {

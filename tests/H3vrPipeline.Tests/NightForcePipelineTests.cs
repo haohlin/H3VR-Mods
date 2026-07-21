@@ -32,6 +32,64 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Local_vanilla_scope_candidates_have_a_separate_unity_package_descriptor()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "mods.json")));
+        var candidates = document.RootElement
+            .GetProperty("mods")
+            .GetProperty("VanillaScopeCandidatesLocal");
+
+        Assert.Equal("unity", candidates.GetProperty("kind").GetString());
+        Assert.Equal("LocalVanillaScopeCandidates", candidates.GetProperty("packageName").GetString());
+        Assert.Equal("HLin_Mods-LocalVanillaScopeCandidates", candidates.GetProperty("deploymentFolder").GetString());
+        Assert.Equal("legacy-flat", candidates.GetProperty("layout").GetString());
+        Assert.Equal(
+            "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-LocalVanillaScopeCandidates.asset",
+            candidates.GetProperty("versionProfileRelativePath").GetString());
+        Assert.Equal(
+            "AssetBundles\\LocalVanillaScopeCandidates\\{version}\\HLin_Mods-LocalVanillaScopeCandidates-{version}.zip",
+            candidates.GetProperty("packageRelativePath").GetString());
+        Assert.Equal(
+            "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
+            candidates.GetProperty("unityBuildMethod").GetString());
+        Assert.Equal(
+            "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack and LocalRecoveredLT3x9.",
+            candidates.GetProperty("unityBuildSuccessMarker").GetString());
+    }
+
+    [Fact]
+    public void Local_vanilla_runtime_candidate_preparation_is_headless_safe_and_private()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Invoke-UnityVanillaRuntimeCandidatePreparation", StringComparison.Ordinal);
+        var statusStart = pipeline.IndexOf("function Get-UnityVanillaRuntimeCandidateStatus", StringComparison.Ordinal);
+        var statusEnd = pipeline.IndexOf("function Get-UnityVanillaPrefabImportStatus", statusStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && statusStart > actionStart && statusEnd > statusStart,
+            "Pipeline must expose bounded local vanilla runtime preparation and status actions.");
+        var action = pipeline[actionStart..statusStart];
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'VanillaScopeCandidatesLocal'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("'UnityVanillaRuntimeCandidatePrepare'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("'UnityVanillaRuntimeCandidateStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaRuntimeCandidatePrepare", wrapper, StringComparison.Ordinal);
+        Assert.Contains("UnityVanillaRuntimeCandidateStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.PrepareLocalRuntimeCandidates", action,
+            StringComparison.Ordinal);
+        Assert.Contains("[VanillaScopeLocalRuntime] PREPARED:", action, StringComparison.Ordinal);
+        Assert.Contains("Windows Unity project is open", action, StringComparison.Ordinal);
+        Assert.Contains("Wait-ForVanillaPrefabImporterResult", action, StringComparison.Ordinal);
+        Assert.Contains("Preparation marker:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("H3VR_PRIVATE_ASSET_LAB", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_wrapper_accepts_NightForcePlus_commands()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
