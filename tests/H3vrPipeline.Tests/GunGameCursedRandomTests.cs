@@ -108,11 +108,13 @@ public sealed class GunGameCursedRandomTests
 
         Assert.Contains("WeaponBufferSpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source);
         Assert.Contains("suppressing native placeholder", source);
+        Assert.Contains("WeaponChangedEvent found no pending direct random spawn; using post-spawn fallback.", source);
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
         Assert.Contains("managedFeed.Slot.CurObject != managedFeed.Object", source);
         Assert.DoesNotContain("activeRandomEquipment.AddRange", source, StringComparison.Ordinal);
         Assert.DoesNotContain("BeforeGameStartedEvent", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("if (weaponBufferSpawnHookInstalled)", source, StringComparison.Ordinal);
         Assert.Contains(
             mod.GetProperty("externalPatchTargets").EnumerateArray(),
             target => target.GetProperty("type").GetString() == "GunGame.Scripts.Weapons.WeaponBuffer" &&
