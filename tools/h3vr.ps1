@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaScopeCandidatesLocal', 'Teleport', 'RemoveWhiteOut')]
@@ -734,6 +734,22 @@ function Get-UnityBuildStatus {
     if ($hasSourcePackage) {
         Write-Host "Source package SHA-256: $(Get-FileSha256 $packagePath)"
     }
+}
+
+function Get-UnityNightForcePrefabStatus {
+    $projectRoot = Get-UnityProjectRoot
+    $prefabPath = Join-Path $projectRoot 'Assets\Projects\NightForcePlus\NightForcePlus.prefab'
+    $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*$projectRoot*" })
+    if (-not (Test-Path -LiteralPath $prefabPath -PathType Leaf)) {
+        throw 'Saved NightForcePlus prefab is absent from the configured Unity project.'
+    }
+
+    $prefab = Get-Item -LiteralPath $prefabPath
+    Write-Host "Unity editor: $(if ($openEditors.Count -gt 0) { 'open' } else { 'closed' })"
+    Write-Host 'Saved NightForcePlus prefab: present'
+    Write-Host "Saved prefab modified UTC: $($prefab.LastWriteTimeUtc.ToString('o'))"
+    Write-Host "Saved prefab SHA-256: $(Get-FileSha256 $prefabPath)"
 }
 
 function Get-GunGameStagingPath {
@@ -2063,6 +2079,7 @@ switch ($Action) {
     'UnityVanillaPrefabImportStatus' { Get-UnityVanillaPrefabImportStatus }
     'UnityVanillaImportStatus' { Get-UnityVanillaScopeImportStatus }
     'QuarantineVanillaScopeImports' { Move-PrivateVanillaScopeImportsToQuarantine }
+    'UnityNightForcePrefabStatus' { Get-UnityNightForcePrefabStatus }
     'UnityBuildStatus' { Get-UnityBuildStatus (Get-ModConfig $Mod) }
     'Verify' { Assert-CurrentSource; $modConfig = Get-ModConfig $Mod; Assert-PatchTargets $modConfig; Assert-ExternalPatchTargets $modConfig; Write-Host "Verified $Mod." }
     'Build' {

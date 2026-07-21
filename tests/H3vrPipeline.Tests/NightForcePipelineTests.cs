@@ -216,6 +216,29 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Saved_NightForce_prefab_status_is_private_path_safe_and_exposed_through_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var statusStart = pipeline.IndexOf("function Get-UnityNightForcePrefabStatus", StringComparison.Ordinal);
+        var statusEnd = pipeline.IndexOf("function Get-GunGameStagingPath", statusStart, StringComparison.Ordinal);
+
+        Assert.True(statusStart >= 0 && statusEnd > statusStart,
+            "Pipeline must expose bounded saved-NightForce-prefab status.");
+        var status = pipeline[statusStart..statusEnd];
+
+        Assert.Contains("'UnityNightForcePrefabStatus'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("UnityNightForcePrefabStatus", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Assets\\Projects\\NightForcePlus\\NightForcePlus.prefab", status, StringComparison.Ordinal);
+        Assert.Contains("Saved NightForcePlus prefab: present", status, StringComparison.Ordinal);
+        Assert.Contains("Saved prefab SHA-256:", status, StringComparison.Ordinal);
+        Assert.Contains("Unity editor:", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Write-Host $prefabPath", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_source_sync_is_guarded_and_available_through_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
