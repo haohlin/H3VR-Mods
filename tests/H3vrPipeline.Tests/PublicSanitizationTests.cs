@@ -49,6 +49,16 @@ public sealed class PublicSanitizationTests
         Assert.DoesNotContain("branch --show-current).Trim", pipeline, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Deploy_requires_h3vr_to_be_closed()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("function Assert-H3vrStopped", pipeline, StringComparison.Ordinal);
+        Assert.Contains("Get-Process -Name 'h3vr'", pipeline, StringComparison.Ordinal);
+        Assert.Matches(new Regex(@"function Invoke-Deploy\s*\{(?s:.*?)Assert-H3vrStopped"), pipeline);
+    }
+
     private static string RepositoryRoot
     {
         get
