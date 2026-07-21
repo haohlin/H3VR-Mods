@@ -479,6 +479,31 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_package_and_deploy_diagnostics_do_not_expose_private_paths()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var packageStart = pipeline.IndexOf("function New-UnityPackage", StringComparison.Ordinal);
+        var packageEnd = pipeline.IndexOf("function New-Package", packageStart, StringComparison.Ordinal);
+        var deployStart = pipeline.IndexOf("function Invoke-Deploy", StringComparison.Ordinal);
+        var deployEnd = pipeline.IndexOf("function Invoke-WindowsShutdown", deployStart, StringComparison.Ordinal);
+
+        Assert.True(packageStart >= 0 && packageEnd > packageStart,
+            "Pipeline must expose private-path-safe Unity package diagnostics.");
+        Assert.True(deployStart >= 0 && deployEnd > deployStart,
+            "Pipeline must expose private-path-safe deploy diagnostics.");
+        var package = pipeline[packageStart..packageEnd];
+        var deploy = pipeline[deployStart..deployEnd];
+
+        Assert.Contains("Unity package does not exist after the requested build step.", package,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Unity package does not exist: $sourcePackagePath", package,
+            StringComparison.Ordinal);
+        Assert.Contains("configured r2modman Default profile", deploy, StringComparison.Ordinal);
+        Assert.DoesNotContain("Deployed $Mod to $target", deploy, StringComparison.Ordinal);
+        Assert.DoesNotContain("VR receipt: $vrReceipt", deploy, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Package_command_reports_version_and_hash_without_artifact_path()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

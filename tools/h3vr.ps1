@@ -641,7 +641,7 @@ function Invoke-UnityBuild {
 
     $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
     if (-not $buildCompleted -or -not (Test-Path -LiteralPath $packagePath)) {
-        throw "Unity did not complete $($ModConfig.unityBuildMethod) with expected package: $packagePath"
+        throw "Unity did not complete $($ModConfig.unityBuildMethod) with a package artifact."
     }
 
     return $packagePath
@@ -957,7 +957,7 @@ function New-UnityPackage {
 
     $sourcePackagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
     if (-not (Test-Path -LiteralPath $sourcePackagePath)) {
-        throw "Unity package does not exist: $sourcePackagePath"
+        throw 'Unity package does not exist after the requested build step.'
     }
 
     $artifactDirectory = Join-Path (Join-Path (Join-Path $BuildRoot 'artifacts') $Mod) $version
@@ -1101,8 +1101,8 @@ function Invoke-Deploy {
     }
 
     $vrReceipt = New-VrReceipt -Package $package -DeployPath $target
-    Write-Host "Deployed $Mod to $target"
-    Write-Host "VR receipt: $vrReceipt"
+    Write-Host "Deployed $Mod to the configured r2modman Default profile."
+    Write-Host 'VR receipt written.'
 }
 
 function Invoke-WindowsShutdown {
