@@ -68,6 +68,23 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_item_spawner_rule_requires_mod_content_metadata()
+    {
+        var developmentSkill = File.ReadAllText(Path.Combine(
+            RepositoryRoot, ".codex", "skills", "h3vr-mod-development", "SKILL.md"));
+        var remoteSkill = File.ReadAllText(Path.Combine(
+            RepositoryRoot, "skills", "h3vr-remote-development", "SKILL.md"));
+
+        foreach (var skill in new[] { developmentSkill, remoteSkill })
+        {
+            Assert.Contains("FVRObject.IsModContent: 1", skill, StringComparison.Ordinal);
+            Assert.Contains("SpawnerEntry.IsModded: 1", skill, StringComparison.Ordinal);
+            Assert.Contains("editor verifier", skill, StringComparison.Ordinal);
+            Assert.Contains("Item Spawner", skill, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void Local_vanilla_runtime_candidate_preparation_is_headless_safe_and_private()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

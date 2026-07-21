@@ -251,6 +251,15 @@ Validate the prefab/scene wiring, MeatKit build profile and dependencies,
 generated package, BepInEx log, and real in-game interaction before calling a
 Unity-content change complete.
 
+### Item Spawner identity rule
+
+Every authored H3VR mod item, including a private local-test candidate, must
+serialize `FVRObject.IsModContent: 1` and its matching
+`SpawnerEntry.IsModded: 1`. Set both in source or a deterministic editor
+generator; enforce them in the editor verifier; then confirm Item Spawner
+registration after deployment. Never copy vanilla `0` flag values into a new
+mod item.
+
 ### Unity/MeatKit edit-build-test gate
 
 Use this sequence for every prefab, scene, or MeatKit change:

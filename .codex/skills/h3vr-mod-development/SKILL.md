@@ -197,6 +197,15 @@ Human: outcome + visual intent
 
 Human manual work is limited to visual authoring, subjective VR feel, and release approval.
 
+### Item Spawner identity rule
+
+Every authored H3VR mod item, including private local-test candidates, must
+serialize `FVRObject.IsModContent: 1` and its matching
+`SpawnerEntry.IsModded: 1`. Set both fields in the source asset or deterministic
+editor generator, assert both in the editor verifier, and confirm the item
+appears in Item Spawner after deployment. Do not copy vanilla `0` values into a
+new mod item.
+
 | Codex owns | Human owns only when needed |
 | --- | --- |
 | Reference-prefab/API research; scripts; IDs; spawner/build metadata; Git; automated prefab tests; headless Unity; MeatKit build/package; package/log validation | Mesh/art choices; material appearance; visual placement of mounts/colliders/grab points; subjective handling/reload/firing feel; release approval |
