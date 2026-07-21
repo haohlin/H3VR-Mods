@@ -22,27 +22,30 @@ GunGame profile loader
   -> Cursed Random appears in normal progression choices
   -> player selects Cursed Random
 
-Native GunGame weapon transition
-  -> Progression.WeaponChangedEvent
-  -> ItemSpawnerV2 BTN_TryToSpawnRandomGun
+Native GunGame WeaponBuffer.SpawnAsync
+  -> Cursed prefix starts ItemSpawnerV2 BTN_TryToSpawnRandomGun
+  -> returns empty native coroutine; no placeholder G17 or G17 magazine
   -> wait for vanilla random result
-  -> remove previous GunGame/random equipment
+  -> remove previous Cursed gun and only spare feeds still in Cursed-managed slots
   -> load, hand-equip, quickbelt up to two spare feeds, log loadout
 ```
 
 ## Invariants
 
 - Any profile other than `Cursed Random` does not change GunGame behavior.
-- Cursed Random replaces only completed native profile equipment, never
-  GunGame promotion, demotion, enemy, or run-count lifecycle.
+- Cursed Random intercepts only native `WeaponBuffer.SpawnAsync`; promotion,
+  demotion, enemy, and run-count lifecycle remain native.
 - Cursed Random contains 64 valid placeholder tiers, preserving native
   weapon-count selection through 64 weapons.
 - Use the live `ItemSpawnerV2` random-gun API; do not maintain a second random
   weapon or attachment selector.
 - No polling: one coroutine runs per GunGame equipment transition and stops
   after a bounded result wait.
-- If Item Spawner or its result is unavailable, retain normal GunGame profile
-  spawning instead of crashing or deleting current equipment.
+- If direct interception or Item Spawner is unavailable, retain normal GunGame
+  profile spawning instead of crashing or deleting current equipment.
+- Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
+  by Cursed are removed on transition. Moved feeds and every other quickbelt
+  object remain player-owned.
 - Log one completed random loadout with firearm, feeds, and attachments.
 
 ## Decisions
@@ -53,6 +56,8 @@ Native GunGame weapon transition
 | Subscribe to `WeaponChangedEvent`, not `SpawnAndEquip`. | Live log never entered registered direct Harmony prefixes; GunGame source invokes this event after equipment transition. Runtime proof remains required. | 2026-07-20 |
 | Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
 | Remove custom Atlas-panel behavior. | New profile is visible through GunGame's existing profile loader; no scene lifecycle/UI clone is needed. | 2026-07-20 |
+| Intercept `WeaponBuffer.SpawnAsync`. | It is GunGame's actual two-argument spawn coroutine. Returning an empty coroutine after random API start prevents visible placeholder G17 spawn while preserving native progression flow. | 2026-07-22 |
+| Track only Cursed-owned gun and slot-bound spares. | Broad object tracking deleted feeds after players moved them. Identity-checking only Cursed's original spare slots preserves all other quickbelt content. | 2026-07-22 |
 
 ## Known limits / backlog
 

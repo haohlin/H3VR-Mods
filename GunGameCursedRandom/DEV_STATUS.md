@@ -2,7 +2,7 @@
 
 ## Status
 
-Last verified: `2026-07-21`
+Last verified: `2026-07-22`
 State: `active`
 
 ### Verified now
@@ -11,11 +11,12 @@ State: `active`
 | --- | --- | --- |
 | Source | Selectable-profile implementation committed as `c0bc640`; custom panel and direct Harmony prefixes removed. | Windows parity proven. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.WeaponChangedEvent`, profile loader, and GunGame Ammo/Extra quickbelt slots inspected. | Source API verified; current runtime behavior pending. |
-| Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `104/104`, including all 64 valid Cursed placeholder-feed IDs. | Passed. |
+| Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `105/105`, including direct WeaponBuffer interception and managed-spare ownership. | Passed. |
 | Build / package | Windows release build passed `0` warnings and `0` errors. Package SHA-256 `4C1AE70B9F489CE957AAA93F1BBC3E1D9157BF3008E4BE7B3F90AB1556F66A5E`. | Passed. |
 | Deploy / profile repair | `d7f5c74` deployed. Existing malformed Cursed local-package entry was replaced atomically; post-write strict validation passed and a same-directory backup was created. | r2modman reopen proof pending. |
 | Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 | Feed repair candidate | `1d9afbe` changes all 64 tiers to live `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and release build `0` warnings/errors passed. | Await H3VR close for deploy. |
+| Direct-spawn candidate | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deploy pending. |
 
 ### Open blockers
 
@@ -35,7 +36,8 @@ State: `active`
 | `[x]` | Deploy current profile/event implementation. | Windows `Verify`, `Test`, `Build`, `Package`, and `Deploy` passed for `25fbd9b`; r2modman local registration succeeded. |
 | `[x]` | Repair malformed Default profile Cursed entry. | Windows `Test` passed `103/103`; `d7f5c74` deploy atomically replaced entry and validated written YAML. |
 | `[x]` | Repair Cursed placeholder feed. | All 64 entries use `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and build passed for `1d9afbe`. |
-| `[ ]` | Deploy repaired profile after H3VR closes. | Default profile receives `1d9afbe`; new start avoids null-feed promotion and reaches random API trace. |
+| `[x]` | Implement direct Cursed spawn and narrow quickbelt cleanup. | `72aac16` passes Windows `Test` `105/105`, `Verify`, and build. |
+| `[ ]` | Deploy direct-spawn profile after H3VR closes. | Default profile receives `72aac16`; trace confirms no placeholder G17, native random start, and managed-slot-only cleanup. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select Cursed Random`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected Cursed Random start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -53,8 +55,8 @@ State: `active`
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
 | Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
-| Pipeline | `h3vr-remote run Test` | Passed: `104/104` for `1d9afbe`. |
-| Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `1d9afbe`; package/deploy waits for H3VR close. |
+| Pipeline | `h3vr-remote run Test` | Passed: `105/105` for `72aac16`. |
+| Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
 ### Manual H3VR acceptance
@@ -64,7 +66,8 @@ State: `active`
 | Profile selection | `Cursed Random` appears in native progression choices and stays selected after health/kills/weapon-count changes. | Pending. |
 | r2modman profile | Default profile opens without YAML parse error; local Cursed package is visible and enabled. | Pending. |
 | Game start | One Item Spawner random gun appears directly in selected hand, with random attachments logged. | Pending. |
-| Promotion / demotion | Previous random gear disappears; new random gun arrives; random spare feeds use only empty Ammo/Extra slots. | Pending. |
+| Direct start | No placeholder G17 or G17 magazine appears before Cursed random gun. | Pending. |
+| Promotion / demotion | Previous Cursed gun disappears; new random gun arrives; only Cursed spare still in its original Ammo/Extra slot is removed. All moved and unrelated quickbelt objects remain. | Pending. |
 | Failure fallback | Missing Item Spawner leaves existing profile gun intact and logs one warning. | Pending. |
 
 ### Release gate

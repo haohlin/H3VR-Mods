@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Start Cursed random generation before GunGame's native placeholder spawn.
+- Preserve player quickbelt items; only remove Cursed spare feeds still in their
+  original Cursed-managed Ammo or Extra slot.
 - Replace unverified custom startup-panel control with native `Cursed Random`
   progression profile.
 - Subscribe to GunGame's post-spawn `WeaponChangedEvent`, then replace only
