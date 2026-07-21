@@ -15,7 +15,7 @@ namespace HLin.GunGameCursedRandom;
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
-    private const string CursedProfileName = "Cursed Random";
+    private const string CursedProfileName = "HLin-Random Cursed";
     private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
@@ -46,7 +46,7 @@ public sealed class Plugin : BaseUnityPlugin
             Logger.LogError("GunGame Cursed Random could not subscribe to GunGame Progression.WeaponChangedEvent.");
         }
 
-        Logger.LogInfo("GunGame Cursed Random ready. Select Cursed Random in GunGame progression choices to enable random weapons.");
+        Logger.LogInfo("GunGame Cursed Random ready. Select " + CursedProfileName + " in GunGame progression choices to enable random weapons.");
     }
 
     private void OnDestroy()
@@ -200,18 +200,18 @@ public sealed class Plugin : BaseUnityPlugin
         var progression = FindLiveProgression(progressionType);
         if (progression == null)
         {
-            Logger.LogWarning("Cursed Random selected, but its live Progression instance was unavailable.");
+            Logger.LogWarning(CursedProfileName + " selected, but its live Progression instance was unavailable.");
             return;
         }
 
         if (spawningRandomGun || replacementQueued)
         {
-            Logger.LogWarning("Cursed Random transition ignored because a random replacement is already pending.");
+            Logger.LogWarning(CursedProfileName + " transition ignored because a random replacement is already pending.");
             return;
         }
 
         replacementQueued = true;
-        Logger.LogInfo("Cursed Random selected: native GunGame weapon transition observed; replacing profile equipment.");
+        Logger.LogInfo(CursedProfileName + " selected: native GunGame weapon transition observed; replacing profile equipment.");
         StartCoroutine(ReplaceNativeEquipment(progression));
     }
 
@@ -226,7 +226,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (!TryStartRandomSpawn(progression, true))
         {
-            Logger.LogWarning("Cursed Random random API unavailable; keeping current profile equipment.");
+            Logger.LogWarning(CursedProfileName + " random API unavailable; keeping current profile equipment.");
         }
     }
 

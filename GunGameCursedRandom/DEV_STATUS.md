@@ -16,7 +16,8 @@ State: `active`
 | Deploy / profile repair | `d7f5c74` deployed. Existing malformed Cursed local-package entry was replaced atomically; post-write strict validation passed and a same-directory backup was created. | r2modman reopen proof pending. |
 | Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 | Feed repair candidate | `1d9afbe` changes all 64 tiers to live `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and release build `0` warnings/errors passed. | Await H3VR close for deploy. |
-| Direct-spawn candidate | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deploy pending. |
+| Direct-spawn deployment | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deployed at `67c366`, VR proof pending. |
+| Profile-label candidate | Profile JSON and runtime selection constant now use `HLin-Random Cursed`; focused test requires exact match. | Windows test/deploy pending. |
 
 ### Open blockers
 
@@ -27,6 +28,7 @@ State: `active`
 | VR behavior | Confirm gun hand retrieval, feed loading, quickbelt spare, attachment logging, and previous-item cleanup. | Human VR test. |
 | r2modman UI | Confirm Default profile opens and shows Cursed local package after repaired YAML. | User reopen test. |
 | H3VR process | Source repair is ready but must not overwrite loaded profile files. | User closes H3VR, then deploy. |
+| Windows test resolver | `h3vr-remote run Test` stops before discovery with `Unsupported private H3VR configuration key: H3VR_PRIVATE_ASSET_LAB`. | Repair private wrapper/config outside this mod, then rerun Windows checks. |
 
 ## Plan
 
@@ -37,15 +39,16 @@ State: `active`
 | `[x]` | Repair malformed Default profile Cursed entry. | Windows `Test` passed `103/103`; `d7f5c74` deploy atomically replaced entry and validated written YAML. |
 | `[x]` | Repair Cursed placeholder feed. | All 64 entries use `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and build passed for `1d9afbe`. |
 | `[x]` | Implement direct Cursed spawn and narrow quickbelt cleanup. | `72aac16` passes Windows `Test` `105/105`, `Verify`, and build. |
-| `[ ]` | Deploy direct-spawn profile after H3VR closes. | Default profile receives `72aac16`; trace confirms no placeholder G17, native random start, and managed-slot-only cleanup. |
-| `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select Cursed Random`; no legacy `SpawnAndEquip hook installed` trace. |
-| `[ ]` | Human VR smoke test. | Selected Cursed Random start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
+| `[x]` | Deploy direct-spawn profile after H3VR closes. | Default profile received `72aac16`; fresh trace and VR proof remain pending. |
+| `[ ]` | Validate profile-label rename. | Windows `Test`, `Verify`, and `Build` pass; Default profile receives `HLin-Random Cursed` only after H3VR closes. |
+| `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select HLin-Random Cursed`; no legacy `SpawnAndEquip hook installed` trace. |
+| `[ ]` | Human VR smoke test. | Selected HLin-Random Cursed start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
 ### Deferred
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P1 | Support more than 64 Cursed Random weapon-count slots. | Add only if user needs more than native profile's 64 tiers. |
+| P1 | Support more than 64 HLin-Random Cursed weapon-count slots. | Add only if user needs more than native profile's 64 tiers. |
 
 ## Testing
 
@@ -56,6 +59,7 @@ State: `active`
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
 | Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
 | Pipeline | `h3vr-remote run Test` | Passed: `105/105` for `72aac16`. |
+| Profile-label test | `h3vr-remote run Test` | Pending: wrapper stopped before discovery on unsupported private `H3VR_PRIVATE_ASSET_LAB` key. |
 | Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
@@ -63,7 +67,7 @@ State: `active`
 
 | Case | Expected result | Evidence |
 | --- | --- | --- |
-| Profile selection | `Cursed Random` appears in native progression choices and stays selected after health/kills/weapon-count changes. | Pending. |
+| Profile selection | `HLin-Random Cursed` appears in native progression choices and stays selected after health/kills/weapon-count changes. | Pending. |
 | r2modman profile | Default profile opens without YAML parse error; local Cursed package is visible and enabled. | Pending. |
 | Game start | One Item Spawner random gun appears directly in selected hand, with random attachments logged. | Pending. |
 | Direct start | No placeholder G17 or G17 magazine appears before Cursed random gun. | Pending. |

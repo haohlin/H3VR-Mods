@@ -1,6 +1,6 @@
 # GunGame Cursed Random
 
-Adds a native GunGame profile named **Cursed Random**. Select it in GunGame's
+Adds a native GunGame profile named **HLin-Random Cursed**. Select it in GunGame's
 normal progression list to use H3VR's existing Item Spawner random-gun button
 for every start, promotion, and demotion.
 
@@ -19,7 +19,7 @@ to BepInEx.
 ## Use
 
 1. Open a GunGame map.
-2. Select **Cursed Random** from normal progression choices.
+2. Select **HLin-Random Cursed** from normal progression choices.
 3. Set Sosig count, health, kills, weapon count, and prepared quickbelt slots
    normally.
 4. Start game.

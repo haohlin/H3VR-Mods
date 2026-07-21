@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Give each selected `Cursed Random` GunGame profile start, promotion, and
+Give each selected `HLin-Random Cursed` GunGame profile start, promotion, and
 demotion a fully random vanilla Item Spawner firearm while retaining GunGame's
 Sosig, kill, and run lifecycle.
 
@@ -11,7 +11,7 @@ Sosig, kill, and run lifecycle.
 | In scope | Out of scope |
 | --- | --- |
 | Ship `GunGameWeaponPool_Cursed_Random.json` for normal GunGame profile selection. | Edit GunGame maps or prefabs. |
-| Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` after Cursed Random profile transitions. | Reimplement H3VR random-gun, ammo, or attachment selection. |
+| Use `ItemSpawnerV2.BTN_TryToSpawnRandomGun()` after HLin-Random Cursed profile transitions. | Reimplement H3VR random-gun, ammo, or attachment selection. |
 | Subscribe to `Progression.WeaponChangedEvent`; retain native promotion/demotion and Sosig behavior. | Change GunGame progression counts, enemies, or selected quickbelt slots. |
 | Give spawned firearm to configured GunGame hand; load first compatible feed; put up to two spares in GunGame Ammo and Extra quickbelt slots. | Guarantee compatibility for every modded Item Spawner object. |
 
@@ -19,8 +19,8 @@ Sosig, kill, and run lifecycle.
 
 ```text
 GunGame profile loader
-  -> Cursed Random appears in normal progression choices
-  -> player selects Cursed Random
+  -> HLin-Random Cursed appears in normal progression choices
+  -> player selects HLin-Random Cursed
 
 Native GunGame WeaponBuffer.SpawnAsync
   -> Cursed prefix starts ItemSpawnerV2 BTN_TryToSpawnRandomGun
@@ -32,10 +32,10 @@ Native GunGame WeaponBuffer.SpawnAsync
 
 ## Invariants
 
-- Any profile other than `Cursed Random` does not change GunGame behavior.
-- Cursed Random intercepts only native `WeaponBuffer.SpawnAsync`; promotion,
+- Any profile other than `HLin-Random Cursed` does not change GunGame behavior.
+- HLin-Random Cursed intercepts only native `WeaponBuffer.SpawnAsync`; promotion,
   demotion, enemy, and run-count lifecycle remain native.
-- Cursed Random contains 64 valid placeholder tiers, preserving native
+- HLin-Random Cursed contains 64 valid placeholder tiers, preserving native
   weapon-count selection through 64 weapons.
 - Use the live `ItemSpawnerV2` random-gun API; do not maintain a second random
   weapon or attachment selector.
@@ -52,7 +52,7 @@ Native GunGame WeaponBuffer.SpawnAsync
 
 | Decision | Reason | Date |
 | --- | --- | --- |
-| Use native Cursed Random profile selection. | Live log proves custom startup lookup never found `GameSettings`; profile loader is already stable, visible map UI. | 2026-07-20 |
+| Use native HLin-Random Cursed profile selection. | Live log proves custom startup lookup never found `GameSettings`; profile loader is already stable, visible map UI. | 2026-07-20 |
 | Subscribe to `WeaponChangedEvent`, not `SpawnAndEquip`. | Live log never entered registered direct Harmony prefixes; GunGame source invokes this event after equipment transition. Runtime proof remains required. | 2026-07-20 |
 | Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
 | Remove custom Atlas-panel behavior. | New profile is visible through GunGame's existing profile loader; no scene lifecycle/UI clone is needed. | 2026-07-20 |
@@ -65,5 +65,5 @@ Native GunGame WeaponBuffer.SpawnAsync
 | --- | --- | --- |
 | P0 | Runtime smoke test on GunGame map with Item Spawner V2. | Start/promotion/demotion each yield one hand-equipped random gun. |
 | P0 | Validate generated magazine, cartridge, clip, and speedloader paths. | Loaded gun and spare quickbelt feed work without exceptions. |
-| P0 | Verify Cursed Random profile load and native event subscription. | Log names profile load, event subscription, and selected transition. |
-| P0 | Verify profile choice appears on supported GunGame maps. | `Cursed Random` is visible/selectable in normal profile list. |
+| P0 | Verify HLin-Random Cursed profile load and native event subscription. | Log names profile load, event subscription, and selected transition. |
+| P0 | Verify profile choice appears on supported GunGame maps. | `HLin-Random Cursed` is visible/selectable in normal profile list. |
