@@ -402,6 +402,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         DestroyTrackedEquipment();
+        yield return null;
         activeRandomGun = gun.gameObject;
 
         var looseFeeds = spawned
