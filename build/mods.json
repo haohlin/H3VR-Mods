@@ -90,7 +90,13 @@
         }
       ],
       "patchTargets": [],
-      "externalPatchTargets": []
+      "externalPatchTargets": [
+        {
+          "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
+          "type": "GunGame.Scripts.Weapons.WeaponBuffer",
+          "method": "SpawnAsync"
+        }
+      ]
     },
     "BubbleLevel": {
       "kind": "unity",

@@ -21,20 +21,26 @@ public sealed class Plugin : BaseUnityPlugin
     private const int RandomGunWaitFrames = 120;
 
     private static Plugin instance;
-    private readonly List<GameObject> activeRandomEquipment = new List<GameObject>();
-    private readonly List<StaticActionSubscription> beforeGameStartSubscriptions = new List<StaticActionSubscription>();
-    private readonly List<ProtectedQuickbeltContent> protectedQuickbeltContents = new List<ProtectedQuickbeltContent>();
+    private readonly List<ManagedQuickbeltFeed> managedQuickbeltFeeds = new List<ManagedQuickbeltFeed>();
     private readonly List<WeaponChangedSubscription> weaponChangedSubscriptions = new List<WeaponChangedSubscription>();
+    private GameObject activeRandomGun;
+    private Harmony harmony;
     private MethodInfo randomGunMethod;
     private FieldInfo randomGunField;
     private bool replacementQueued;
     private bool spawningRandomGun;
     private bool missingSpawnerLogged;
+    private bool weaponBufferSpawnHookInstalled;
 
     private void Awake()
     {
         instance = this;
-        SubscribeBeforeGameStartEvents();
+        weaponBufferSpawnHookInstalled = InstallWeaponBufferSpawnHook();
+        if (!weaponBufferSpawnHookInstalled)
+        {
+            Logger.LogWarning("GunGame Cursed Random could not install WeaponBuffer.SpawnAsync hook; using post-spawn fallback.");
+        }
+
         if (SubscribeWeaponChangedEvents() == 0)
         {
             Logger.LogError("GunGame Cursed Random could not subscribe to GunGame Progression.WeaponChangedEvent.");
@@ -45,8 +51,12 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
-        Unsubscribe(beforeGameStartSubscriptions);
         UnsubscribeWeaponChangedEvents();
+        if (harmony != null)
+        {
+            harmony.UnpatchSelf();
+        }
+
         DestroyTrackedEquipment();
         if (instance == this)
         {
@@ -86,27 +96,42 @@ public sealed class Plugin : BaseUnityPlugin
         return added;
     }
 
-    private void SubscribeBeforeGameStartEvents()
+    private bool InstallWeaponBufferSpawnHook()
     {
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        var weaponBufferType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponBuffer");
+        var spawnAsync = FindMethod(weaponBufferType, "SpawnAsync", 2);
+        var prefix = AccessTools.Method(typeof(Plugin), "WeaponBufferSpawnAsyncPrefix");
+        if (spawnAsync == null || prefix == null)
         {
-            var gameManagerType = assembly.GetType("GunGame.Scripts.GameManager", false);
-            var beforeGameStart = gameManagerType == null
-                ? null
-                : gameManagerType.GetField(
-                    "BeforeGameStartedEvent",
-                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-            if (beforeGameStart == null || beforeGameStart.FieldType != typeof(Action))
+            return false;
+        }
+
+        try
+        {
+            harmony = new Harmony("HLin.GunGameCursedRandom");
+            harmony.Patch(spawnAsync, prefix: new HarmonyMethod(prefix) { priority = Priority.First });
+            var patchInfo = Harmony.GetPatchInfo(spawnAsync);
+            var installed = patchInfo != null && patchInfo.Prefixes.Any(patch => patch.owner == harmony.Id);
+            if (installed)
             {
-                continue;
+                Logger.LogInfo("GunGame Cursed Random installed WeaponBuffer.SpawnAsync direct hook.");
             }
 
-            var subscription = new StaticActionSubscription { EventField = beforeGameStart };
-            subscription.Handler = delegate { CapturePreparedQuickbeltContents(assembly); };
-            beforeGameStart.SetValue(null, (Action)Delegate.Combine(beforeGameStart.GetValue(null) as Action, subscription.Handler));
-            beforeGameStartSubscriptions.Add(subscription);
-            Logger.LogInfo("GunGame Cursed Random subscribed to GameManager.BeforeGameStartedEvent in " + assembly.GetName().Name + ".");
+            return installed;
         }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("GunGame Cursed Random could not patch WeaponBuffer.SpawnAsync: " + exception.GetType().Name + ".");
+            return false;
+        }
+    }
+
+    private static MethodInfo FindMethod(Type type, string name, int parameterCount)
+    {
+        return type == null
+            ? null
+            : type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .FirstOrDefault(method => method.Name == name && method.GetParameters().Length == parameterCount);
     }
 
     private void UnsubscribeWeaponChangedEvents()
@@ -133,10 +158,42 @@ public sealed class Plugin : BaseUnityPlugin
         subscription.EventField.SetValue(null, (Action)Delegate.Remove(current, subscription.Handler));
     }
 
+    private static bool WeaponBufferSpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)
+    {
+        var plugin = instance;
+        if (plugin == null || __instance == null || !IsCursedProfileSelected(__instance.GetType().Assembly))
+        {
+            return true;
+        }
+
+        if (plugin.spawningRandomGun || plugin.replacementQueued)
+        {
+            Trace("WeaponBuffer.SpawnAsync direct hook found a pending random spawn; keeping native fallback.");
+            return true;
+        }
+
+        var progression = FindProgressionForWeaponBuffer(__instance);
+        if (progression == null || !plugin.TryStartRandomSpawn(progression, false))
+        {
+            Trace("WeaponBuffer.SpawnAsync direct hook could not start random spawn; keeping native fallback.");
+            return true;
+        }
+
+        __result = EmptyEnumerator();
+        Trace("WeaponBuffer.SpawnAsync suppressing native placeholder; vanilla random spawn started.");
+        return false;
+    }
+
     private void OnNativeWeaponChanged(Type progressionType)
     {
         if (!IsCursedProfileSelected(progressionType.Assembly))
         {
+            return;
+        }
+
+        if (weaponBufferSpawnHookInstalled)
+        {
+            Trace("WeaponChangedEvent observed after direct WeaponBuffer replacement; no post-spawn replacement needed.");
             return;
         }
 
@@ -167,7 +224,7 @@ public sealed class Plugin : BaseUnityPlugin
             yield break;
         }
 
-        if (!TryStartRandomSpawn(progression))
+        if (!TryStartRandomSpawn(progression, true))
         {
             Logger.LogWarning("Cursed Random random API unavailable; keeping current profile equipment.");
         }
@@ -195,6 +252,26 @@ public sealed class Plugin : BaseUnityPlugin
         return fallback;
     }
 
+    private static Component FindProgressionForWeaponBuffer(object weaponBuffer)
+    {
+        var progressionType = AccessTools.TypeByName("GunGame.Scripts.Progression");
+        if (progressionType == null)
+        {
+            return null;
+        }
+
+        var buffer = weaponBuffer as Component;
+        var progression = buffer == null
+            ? null
+            : buffer.GetComponentInParent(progressionType) as Component;
+        return progression ?? FindLiveProgression(progressionType);
+    }
+
+    private static IEnumerator EmptyEnumerator()
+    {
+        yield break;
+    }
+
     private static bool IsCursedProfileSelected(Assembly assembly)
     {
         try
@@ -219,47 +296,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void CapturePreparedQuickbeltContents(Assembly assembly)
-    {
-        protectedQuickbeltContents.Clear();
-        if (!IsCursedProfileSelected(assembly))
-        {
-            return;
-        }
-
-        foreach (var slot in new[]
-            {
-                GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0),
-                GetQuickbeltSlot(assembly, "ExtraQuickbeltSlot", 1)
-            }
-            .Where(slot => slot != null)
-            .Distinct())
-        {
-            var item = slot.CurObject;
-            if (item != null && !activeRandomEquipment.Contains(item.gameObject))
-            {
-                protectedQuickbeltContents.Add(new ProtectedQuickbeltContent { Slot = slot, Object = item });
-            }
-        }
-
-        Logger.LogInfo("Cursed Random preserved prepared quickbelt objects=" + protectedQuickbeltContents.Count + ".");
-    }
-
-    private void RestorePreparedQuickbeltContents()
-    {
-        foreach (var protectedContent in protectedQuickbeltContents)
-        {
-            if (protectedContent.Slot == null || protectedContent.Object == null ||
-                protectedContent.Slot.CurObject == protectedContent.Object)
-            {
-                continue;
-            }
-
-            protectedContent.Object.ForceObjectIntoInventorySlot(protectedContent.Slot);
-        }
-    }
-
-    private bool TryStartRandomSpawn(object progression)
+    private bool TryStartRandomSpawn(object progression, bool removeNativeEquipment)
     {
         if (spawningRandomGun)
         {
@@ -272,7 +309,7 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogInfo(
             "GunGame Cursed Random trace: random spawn request; spawnerCount=" + spawners.Length +
             "; selectedSpawner=" + (spawner == null ? "none" : spawner.name) +
-            "; trackedRandomEquipment=" + activeRandomEquipment.Count + ".");
+            "; trackedRandomGun=" + NameOf(activeRandomGun) + ".");
         if (spawner == null)
         {
             if (!missingSpawnerLogged)
@@ -309,7 +346,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             randomGunMethod.Invoke(spawner, null);
             Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(randomGunField.GetValue(spawner) as GameObject) + ".");
-            StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before));
+            StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before, removeNativeEquipment));
             return true;
         }
         catch (Exception exception)
@@ -324,7 +361,8 @@ public sealed class Plugin : BaseUnityPlugin
         object progression,
         ItemSpawnerV2 spawner,
         GameObject previousGun,
-        HashSet<int> before)
+        HashSet<int> before,
+        bool removeNativeEquipment)
     {
         GameObject randomGun = null;
         var waitedFrames = 0;
@@ -363,16 +401,19 @@ public sealed class Plugin : BaseUnityPlugin
             "; gun=" + NameOf(gun) +
             "; newPhysicalObjects=" + spawned.Count + ".");
 
-        DestroyGunGameEquipment(progression);
+        if (removeNativeEquipment)
+        {
+            DestroyGunGameEquipment(progression);
+        }
+
         DestroyTrackedEquipment();
-        activeRandomEquipment.AddRange(spawned.Select(item => item.gameObject));
+        activeRandomGun = gun.gameObject;
 
         var looseFeeds = spawned
             .Where(item => item != gun && !item.transform.IsChildOf(gun.transform) && IsFeed(item))
             .OrderBy(FeedSortOrder)
             .ToList();
         var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
-        RestorePreparedQuickbeltContents();
         MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, progression == null ? null : progression.GetType().Assembly);
         EquipInGunGameHand(gun);
         LogRandomLoadout(gun, looseFeeds, loadedFeed);
@@ -455,7 +496,7 @@ public sealed class Plugin : BaseUnityPlugin
         return 2;
     }
 
-    private static void MoveSpareFeedsToQuickbelt(
+    private void MoveSpareFeedsToQuickbelt(
         IEnumerable<FVRPhysicalObject> feeds,
         FVRPhysicalObject loadedFeed,
         Assembly assembly)
@@ -473,12 +514,17 @@ public sealed class Plugin : BaseUnityPlugin
             "quickbelt: spares=" + spares.Count +
             "; slots=[" + string.Join(", ", candidateSlots.Select(slot => slot.name + "=" + NameOf(slot.CurObject)).ToArray()) + "].");
         var emptySlots = candidateSlots.Where(slot => slot.CurObject == null).ToList();
+        var placed = 0;
         for (var index = 0; index < spares.Count && index < emptySlots.Count; index++)
         {
             spares[index].ForceObjectIntoInventorySlot(emptySlots[index]);
             spares[index].m_isSpawnLock = true;
+            managedQuickbeltFeeds.Add(new ManagedQuickbeltFeed { Slot = emptySlots[index], Object = spares[index] });
+            placed++;
             Trace("quickbelt: placed=" + NameOf(spares[index]) + "; slot=" + emptySlots[index].name + ".");
         }
+
+        Trace("quickbelt: managedSpareSlots=" + placed + "; unplacedGeneratedSpares=" + (spares.Count - placed) + ".");
     }
 
     private static FVRQuickBeltSlot GetQuickbeltSlot(Assembly assembly, string fieldName, int fallbackIndex)
@@ -569,26 +615,41 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void DestroyTrackedEquipment()
     {
-        var destroyed = 0;
-        foreach (var item in activeRandomEquipment)
+        var destroyedGun = false;
+        if (activeRandomGun != null)
         {
-            if (item != null)
+            var physicalObject = activeRandomGun.GetComponent<FVRPhysicalObject>();
+            if (physicalObject != null)
             {
-                var physicalObject = item.GetComponent<FVRPhysicalObject>();
-                if (physicalObject != null)
-                {
-                    physicalObject.ForceBreakInteraction();
-                }
-
-                UnityEngine.Object.Destroy(item);
-                destroyed++;
+                physicalObject.ForceBreakInteraction();
             }
+
+            UnityEngine.Object.Destroy(activeRandomGun);
+            destroyedGun = true;
         }
 
-        activeRandomEquipment.Clear();
-        if (destroyed > 0)
+        activeRandomGun = null;
+        var clearedManagedSlots = 0;
+        foreach (var managedFeed in managedQuickbeltFeeds)
         {
-            Logger.LogInfo("GunGame Cursed Random trace: destroyed prior tracked random equipment=" + destroyed + ".");
+            if (managedFeed.Slot == null || managedFeed.Object == null ||
+                managedFeed.Slot.CurObject != managedFeed.Object)
+            {
+                continue;
+            }
+
+            managedFeed.Object.ForceBreakInteraction();
+            UnityEngine.Object.Destroy(managedFeed.Object.gameObject);
+            clearedManagedSlots++;
+        }
+
+        managedQuickbeltFeeds.Clear();
+        if (destroyedGun || clearedManagedSlots > 0)
+        {
+            Logger.LogInfo(
+                "GunGame Cursed Random trace: cleanup: destroyedRandomGun=" + destroyedGun +
+                "; clearedManagedSpareSlots=" + clearedManagedSlots +
+                "; preserved all other quickbelt items.");
         }
     }
 
@@ -630,7 +691,7 @@ public sealed class Plugin : BaseUnityPlugin
         public Type ProgressionType;
     }
 
-    private sealed class ProtectedQuickbeltContent
+    private sealed class ManagedQuickbeltFeed
     {
         public FVRQuickBeltSlot Slot;
         public FVRPhysicalObject Object;

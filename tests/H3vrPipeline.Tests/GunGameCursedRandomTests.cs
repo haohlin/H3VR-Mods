@@ -44,7 +44,10 @@ public sealed class GunGameCursedRandomTests
         Assert.Equal("dotnet", mod.GetProperty("kind").GetString());
         Assert.Equal("GunGameCursedRandom\\GunGameCursedRandom.csproj", mod.GetProperty("csproj").GetString());
         Assert.True(mod.GetProperty("registerWithR2modman").GetBoolean());
-        Assert.Equal(0, mod.GetProperty("externalPatchTargets").GetArrayLength());
+        Assert.Contains(
+            mod.GetProperty("externalPatchTargets").EnumerateArray(),
+            target => target.GetProperty("type").GetString() == "GunGame.Scripts.Weapons.WeaponBuffer" &&
+                target.GetProperty("method").GetString() == "SpawnAsync");
         Assert.Contains(
             mod.GetProperty("payload").EnumerateArray(),
             payload => payload.GetProperty("to").GetString() == "GunGameWeaponPool_Cursed_Random.json");
@@ -106,7 +109,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("suppressing native placeholder", source);
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
-        Assert.Contains("managedFeed.Slot.CurObject == managedFeed.Object", source);
+        Assert.Contains("managedFeed.Slot.CurObject != managedFeed.Object", source);
         Assert.DoesNotContain("activeRandomEquipment.AddRange", source, StringComparison.Ordinal);
         Assert.DoesNotContain("BeforeGameStartedEvent", source, StringComparison.Ordinal);
         Assert.Contains(
