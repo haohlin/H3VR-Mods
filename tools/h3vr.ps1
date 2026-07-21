@@ -22,7 +22,12 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BuildRoot = Join-Path $RepoRoot 'build'
 $PublicEnvironmentConfigPath = Join-Path $BuildRoot 'environment.json'
 $LocalEnvironmentConfigPath = Join-Path $BuildRoot 'environment.local.json'
-$EnvironmentConfigPath = if (Test-Path -LiteralPath $LocalEnvironmentConfigPath) {
+$PrivateEnvironmentConfigPath = $env:H3VR_PIPELINE_ENVIRONMENT_CONFIG
+$EnvironmentConfigPath = if (-not [string]::IsNullOrWhiteSpace($PrivateEnvironmentConfigPath) -and
+    (Test-Path -LiteralPath $PrivateEnvironmentConfigPath)) {
+    $PrivateEnvironmentConfigPath
+}
+elseif (Test-Path -LiteralPath $LocalEnvironmentConfigPath) {
     $LocalEnvironmentConfigPath
 }
 else {

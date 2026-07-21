@@ -34,6 +34,8 @@ for key in H3VR_WINDOWS_HOST H3VR_WINDOWS_REPOSITORY; do
   fi
 done
 
+canonical_windows_repository="$H3VR_WINDOWS_REPOSITORY"
+
 if [[ $# -lt 1 ]]; then
   printf 'Usage: %s <PipelineAction> [h3vr.ps1 arguments]\n' "$0" >&2
   exit 2
@@ -56,6 +58,7 @@ windows_quote() {
   printf '"%s"' "$value"
 }
 
+pipeline_environment_config=""
 if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
   case "$H3VR_WINDOWS_WORKTREE_BRANCH" in
     *[!A-Za-z0-9._/-]* | '')
@@ -86,6 +89,7 @@ if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
   fi
 
   H3VR_WINDOWS_REPOSITORY="$worktree_repository"
+  pipeline_environment_config="${canonical_windows_repository}\\build\\environment.local.json"
 fi
 
 remote_command=""
@@ -93,14 +97,21 @@ for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_
   remote_command+="$(windows_quote "$argument") "
 done
 
-if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
+if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" || -n "$pipeline_environment_config" ]]; then
   powershell_quote() {
     local value="$1"
     value=${value//\'/\'\'}
     printf "'%s'" "$value"
   }
 
-  encoded_script="\$env:H3VR_PRIVATE_ASSET_LAB = $(powershell_quote "$H3VR_PRIVATE_ASSET_LAB"); & $(powershell_quote "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1") -Action $(powershell_quote "$action")"
+  encoded_script=""
+  if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
+    encoded_script+="\$env:H3VR_PRIVATE_ASSET_LAB = $(powershell_quote "$H3VR_PRIVATE_ASSET_LAB"); "
+  fi
+  if [[ -n "$pipeline_environment_config" ]]; then
+    encoded_script+="\$env:H3VR_PIPELINE_ENVIRONMENT_CONFIG = $(powershell_quote "$pipeline_environment_config"); "
+  fi
+  encoded_script+="& $(powershell_quote "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1") -Action $(powershell_quote "$action")"
   for argument in "$@"; do
     if [[ "$argument" =~ ^-[A-Za-z][A-Za-z0-9]*$ ]]; then
       encoded_script+=" $argument"
