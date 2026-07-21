@@ -19,6 +19,8 @@ State: `active`
 | Direct-spawn deployment | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deployed at `67c366`, VR proof pending. |
 | Profile-label deployment | `c5b5130` changes profile JSON and runtime selection constant to `HLin-Random Cursed`; focused test requires exact match. | `105b3f5` passed Windows `Test` `106/106`, `Verify`, build `0` warnings/errors, and deployed to Default after two live H3VR-process checks; logs cleared. |
 | Deploy safety | `105b3f5` adds `Assert-H3vrStopped` before packaging and target replacement. | Future deploys fail instead of overwriting profile files while H3VR runs. |
+| Runtime fallback regression | Fresh BepInEx trace proves `WeaponBuffer.SpawnAsync` hook registered but never logged entry; `WeaponChangedEvent` then skipped fallback because registration was treated as execution. Native G17 remained. | Root cause confirmed. |
+| Fallback candidate | `1b3529a` treats only a pending random spawn as direct-hook success; otherwise `WeaponChangedEvent` starts post-spawn replacement. | Windows `Test` `106/106`, `Verify`, and build `0` warnings/errors passed; deploy pending H3VR exit. |
 
 ### Open blockers
 
@@ -41,6 +43,7 @@ State: `active`
 | `[x]` | Deploy direct-spawn profile after H3VR closes. | Default profile received `72aac16`; fresh trace and VR proof remain pending. |
 | `[x]` | Validate profile-label rename. | Windows `Test` `106/106`, `Verify`, and `Build` pass for `105b3f5`. |
 | `[x]` | Deploy profile-label rename after live H3VR validation. | Default profile received `HLin-Random Cursed`; logs cleared. |
+| `[ ]` | Deploy direct-hook fallback repair after live H3VR validation. | Fresh trace logs `WeaponChangedEvent found no pending direct random spawn; using post-spawn fallback.`, then vanilla random API and completed random loadout. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select HLin-Random Cursed`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected HLin-Random Cursed start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -60,6 +63,7 @@ State: `active`
 | Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
 | Pipeline | `h3vr-remote run Test` | Passed: `106/106` for `105b3f5`. |
 | Profile-label test | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors; Default deploy passed after live H3VR-process validation for `105b3f5`. |
+| Fallback repair | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors for `1b3529a`. |
 | Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
