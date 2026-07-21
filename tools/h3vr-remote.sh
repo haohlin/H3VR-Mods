@@ -56,6 +56,38 @@ windows_quote() {
   printf '"%s"' "$value"
 }
 
+if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
+  case "$H3VR_WINDOWS_WORKTREE_BRANCH" in
+    *[!A-Za-z0-9._/-]* | '')
+      printf 'Invalid Windows worktree branch.\n' >&2
+      exit 2
+      ;;
+  esac
+
+  worktree_listing="$(ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" \
+    "git -C $(windows_quote "$H3VR_WINDOWS_REPOSITORY") worktree list --porcelain")"
+  worktree_repository=""
+  candidate_repository=""
+  while IFS= read -r line; do
+    case "$line" in
+      'worktree '*)
+        candidate_repository="${line#worktree }"
+        ;;
+      "branch refs/heads/$H3VR_WINDOWS_WORKTREE_BRANCH")
+        worktree_repository="$candidate_repository"
+        break
+        ;;
+    esac
+  done <<< "$worktree_listing"
+
+  if [[ -z "$worktree_repository" ]]; then
+    printf 'Requested Windows worktree branch was not found.\n' >&2
+    exit 2
+  fi
+
+  H3VR_WINDOWS_REPOSITORY="$worktree_repository"
+fi
+
 remote_command=""
 for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_WINDOWS_REPOSITORY}\\tools\\h3vr.ps1" -Action "$action" "$@"; do
   remote_command+="$(windows_quote "$argument") "

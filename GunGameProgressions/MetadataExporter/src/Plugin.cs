@@ -34,7 +34,6 @@ public sealed class Plugin : BaseUnityPlugin
     private Harmony harmony;
     private GunGameSpawnSafety spawnSafety;
     private Type weaponPoolLoaderType;
-    private MethodInfo gameManagerOnDestroy;
     private EventInfo weaponPoolLoadedEvent;
     private Delegate weaponPoolLoadedHandler;
     private bool selectorSubscriptionWaitingLogged;
@@ -43,7 +42,6 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         instance = this;
-        InstallGunGameRefreshHooks();
         InstallGunGameSpawnSafety();
         ScheduleStartupProfileWarmup();
         StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
@@ -74,6 +72,7 @@ public sealed class Plugin : BaseUnityPlugin
         StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested.", false));
         StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested.", false));
         StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested; policy replacement eligible.", true));
+        StartCoroutine(RequestStartupModdedRescan(1800f, "startup 30-minute final rescan requested.", false));
     }
 
     private void OnDestroy()
@@ -96,29 +95,6 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private void InstallGunGameRefreshHooks()
-    {
-        var gameManagerType = AccessTools.TypeByName("GunGame.Scripts.GameManager");
-        gameManagerOnDestroy = gameManagerType == null ? null : AccessTools.Method(gameManagerType, "OnDestroy");
-        var exitPostfix = AccessTools.Method(typeof(Plugin), "GameManagerOnDestroyPostfix");
-        if (gameManagerOnDestroy == null || exitPostfix == null)
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
-            return;
-        }
-
-        harmony = new Harmony(HarmonyId);
-        harmony.Patch(gameManagerOnDestroy, postfix: new HarmonyMethod(exitPostfix));
-        var exitPatchInfo = Harmony.GetPatchInfo(gameManagerOnDestroy);
-        if (exitPatchInfo == null || !exitPatchInfo.Postfixes.Any(patch => patch.owner == HarmonyId))
-        {
-            Logger.LogError(RuntimeStatusMessages.PoolHookUnavailable);
-            return;
-        }
-
-        Trace("GunGame session-exit hook active.");
-    }
-
     private void InstallGunGameSpawnSafety()
     {
         if (harmony == null)
@@ -134,15 +110,6 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Logger.LogError(RuntimeStatusMessages.SpawnSafetyUnavailable);
-    }
-
-    private static void GameManagerOnDestroyPostfix()
-    {
-        if (instance != null)
-        {
-            instance.Trace("GunGame session ended; background refresh requested.");
-            instance.RequestModdedRefresh();
-        }
     }
 
     private IEnumerator WaitForWeaponPoolLoaderReadyEvent()
@@ -210,9 +177,8 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         // A loader can fire more than once for the same selector when its map
-        // reloads. Restore only once, but always request a fresh catalog
-        // snapshot so late-loaded content can promote a larger saved pair.
-        instance.RequestModdedRefresh();
+        // reloads. Restore only once; scheduled startup warmup owns every
+        // Modded catalog refresh so map transitions cannot restart scanning.
     }
 
     private object FindGunGamePoolLoader()
