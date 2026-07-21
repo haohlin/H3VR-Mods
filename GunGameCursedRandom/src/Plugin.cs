@@ -409,7 +409,7 @@ public sealed class Plugin : BaseUnityPlugin
             .OrderBy(FeedSortOrder)
             .ToList();
         var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
-        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, progression == null ? null : progression.GetType().Assembly);
+        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, gun, progression == null ? null : progression.GetType().Assembly);
         EquipInGunGameHand(gun);
         LogRandomLoadout(gun, looseFeeds, loadedFeed);
     }
@@ -430,7 +430,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static bool IsFeed(FVRPhysicalObject item)
     {
-        return item is FVRFireArmMagazine || item is Speedloader || item is FVRFireArmRound;
+        return item is FVRFireArmMagazine || item is FVRFireArmClip || item is Speedloader || item is FVRFireArmRound;
     }
 
     private static FVRPhysicalObject LoadFirstCompatibleFeed(FVRPhysicalObject gun, IEnumerable<FVRPhysicalObject> feeds)
@@ -444,8 +444,17 @@ public sealed class Plugin : BaseUnityPlugin
                 if (firearm != null && magazine != null)
                 {
                     magazine.Load(firearm);
-                    magazine.ReloadMagWithType(AM.SRoundDisplayDataDic[magazine.RoundType].Classes[0].Class);
+                    FillMagazineOrClip(magazine);
                     Trace("loaded magazine=" + NameOf(magazine) + "; gun=" + NameOf(gun) + ".");
+                    return feed;
+                }
+
+                var clip = feed as FVRFireArmClip;
+                if (firearm != null && clip != null)
+                {
+                    firearm.LoadClip(clip);
+                    FillMagazineOrClip(clip);
+                    Trace("loaded clip=" + NameOf(clip) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
 
@@ -491,9 +500,64 @@ public sealed class Plugin : BaseUnityPlugin
         return 2;
     }
 
+    private static void FillMagazineOrClip(FVRPhysicalObject feed)
+    {
+        var magazine = feed as FVRFireArmMagazine;
+        if (magazine != null)
+        {
+            magazine.ReloadMagWithType(AM.SRoundDisplayDataDic[magazine.RoundType].Classes[0].Class);
+            return;
+        }
+
+        var clip = feed as FVRFireArmClip;
+        if (clip != null)
+        {
+            clip.ReloadClipWithType(AM.SRoundDisplayDataDic[clip.RoundType].Classes[0].Class);
+        }
+    }
+
+    private static FVRPhysicalObject SpawnQuickbeltSpare(FVRPhysicalObject loadedFeed, FVRPhysicalObject gun)
+    {
+        var feedObject = loadedFeed == null ? null : loadedFeed.ObjectWrapper;
+        if (feedObject == null || gun == null)
+        {
+            Trace("quickbelt: no compatible loaded feed available for spare.");
+            return null;
+        }
+
+        try
+        {
+            var spawnedObject = UnityEngine.Object.Instantiate(
+                feedObject.GetGameObject(),
+                gun.transform.position + Vector3.up * 0.2f,
+                gun.transform.rotation);
+            var spare = spawnedObject == null ? null : spawnedObject.GetComponent<FVRPhysicalObject>();
+            if (!IsFeed(spare))
+            {
+                if (spawnedObject != null)
+                {
+                    UnityEngine.Object.Destroy(spawnedObject);
+                }
+
+                Trace("quickbelt: spawned object was not a supported feed.");
+                return null;
+            }
+
+            FillMagazineOrClip(spare);
+            Trace("quickbelt: spawned compatible spare=" + NameOf(spare) + "; source=loaded feed.");
+            return spare;
+        }
+        catch (Exception exception)
+        {
+            Trace("quickbelt: spare spawn failed=" + exception.GetType().Name + ".");
+            return null;
+        }
+    }
+
     private void MoveSpareFeedsToQuickbelt(
         IEnumerable<FVRPhysicalObject> feeds,
         FVRPhysicalObject loadedFeed,
+        FVRPhysicalObject gun,
         Assembly assembly)
     {
         var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
@@ -509,6 +573,15 @@ public sealed class Plugin : BaseUnityPlugin
             "quickbelt: spares=" + spares.Count +
             "; slots=[" + string.Join(", ", candidateSlots.Select(slot => slot.name + "=" + NameOf(slot.CurObject)).ToArray()) + "].");
         var emptySlots = candidateSlots.Where(slot => slot.CurObject == null).ToList();
+        if (spares.Count == 0 && emptySlots.Count > 0)
+        {
+            var spare = SpawnQuickbeltSpare(loadedFeed, gun);
+            if (spare != null)
+            {
+                spares.Add(spare);
+            }
+        }
+
         var placed = 0;
         for (var index = 0; index < spares.Count && index < emptySlots.Count; index++)
         {
