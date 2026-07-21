@@ -11,13 +11,14 @@ State: `active`
 | --- | --- | --- |
 | Source | Selectable-profile implementation committed as `c0bc640`; custom panel and direct Harmony prefixes removed. | Windows parity proven. |
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.WeaponChangedEvent`, profile loader, and GunGame Ammo/Extra quickbelt slots inspected. | Source API verified; current runtime behavior pending. |
-| Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `105/105`, including direct WeaponBuffer interception and managed-spare ownership. | Passed. |
+| Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `106/106`, including direct WeaponBuffer interception, managed-spare ownership, and deploy process guard. | Passed. |
 | Build / package | Windows release build passed `0` warnings and `0` errors. Package SHA-256 `4C1AE70B9F489CE957AAA93F1BBC3E1D9157BF3008E4BE7B3F90AB1556F66A5E`. | Passed. |
 | Deploy / profile repair | `d7f5c74` deployed. Existing malformed Cursed local-package entry was replaced atomically; post-write strict validation passed and a same-directory backup was created. | r2modman reopen proof pending. |
 | Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 | Feed repair candidate | `1d9afbe` changes all 64 tiers to live `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and release build `0` warnings/errors passed. | Await H3VR close for deploy. |
 | Direct-spawn deployment | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deployed at `67c366`, VR proof pending. |
-| Profile-label candidate | `c5b5130` changes profile JSON and runtime selection constant to `HLin-Random Cursed`; focused test requires exact match. | Windows `Test` `105/105`, `Verify`, and build `0` warnings/errors passed; deploy pending H3VR close. |
+| Profile-label deployment | `c5b5130` changes profile JSON and runtime selection constant to `HLin-Random Cursed`; focused test requires exact match. | `105b3f5` passed Windows `Test` `106/106`, `Verify`, build `0` warnings/errors, and deployed to Default after two live H3VR-process checks; logs cleared. |
+| Deploy safety | `105b3f5` adds `Assert-H3vrStopped` before packaging and target replacement. | Future deploys fail instead of overwriting profile files while H3VR runs. |
 
 ### Open blockers
 
@@ -27,7 +28,6 @@ State: `active`
 | Runtime profile event | Prove Cursed Random profile loads, event subscription fires, and random replacement starts. | Windows build, deploy, VR test. |
 | VR behavior | Confirm gun hand retrieval, feed loading, quickbelt spare, attachment logging, and previous-item cleanup. | Human VR test. |
 | r2modman UI | Confirm Default profile opens and shows Cursed local package after repaired YAML. | User reopen test. |
-| H3VR process | Source repair is ready but must not overwrite loaded profile files. | User closes H3VR, then deploy. |
 
 ## Plan
 
@@ -39,8 +39,8 @@ State: `active`
 | `[x]` | Repair Cursed placeholder feed. | All 64 entries use `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and build passed for `1d9afbe`. |
 | `[x]` | Implement direct Cursed spawn and narrow quickbelt cleanup. | `72aac16` passes Windows `Test` `105/105`, `Verify`, and build. |
 | `[x]` | Deploy direct-spawn profile after H3VR closes. | Default profile received `72aac16`; fresh trace and VR proof remain pending. |
-| `[x]` | Validate profile-label rename. | Windows `Test` `105/105`, `Verify`, and `Build` pass for `d1c2353`. |
-| `[ ]` | Deploy profile-label rename after H3VR closes. | Default profile receives `HLin-Random Cursed`; profile list shows exact label. |
+| `[x]` | Validate profile-label rename. | Windows `Test` `106/106`, `Verify`, and `Build` pass for `105b3f5`. |
+| `[x]` | Deploy profile-label rename after live H3VR validation. | Default profile received `HLin-Random Cursed`; logs cleared. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select HLin-Random Cursed`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected HLin-Random Cursed start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
 
@@ -58,8 +58,8 @@ State: `active`
 | --- | --- | --- |
 | Game source | `h3vr-remote run SourceStatus` | Passed before implementation. |
 | Profile payload | `h3vr-remote run Verify GunGameCursedRandom` | Passed. |
-| Pipeline | `h3vr-remote run Test` | Passed: `105/105` for `72aac16`. |
-| Profile-label test | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom` | Passed: `105/105`; Verify passed; build `0` warnings/errors for `d1c2353`. |
+| Pipeline | `h3vr-remote run Test` | Passed: `106/106` for `105b3f5`. |
+| Profile-label test | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors; Default deploy passed after live H3VR-process validation for `105b3f5`. |
 | Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
