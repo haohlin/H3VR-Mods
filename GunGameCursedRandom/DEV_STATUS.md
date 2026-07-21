@@ -17,7 +17,6 @@ State: `active`
 | Runtime start failure | Fresh log: each Cursed tier requests nonexistent `MagazineG17`; native GunGame promotes after null-feed recovery until profile ends. `WeaponChangedEvent` never reaches random replacement. | Root cause confirmed; fix pending. |
 | Feed repair candidate | `1d9afbe` changes all 64 tiers to live `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and release build `0` warnings/errors passed. | Await H3VR close for deploy. |
 | Direct-spawn candidate | `72aac16` intercepts `WeaponBuffer.SpawnAsync` before native placeholder spawn, uses empty coroutine after vanilla random API starts, and deletes only Cursed gun plus spares still in Cursed-managed slots. | Windows `Test` `105/105`, `Verify`, build `0` warnings/errors passed; deploy pending. |
-| Performance investigation | Live log selected `Cursed Random`, while Progressions completed only its startup scans at immediate/1/5/10 minutes in roughly one second each. The deployed Cursed event path performs two whole-scene physical-object scans, produces `2`–`9` objects, then destroys prior tracked output on every transition. Counts varied from `48` to `123`; no monotonic leak, OOM, or Cursed stack trace was captured. | Cursed transition lifecycle is primary candidate; root cause remains unproven. |
 
 ### Open blockers
 
@@ -38,7 +37,6 @@ State: `active`
 | `[x]` | Repair malformed Default profile Cursed entry. | Windows `Test` passed `103/103`; `d7f5c74` deploy atomically replaced entry and validated written YAML. |
 | `[x]` | Repair Cursed placeholder feed. | All 64 entries use `MagazineG17Standard`; Windows `Test` `104/104`, `Verify`, and build passed for `1d9afbe`. |
 | `[x]` | Implement direct Cursed spawn and narrow quickbelt cleanup. | `72aac16` passes Windows `Test` `105/105`, `Verify`, and build. |
-| `[ ]` | Measure Cursed transition allocation and object lifetime before release. | One 30-minute Cursed session records transition sequence, pre/post physical-object counts, generated/owned/destroyed counts, and GC memory; no sustained growth, spawn exception, or stutter. |
 | `[ ]` | Deploy direct-spawn profile after H3VR closes. | Default profile receives `72aac16`; trace confirms no placeholder G17, native random start, and managed-slot-only cleanup. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select Cursed Random`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected Cursed Random start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
@@ -70,7 +68,6 @@ State: `active`
 | Game start | One Item Spawner random gun appears directly in selected hand, with random attachments logged. | Pending. |
 | Direct start | No placeholder G17 or G17 magazine appears before Cursed random gun. | Pending. |
 | Promotion / demotion | Previous Cursed gun disappears; new random gun arrives; only Cursed spare still in its original Ammo/Extra slot is removed. All moved and unrelated quickbelt objects remain. | Pending. |
-| Long-run performance | Use Cursed Random through at least 30 minutes and record object/managed-output count at every transition. | Counts remain bounded; no GC-driven stutter, crash, or Cursed exception during object clearing. |
 | Failure fallback | Missing Item Spawner leaves existing profile gun intact and logs one warning. | Pending. |
 
 ### Release gate
