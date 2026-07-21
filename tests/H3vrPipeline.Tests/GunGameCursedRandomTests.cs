@@ -72,6 +72,29 @@ public sealed class GunGameCursedRandomTests
     }
 
     [Fact]
+    public void Cursed_random_profile_uses_valid_g17_placeholder_feed_for_every_tier()
+    {
+        var root = FindRepositoryRoot();
+        var profilePath = Path.Combine(
+            root,
+            "GunGameCursedRandom",
+            "profiles",
+            "GunGameWeaponPool_Cursed_Random.json");
+        using var profile = JsonDocument.Parse(File.ReadAllText(profilePath));
+        var guns = profile.RootElement.GetProperty("Guns").EnumerateArray().ToArray();
+
+        Assert.Equal(64, guns.Length);
+        foreach (var gun in guns)
+        {
+            Assert.Equal("G17", gun.GetProperty("GunName").GetString());
+            Assert.Equal("MagazineG17Standard", gun.GetProperty("MagName").GetString());
+            Assert.Equal(
+                new[] { "MagazineG17Standard" },
+                gun.GetProperty("MagNames").EnumerateArray().Select(value => value.GetString()).ToArray());
+        }
+    }
+
+    [Fact]
     public void Local_r2modman_registration_has_an_executable_yaml_regression_check()
     {
         var root = FindRepositoryRoot();
