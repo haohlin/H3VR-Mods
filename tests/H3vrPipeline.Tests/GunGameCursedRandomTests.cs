@@ -17,6 +17,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("GunGame.Scripts.Progression", source);
         Assert.Contains("WeaponChangedEvent", source);
         Assert.Contains("CursedProfileName", source);
+        Assert.Contains("CursedProfileName = \"HLin-Random Cursed\"", source);
         Assert.Contains("IsCursedProfileSelected", source);
         Assert.Contains("if (!IsCursedProfileSelected(progressionType.Assembly))", source);
         Assert.Contains("Resources.FindObjectsOfTypeAll", source);
@@ -58,7 +59,7 @@ public sealed class GunGameCursedRandomTests
             "profiles",
             "GunGameWeaponPool_Cursed_Random.json");
         using var profile = JsonDocument.Parse(File.ReadAllText(profilePath));
-        Assert.Equal("Cursed Random", profile.RootElement.GetProperty("Name").GetString());
+        Assert.Equal("HLin-Random Cursed", profile.RootElement.GetProperty("Name").GetString());
         Assert.Equal("Advanced", profile.RootElement.GetProperty("WeaponPoolType").GetString());
         Assert.True(profile.RootElement.GetProperty("Guns").GetArrayLength() >= 64);
 
