@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaScopeCandidatesLocal', 'Teleport', 'RemoveWhiteOut')]
@@ -1268,6 +1268,112 @@ function Find-InstalledItemId {
     }
 }
 
+function Get-ZipEntrySha256 {
+    param([System.IO.Compression.ZipArchiveEntry]$Entry)
+
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    $stream = $Entry.Open()
+    try {
+        return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '')
+    }
+    finally {
+        $stream.Dispose()
+        $algorithm.Dispose()
+    }
+}
+
+function Get-UnityDeploymentAudit {
+    param([object]$ModConfig)
+
+    if ($ModConfig.kind -ne 'unity') {
+        throw "AuditUnityDeployment requires a unity mod descriptor."
+    }
+
+    $version = Get-ProjectVersion $ModConfig
+    $sourcePackage = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
+    if (-not (Test-Path -LiteralPath $sourcePackage -PathType Leaf)) {
+        throw "Unity source package is missing for $Mod version $version."
+    }
+    Assert-UnityPackageRequiredEntries -ModConfig $ModConfig -PackagePath $sourcePackage
+
+    $target = Join-Path $EnvironmentConfig.r2modman.pluginsRoot $ModConfig.deploymentFolder
+    if (-not (Test-Path -LiteralPath $target -PathType Container)) {
+        throw "Default-profile deployment is missing for $Mod."
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($sourcePackage)
+    try {
+        $entries = @($archive.Entries | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) })
+        $missing = @()
+        $mismatched = @()
+        $matched = 0
+        $expectedRelativePaths = @{}
+
+        foreach ($entry in $entries) {
+            $relativePath = $entry.FullName.Replace('/', '\').TrimStart('\')
+            if ($relativePath.Contains('..')) {
+                throw "Unity package entry has unsafe relative path: $($entry.FullName)"
+            }
+            $expectedRelativePaths[$relativePath] = $true
+            $deployedFile = Join-Path $target $relativePath
+            if (-not (Test-Path -LiteralPath $deployedFile -PathType Leaf)) {
+                $missing += $relativePath
+                continue
+            }
+
+            if ((Get-ZipEntrySha256 $entry) -ne (Get-FileSha256 $deployedFile)) {
+                $mismatched += $relativePath
+                continue
+            }
+            $matched++
+        }
+
+        $extra = @()
+        foreach ($file in @(Get-ChildItem -LiteralPath $target -Recurse -File)) {
+            $relativePath = $file.FullName.Substring($target.Length).TrimStart('\')
+            if (-not $expectedRelativePaths.ContainsKey($relativePath)) {
+                $extra += $relativePath
+            }
+        }
+
+        $manifest = $archive.GetEntry('manifest.json')
+        $manifestPackage = '<missing>'
+        $manifestVersion = '<missing>'
+        $manifestDependencies = @()
+        if ($manifest -ne $null) {
+            $reader = New-Object IO.StreamReader($manifest.Open())
+            try {
+                $manifestData = $reader.ReadToEnd() | ConvertFrom-Json
+                $manifestPackage = [string]$manifestData.name
+                $manifestVersion = [string]$manifestData.version_number
+                $manifestDependencies = @($manifestData.dependencies)
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+
+        $bundleEntries = @($entries | Where-Object {
+            $_.Name -match '^(?:early_|late_)?hlin-' -or $_.Name -match '^(?:early_|late_)?HLin-'
+        } | ForEach-Object { $_.FullName } | Sort-Object)
+
+        Write-Host "Deployment audit: $Mod $version"
+        Write-Host "Source package SHA-256: $(Get-FileSha256 $sourcePackage)"
+        Write-Host "Manifest: $manifestPackage $manifestVersion"
+        Write-Host "Manifest dependencies: $(if ($manifestDependencies.Count -eq 0) { '<none>' } else { $manifestDependencies -join ', ' })"
+        Write-Host "Payload files: expected=$($entries.Count); matched=$matched; missing=$($missing.Count); mismatched=$($mismatched.Count); extra=$($extra.Count)"
+        Write-Host "Payload match: $(if ($missing.Count -eq 0 -and $mismatched.Count -eq 0 -and $extra.Count -eq 0) { 'True' } else { 'False' })"
+        Write-Host "Bundle entries: $(if ($bundleEntries.Count -eq 0) { '<none>' } else { $bundleEntries -join ', ' })"
+        if ($missing.Count -gt 0) { Write-Host "Missing entries: $($missing -join ', ')" }
+        if ($mismatched.Count -gt 0) { Write-Host "Mismatched entries: $($mismatched -join ', ')" }
+        if ($extra.Count -gt 0) { Write-Host "Extra entries: $($extra -join ', ')" }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
 function Invoke-UnityVanillaScopeImportSmokeTest {
     $projectRoot = Get-UnityProjectRoot
     $unityConfig = $EnvironmentConfig.PSObject.Properties['unity'].Value
@@ -2077,6 +2183,7 @@ switch ($Action) {
     'PrepareUnitySourceSync' { Prepare-UnityProjectSourceSync $Query }
     'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
+    'AuditUnityDeployment' { Get-UnityDeploymentAudit (Get-ModConfig $Mod) }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
     'FindAssetRip' { Find-PrivateAssetRip $Query }
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }

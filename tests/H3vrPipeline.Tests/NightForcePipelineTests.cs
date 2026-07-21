@@ -68,6 +68,27 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Unity_deployment_audit_is_read_only_and_available_through_the_remote_wrapper()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var auditStart = pipeline.IndexOf("function Get-UnityDeploymentAudit", StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("function Get-PrivateAssetArchiveStatus", auditStart, StringComparison.Ordinal);
+
+        Assert.True(auditStart >= 0 && auditEnd > auditStart,
+            "Pipeline must expose a bounded Unity deployment audit before asset archive helpers.");
+        var audit = pipeline[auditStart..auditEnd];
+
+        Assert.Contains("'AuditUnityDeployment'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("AuditUnityDeployment", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Assert-UnityPackageRequiredEntries", audit, StringComparison.Ordinal);
+        Assert.Contains("Payload match:", audit, StringComparison.Ordinal);
+        Assert.Contains("Bundle entries:", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_item_spawner_rule_requires_mod_content_metadata()
     {
         var developmentSkill = File.ReadAllText(Path.Combine(
