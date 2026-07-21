@@ -109,6 +109,11 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("WeaponBufferSpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source);
         Assert.Contains("suppressing native placeholder", source);
         Assert.Contains("WeaponChangedEvent found no pending direct random spawn; using post-spawn fallback.", source);
+        Assert.Contains("SpawnQuickbeltSpare", source);
+        Assert.Contains("feedObject.GetGameObject()", source);
+        Assert.Contains("FVRFireArmClip", source);
+        Assert.Contains("ReloadClipWithType", source);
+        Assert.Contains("spares.Count == 0 && emptySlots.Count > 0", source);
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
         Assert.Contains("managedFeed.Slot.CurObject != managedFeed.Object", source);
