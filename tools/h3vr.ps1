@@ -1010,7 +1010,10 @@ function Assert-GunGameReleasePackage {
 }
 
 function New-UnityPackage {
-    param([object]$ModConfig)
+    param(
+        [object]$ModConfig,
+        [switch]$ReuseExistingUnityPackage
+    )
 
     $version = Get-ProjectVersion $ModConfig
     if ($ReuseExistingUnityPackage) {
@@ -1057,10 +1060,13 @@ function New-UnityPackage {
 }
 
 function New-Package {
-    param([object]$ModConfig)
+    param(
+        [object]$ModConfig,
+        [switch]$ReuseExistingUnityPackage
+    )
 
     if ($ModConfig.kind -eq 'unity') {
-        return New-UnityPackage $ModConfig
+        return New-UnityPackage $ModConfig -ReuseExistingUnityPackage:$ReuseExistingUnityPackage
     }
 
     $buildConfiguration = Get-EffectiveBuildConfiguration $ModConfig
@@ -1147,7 +1153,7 @@ function Invoke-Deploy {
         throw 'H3VR is running. Close H3VR before deployment.'
     }
 
-    $package = New-Package $ModConfig
+    $package = New-Package $ModConfig -ReuseExistingUnityPackage:$ReuseExistingUnityPackage
     $deployStaging = Join-Path (Join-Path $BuildRoot 'staging') ("deploy-" + $Mod)
     Remove-Item -LiteralPath $deployStaging -Recurse -Force -ErrorAction SilentlyContinue
     Ensure-Directory $deployStaging
@@ -2093,7 +2099,7 @@ switch ($Action) {
     }
     'Test' { Invoke-Test }
     'Package' {
-        $package = New-Package (Get-ModConfig $Mod)
+        $package = New-Package (Get-ModConfig $Mod) -ReuseExistingUnityPackage:$ReuseExistingUnityPackage
         Write-Host "Packaged $Mod version $($package.Version). SHA-256: $($package.Sha256)"
     }
     'Deploy' { Invoke-Deploy (Get-ModConfig $Mod) }

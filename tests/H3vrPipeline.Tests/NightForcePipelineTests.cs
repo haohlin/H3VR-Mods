@@ -618,6 +618,10 @@ public sealed class NightForcePipelineTests
         Assert.True(deploy.IndexOf("Get-Process -Name 'h3vr'", StringComparison.Ordinal) <
             deploy.IndexOf("New-Package $ModConfig", StringComparison.Ordinal),
             "Deploy must refuse an active H3VR process before it creates or replaces a package.");
+        Assert.Contains("New-Package $ModConfig -ReuseExistingUnityPackage:$ReuseExistingUnityPackage", deploy,
+            StringComparison.Ordinal);
+        Assert.Contains("New-Package (Get-ModConfig $Mod) -ReuseExistingUnityPackage:$ReuseExistingUnityPackage", pipeline,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("Deployed $Mod to $target", deploy, StringComparison.Ordinal);
         Assert.DoesNotContain("VR receipt: $vrReceipt", deploy, StringComparison.Ordinal);
     }
