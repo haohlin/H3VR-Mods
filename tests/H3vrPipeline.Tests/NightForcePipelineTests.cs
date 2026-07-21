@@ -143,6 +143,26 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Native_command_and_preflight_output_redact_private_paths()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var nativeStart = pipeline.IndexOf("function ConvertTo-PrivateSafeText", StringComparison.Ordinal);
+        var preflightStart = pipeline.IndexOf("function Invoke-Preflight", StringComparison.Ordinal);
+        var buildStart = pipeline.IndexOf("function Wait-ForUnityProjectBatchWorker", StringComparison.Ordinal);
+
+        Assert.True(nativeStart >= 0 && preflightStart > nativeStart && buildStart > preflightStart,
+            "Pipeline must redact native command and preflight diagnostics before Unity helpers.");
+        var native = pipeline[nativeStart..preflightStart];
+        var preflight = pipeline[preflightStart..buildStart];
+
+        Assert.Contains("function ConvertTo-PrivateSafeText", native, StringComparison.Ordinal);
+        Assert.Contains("& $Command 2>&1", native, StringComparison.Ordinal);
+        Assert.Contains("Write-Host (ConvertTo-PrivateSafeText ([string]$line))", native, StringComparison.Ordinal);
+        Assert.Contains("Repository: configured Windows checkout", preflight, StringComparison.Ordinal);
+        Assert.DoesNotContain("Repository: $RepoRoot", preflight, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_build_waits_for_its_success_marker_and_package_before_evaluating_retry()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

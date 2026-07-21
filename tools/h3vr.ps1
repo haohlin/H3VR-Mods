@@ -84,12 +84,26 @@ function Ensure-Directory {
     New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
+function ConvertTo-PrivateSafeText {
+    param([string]$Text)
+
+    if ($null -eq $Text) {
+        return [string]::Empty
+    }
+
+    return [regex]::Replace($Text, '(?i)(?:[A-Z]:\\|/Users/)[^\s]+', '<private-path>')
+}
+
 function Invoke-CheckedNative {
     param([scriptblock]$Command)
 
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "Native command failed with exit code $LASTEXITCODE."
+    $output = @(& $Command 2>&1)
+    $exitCode = $LASTEXITCODE
+    foreach ($line in $output) {
+        Write-Host (ConvertTo-PrivateSafeText ([string]$line))
+    }
+    if ($exitCode -ne 0) {
+        throw "Native command failed with exit code $exitCode."
     }
 }
 
@@ -492,7 +506,7 @@ function Invoke-Preflight {
         throw "Repository root does not exist: $RepoRoot"
     }
 
-    Write-Host "Repository: $RepoRoot"
+    Write-Host 'Repository: configured Windows checkout'
     $branch = (& git -C $RepoRoot branch --show-current | Select-Object -First 1)
     if ([string]::IsNullOrWhiteSpace($branch)) {
         $branch = 'detached HEAD'
