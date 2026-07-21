@@ -90,6 +90,10 @@ public sealed class NightForcePipelineTests
         Assert.Contains("function Wait-ForUnityBuildOutput", pipeline, StringComparison.Ordinal);
         Assert.Contains("$buildCompleted = Wait-ForUnityBuildOutput", build,
             StringComparison.Ordinal);
+        Assert.Contains("Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $Version", pipeline,
+            StringComparison.Ordinal);
+        Assert.Contains("-ModConfig $ModConfig -Version $version", build,
+            StringComparison.Ordinal);
         Assert.Contains("if ($process.ExitCode -ne 0 -and -not $buildCompleted)", build,
             StringComparison.Ordinal);
         Assert.DoesNotContain("Wait-ForUnityProjectBatchWorker -ProjectRoot $projectRoot", build,

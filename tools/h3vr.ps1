@@ -181,8 +181,28 @@ function Get-UnityPackageSourcePath {
         [string]$Version
     )
 
+    $projectRoot = Get-UnityProjectRoot
     $relativePath = $ModConfig.packageRelativePath.Replace('{version}', $Version)
-    return Join-Path (Get-UnityProjectRoot) $relativePath
+    $expectedPath = Join-Path $projectRoot $relativePath
+    if (Test-Path -LiteralPath $expectedPath -PathType Leaf) {
+        return $expectedPath
+    }
+
+    $assetBundlesRoot = Join-Path $projectRoot 'AssetBundles'
+    if (-not (Test-Path -LiteralPath $assetBundlesRoot -PathType Container)) {
+        return $expectedPath
+    }
+
+    $expectedFileName = [IO.Path]::GetFileName($relativePath)
+    $matches = @(Get-ChildItem -LiteralPath $assetBundlesRoot -Filter $expectedFileName -File -Recurse -ErrorAction SilentlyContinue)
+    if ($matches.Count -eq 1) {
+        return $matches[0].FullName
+    }
+    if ($matches.Count -gt 1) {
+        throw "Unity package artifact is ambiguous: found $($matches.Count) files named $expectedFileName."
+    }
+
+    return $expectedPath
 }
 
 function Prepare-UnityProjectSourceSync {
@@ -539,12 +559,14 @@ function Wait-ForUnityBuildOutput {
     param(
         [string]$LogPath,
         [string]$SuccessMarker,
-        [string]$PackagePath,
+        [object]$ModConfig,
+        [string]$Version,
         [int]$TimeoutSeconds = 900
     )
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
+        $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $Version
         $hasMarker = (Test-Path -LiteralPath $LogPath) -and
             (Select-String -LiteralPath $LogPath -Pattern $SuccessMarker -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
         if ($hasMarker -and (Test-Path -LiteralPath $PackagePath)) {
@@ -600,7 +622,7 @@ function Invoke-UnityBuild {
             '-logFile', ('"{0}"' -f $logPath)
         )
         $process = Start-Process -FilePath $unityConfig.editorExecutable -ArgumentList $arguments -Wait -PassThru
-        $buildCompleted = Wait-ForUnityBuildOutput -LogPath $logPath -SuccessMarker $ModConfig.unityBuildSuccessMarker -PackagePath $packagePath
+        $buildCompleted = Wait-ForUnityBuildOutput -LogPath $logPath -SuccessMarker $ModConfig.unityBuildSuccessMarker -ModConfig $ModConfig -Version $version
         if ($process.ExitCode -ne 0 -and -not $buildCompleted) {
             throw "Unity batch build failed with exit code $($process.ExitCode). See $logPath"
         }
@@ -617,6 +639,7 @@ function Invoke-UnityBuild {
         }
     }
 
+    $packagePath = Get-UnityPackageSourcePath -ModConfig $ModConfig -Version $version
     if (-not $buildCompleted -or -not (Test-Path -LiteralPath $packagePath)) {
         throw "Unity did not complete $($ModConfig.unityBuildMethod) with expected package: $packagePath"
     }
