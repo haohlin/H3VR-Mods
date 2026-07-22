@@ -51,7 +51,7 @@ public sealed class GunGameCursedRandomTests
                 target.GetProperty("method").GetString() == "SpawnAsync");
         Assert.Contains(
             mod.GetProperty("patchTargets").EnumerateArray(),
-            target => target.GetProperty("type").GetString() == "FistVR.ItemSpawnerV2" &&
+            target => target.GetProperty("type").GetString() == "ItemSpawnerV2" &&
                 target.GetProperty("method").GetString() == "SpawnRandomGunRoutine");
         Assert.Contains(
             mod.GetProperty("payload").EnumerateArray(),

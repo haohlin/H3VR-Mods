@@ -91,7 +91,7 @@
       ],
       "patchTargets": [
         {
-          "type": "FistVR.ItemSpawnerV2",
+          "type": "ItemSpawnerV2",
           "method": "SpawnRandomGunRoutine"
         }
       ],
