@@ -73,10 +73,10 @@ public sealed class NightForcePipelineTests
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
         var auditStart = pipeline.IndexOf("function Get-UnityDeploymentAudit", StringComparison.Ordinal);
-        var auditEnd = pipeline.IndexOf("function Get-PrivateAssetArchiveStatus", auditStart, StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("function Invoke-UnityVanillaScopeImportSmokeTest", auditStart, StringComparison.Ordinal);
 
         Assert.True(auditStart >= 0 && auditEnd > auditStart,
-            "Pipeline must expose a bounded Unity deployment audit before asset archive helpers.");
+            "Pipeline must expose a bounded Unity deployment audit before Unity importer entrypoints.");
         var audit = pipeline[auditStart..auditEnd];
 
         Assert.Contains("'AuditUnityDeployment'", pipeline, StringComparison.Ordinal);
