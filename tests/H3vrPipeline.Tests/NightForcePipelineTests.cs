@@ -108,7 +108,7 @@ public sealed class NightForcePipelineTests
         Assert.Contains("AuditManagedDeployment", wrapper, StringComparison.Ordinal);
         Assert.Contains("mm_v2_manifest.json", install, StringComparison.Ordinal);
         Assert.Contains("mods.yml", install, StringComparison.Ordinal);
-        Assert.Contains("enabled: true", install, StringComparison.Ordinal);
+        Assert.Contains("enabled: true", pipeline, StringComparison.Ordinal);
         Assert.Contains("Assert-DirectoryPayloadMatch", install, StringComparison.Ordinal);
         Assert.Contains("Copy-Item -LiteralPath $cacheTarget -Destination $cacheBackup", install, StringComparison.Ordinal);
         Assert.Contains("Manager payload match: True", audit, StringComparison.Ordinal);
