@@ -144,6 +144,26 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Stop_h3vr_action_terminates_only_the_game_process_and_verifies_exit()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionStart = pipeline.IndexOf("function Stop-H3vrProcess", StringComparison.Ordinal);
+        var actionEnd = pipeline.IndexOf("function Get-R2modmanProfilePackageInventory", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0 && actionEnd > actionStart,
+            "Pipeline must keep the bounded H3VR-stop helper before profile inventory.");
+        var action = pipeline[actionStart..actionEnd];
+
+        Assert.Contains("'StopH3VR'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("StopH3VR", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Get-Process -Name 'h3vr'", action, StringComparison.Ordinal);
+        Assert.Contains("Stop-Process -Id $process.Id -Force", action, StringComparison.Ordinal);
+        Assert.Contains("H3VR process: stopped.", action, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShutdownWindows", action, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_item_spawner_rule_requires_mod_content_metadata()
     {
         var developmentSkill = File.ReadAllText(Path.Combine(

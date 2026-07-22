@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AuditManagedDeployment', 'InventoryProfilePackages', 'RemoveProfilePackage', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AuditManagedDeployment', 'StopH3VR', 'InventoryProfilePackages', 'RemoveProfilePackage', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaRipScopes', 'Teleport', 'RemoveWhiteOut')]
@@ -1511,6 +1511,29 @@ function Test-R2modmanManagedRecord {
     return $Content -match $nameExpression
 }
 
+function Stop-H3vrProcess {
+    $processes = @(Get-Process -Name 'h3vr' -ErrorAction SilentlyContinue)
+    if ($processes.Count -eq 0) {
+        Write-Host 'H3VR process: not running.'
+        return
+    }
+
+    foreach ($process in $processes) {
+        Stop-Process -Id $process.Id -Force -ErrorAction Stop
+    }
+
+    $deadline = (Get-Date).AddSeconds(20)
+    do {
+        if (@(Get-Process -Name 'h3vr' -ErrorAction SilentlyContinue).Count -eq 0) {
+            Write-Host 'H3VR process: stopped.'
+            return
+        }
+        Start-Sleep -Milliseconds 250
+    } while ((Get-Date) -lt $deadline)
+
+    throw 'H3VR process did not stop before timeout.'
+}
+
 function Get-R2modmanProfilePackageInventory {
     $profileRoot = Get-R2modmanProfileRoot
     $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
@@ -2614,6 +2637,7 @@ switch ($Action) {
     'AuditItemId' { Find-InstalledItemId $Query }
     'AuditUnityDeployment' { Get-UnityDeploymentAudit (Get-ModConfig $Mod) }
     'AuditManagedDeployment' { Get-R2modmanManagedDeploymentAudit (Get-ModConfig $Mod) }
+    'StopH3VR' { Stop-H3vrProcess }
     'InventoryProfilePackages' { Get-R2modmanProfilePackageInventory }
     'RemoveProfilePackage' { Remove-R2modmanProfilePackage $Query }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
