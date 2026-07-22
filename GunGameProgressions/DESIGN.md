@@ -159,7 +159,7 @@ then clears and promotes past any rejected or throwing loadout on next frame.
 | `no modded pools available` | No compatible active Modded firearms were found. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
-| `GunGame Progressions debug: scan #` | Exactly two Debug records per actual scan: start trigger, then aggregate outcome with registry/Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count. No item IDs or per-entry records. |
+| `GunGame Progressions debug: scan #` | Exactly two Info-level diagnostic records per actual scan: start trigger, then aggregate outcome with registry/Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count. No item IDs or per-entry records. |
 | `compatibility probe updated` | Debug-only: Runtime 05 wrote configured compatibility candidates for manual testing. |
 | `skipping invalid GunGame loadout` | Spawn safety rejected/failed a loadout; log includes gun, feed, optic, and reason. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
@@ -194,7 +194,8 @@ small selector choice clone uses GunGame's existing UI prefab only after a
 saved profile is found; it is not an item/attachment/prefab load.
 
 Logging is event-based: request, capture, write, or retained candidate. Each
-actual Modded scan adds only one Debug start record and one Debug outcome record;
+actual Modded scan adds only one Info-level diagnostic start record and one
+Info-level diagnostic outcome record;
 there is no per-entry logging, poll-loop logging, or diagnostic registry pass.
 Never emit an exception or status log in a poll loop; repeated formatting and
 disk writes turn a transient loader problem into a stutter.
