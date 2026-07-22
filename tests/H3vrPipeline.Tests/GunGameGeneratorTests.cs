@@ -926,6 +926,13 @@ public sealed class GunGameGeneratorTests
         var captureBody = source.Substring(captureStart, captureEnd - captureStart);
         Assert.DoesNotContain("LogModdedRefreshStart", captureBody, StringComparison.Ordinal);
         Assert.DoesNotContain("LogModdedRefreshOutcome", captureBody, StringComparison.Ordinal);
+
+        var diagnosticStart = source.IndexOf("private void LogModdedRefreshStart(", StringComparison.Ordinal);
+        var probeStart = source.IndexOf("#if GUNGAME_COMPATIBILITY_PROBE", diagnosticStart, StringComparison.Ordinal);
+        Assert.True(diagnosticStart >= 0 && probeStart > diagnosticStart);
+        var diagnosticBody = source.Substring(diagnosticStart, probeStart - diagnosticStart);
+        Assert.Contains("Logger.LogInfo(", diagnosticBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("Logger.LogDebug(", diagnosticBody, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
