@@ -24,8 +24,8 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("ReplaceNativeEquipment", source);
         Assert.Contains("spawnerCount=", source);
         Assert.Contains("vanilla random result", source);
-        Assert.Contains("quickbelt: spares=", source);
-        Assert.Contains("slot.CurObject == null", source);
+        Assert.Contains("quickbelt: selectedSlot=", source);
+        Assert.Contains("candidate.CurObject == null", source);
         Assert.Contains("Cursed random GunGame spawn:", source);
         Assert.DoesNotContain("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
         Assert.DoesNotContain("AddStartupToggle", source, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("feedObject.GetGameObject()", source);
         Assert.Contains("FVRFireArmClip", source);
         Assert.Contains("ReloadClipWithType", source);
-        Assert.Contains("spares.Count == 0 && emptySlots.Count > 0", source);
+        Assert.Contains("SameFeedType(feed, loadedFeed)", source);
         Assert.Contains("DestroyTrackedEquipment();\n        yield return null;", source.Replace("\r\n", "\n"));
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
@@ -139,8 +139,14 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("SameFeedType", source);
         Assert.Contains("DestroyGeneratedFeed", source);
         Assert.Contains("queuedProgression", source);
+        Assert.Contains("directTransitionProgressionType", source);
+        Assert.Contains("WeaponChangedEvent acknowledged direct Cursed transition", source);
+        Assert.Contains("buffer.GetType().Assembly.GetType(\"GunGame.Scripts.Progression\", false)", source);
         Assert.Contains("randomSpawnerType", source);
+        Assert.Contains("random result read failed", source);
         Assert.Contains("speedloader.ReloadClipWithType", source);
+        Assert.Contains("retained loaded generated feed", source);
+        Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
         Assert.Contains("TryGetValue", source);
     }

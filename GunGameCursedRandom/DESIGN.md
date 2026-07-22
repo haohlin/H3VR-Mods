@@ -44,12 +44,18 @@ Native GunGame WeaponBuffer.SpawnAsync
   after a bounded result wait.
 - If direct interception or Item Spawner is unavailable, retain normal GunGame
   profile spawning instead of crashing or deleting current equipment.
+- Resolve GunGame types from the active `WeaponBuffer` / `Progression` assembly;
+  never select a duplicate disabled GunGame assembly through global lookup.
+- A `WeaponChangedEvent` caused by a direct interception only acknowledges that
+  same pending transition. Later promotions remain eligible for generation.
 - Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
   by Cursed are removed on transition. Moved feeds and every other quickbelt
   object remain player-owned.
 - A loaded magazine, clip, speedloader, or cartridge gets one matching spare
   only when an assigned Ammo or Extra slot is empty; no player-owned slot is
   replaced.
+- Generated feeds already attached to the firearm count as loaded. Loose,
+  incompatible generated feeds are removed after one compatible spare decision.
 - Log one completed random loadout with firearm, feeds, and attachments.
 
 ## Decisions
@@ -63,6 +69,8 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Intercept `WeaponBuffer.SpawnAsync`. | It is GunGame's actual two-argument spawn coroutine. Returning an empty coroutine after random API start prevents visible placeholder G17 spawn while preserving native progression flow. | 2026-07-22 |
 | Track only Cursed-owned gun and slot-bound spares. | Broad object tracking deleted feeds after players moved them. Identity-checking only Cursed's original spare slots preserves all other quickbelt content. | 2026-07-22 |
 | Clone loaded feed from its FVRObject wrapper. | H3VR's random-gun button instantiates `FVRObject.GetGameObject()`; matching that native construction yields one compatible spare without a second weapon roll. | 2026-07-22 |
+| Bind reflection to active GunGame assembly. | BepInEx can load an older GunGame DLL beside active version; global type lookup can patch inactive `WeaponBuffer`. | 2026-07-22 |
+| Acknowledge direct transition event once. | Native `WeaponChangedEvent` can follow suppressed `SpawnAsync`; treating it as a second transition rolls and destroys an unnecessary random gun. | 2026-07-22 |
 
 ## Known limits / backlog
 

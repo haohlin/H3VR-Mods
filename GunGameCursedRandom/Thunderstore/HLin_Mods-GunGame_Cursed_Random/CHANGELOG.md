@@ -10,6 +10,12 @@
   progression profile.
 - Subscribe to GunGame's post-spawn `WeaponChangedEvent`, then replace only
   HLin-Random Cursed profile equipment through H3VR's vanilla random-gun API.
+- Bind direct Harmony and selected-hand reflection to active GunGame assembly,
+  acknowledge direct transition events once, and queue only genuinely newer
+  transitions.
+- Fill supported magazines, clips, and speedloaders safely; preserve an
+  already-loaded generated feed; leave one matching spawn-locked spare only in
+  an empty configured Ammo or Extra slot.
 
 ## 1.0.0
 

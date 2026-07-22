@@ -16,6 +16,7 @@ namespace HLin.GunGameCursedRandom;
 public sealed class Plugin : BaseUnityPlugin
 {
     private const string CursedProfileName = "HLin-Random Cursed";
+    private const string PlaceholderMagazineItemId = "MagazineG17Standard";
     private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
@@ -27,7 +28,11 @@ public sealed class Plugin : BaseUnityPlugin
     private Harmony harmony;
     private MethodInfo randomGunMethod;
     private FieldInfo randomGunField;
+    private Type randomSpawnerType;
+    private Component queuedProgression;
+    private Type directTransitionProgressionType;
     private bool replacementQueued;
+    private bool queuedTransition;
     private bool spawningRandomGun;
     private bool missingSpawnerLogged;
     private bool weaponBufferSpawnHookInstalled;
@@ -35,7 +40,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         instance = this;
-        weaponBufferSpawnHookInstalled = InstallWeaponBufferSpawnHook();
+        weaponBufferSpawnHookInstalled = InstallWeaponBufferSpawnHooks();
         if (!weaponBufferSpawnHookInstalled)
         {
             Logger.LogWarning("GunGame Cursed Random could not install WeaponBuffer.SpawnAsync hook; using post-spawn fallback.");
@@ -96,42 +101,55 @@ public sealed class Plugin : BaseUnityPlugin
         return added;
     }
 
-    private bool InstallWeaponBufferSpawnHook()
+    private bool InstallWeaponBufferSpawnHooks()
     {
-        var weaponBufferType = AccessTools.TypeByName("GunGame.Scripts.Weapons.WeaponBuffer");
-        var spawnAsync = FindMethod(weaponBufferType, "SpawnAsync", 2);
         var prefix = AccessTools.Method(typeof(Plugin), "WeaponBufferSpawnAsyncPrefix");
-        if (spawnAsync == null || prefix == null)
+        if (prefix == null)
         {
             return false;
         }
 
+        var patched = 0;
         try
         {
             harmony = new Harmony("HLin.GunGameCursedRandom");
-            harmony.Patch(spawnAsync, prefix: new HarmonyMethod(prefix) { priority = Priority.First });
-            var patchInfo = Harmony.GetPatchInfo(spawnAsync);
-            var installed = patchInfo != null && patchInfo.Prefixes.Any(patch => patch.owner == harmony.Id);
-            if (installed)
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                Logger.LogInfo("GunGame Cursed Random installed WeaponBuffer.SpawnAsync direct hook.");
+                if (assembly.GetType("GunGame.Scripts.Progression", false) == null)
+                {
+                    continue;
+                }
+
+                var weaponBufferType = assembly.GetType("GunGame.Scripts.Weapons.WeaponBuffer", false);
+                if (weaponBufferType == null)
+                {
+                    continue;
+                }
+
+                foreach (var spawnAsync in weaponBufferType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                             .Where(method => method.Name == "SpawnAsync" &&
+                                              typeof(IEnumerator).IsAssignableFrom(method.ReturnType) &&
+                                              method.GetParameters().Length == 2))
+                {
+                    harmony.Patch(spawnAsync, prefix: new HarmonyMethod(prefix) { priority = Priority.First });
+                    var patchInfo = Harmony.GetPatchInfo(spawnAsync);
+                    if (patchInfo != null && patchInfo.Prefixes.Any(patch => patch.owner == harmony.Id))
+                    {
+                        patched++;
+                        Logger.LogInfo(
+                            "GunGame Cursed Random installed WeaponBuffer.SpawnAsync direct hook in " +
+                            assembly.GetName().Name + ".");
+                    }
+                }
             }
 
-            return installed;
+            return patched > 0;
         }
         catch (Exception exception)
         {
-            Logger.LogWarning("GunGame Cursed Random could not patch WeaponBuffer.SpawnAsync: " + exception.GetType().Name + ".");
+            Logger.LogWarning("GunGame Cursed Random could not patch active WeaponBuffer.SpawnAsync: " + exception.GetType().Name + ".");
             return false;
         }
-    }
-
-    private static MethodInfo FindMethod(Type type, string name, int parameterCount)
-    {
-        return type == null
-            ? null
-            : type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .FirstOrDefault(method => method.Name == name && method.GetParameters().Length == parameterCount);
     }
 
     private void UnsubscribeWeaponChangedEvents()
@@ -179,6 +197,7 @@ public sealed class Plugin : BaseUnityPlugin
             return true;
         }
 
+        plugin.directTransitionProgressionType = progression.GetType();
         __result = EmptyEnumerator();
         Trace("WeaponBuffer.SpawnAsync suppressing native placeholder; vanilla random spawn started.");
         return false;
@@ -198,9 +217,19 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
+        if (directTransitionProgressionType == progressionType && spawningRandomGun)
+        {
+            directTransitionProgressionType = null;
+            Trace("WeaponChangedEvent acknowledged direct Cursed transition; no fallback needed.");
+            return;
+        }
+
+        directTransitionProgressionType = null;
         if (spawningRandomGun || replacementQueued)
         {
-            Trace("WeaponChangedEvent observed while random spawn is pending; no post-spawn fallback needed.");
+            queuedProgression = progression;
+            queuedTransition = true;
+            Trace("WeaponChangedEvent queued while a Cursed transition is pending.");
             return;
         }
 
@@ -222,7 +251,28 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TryStartRandomSpawn(progression, true))
         {
             Logger.LogWarning(CursedProfileName + " random API unavailable; keeping current profile equipment.");
+            StartQueuedReplacement();
         }
+    }
+
+    private void StartQueuedReplacement()
+    {
+        if (!queuedTransition || replacementQueued)
+        {
+            return;
+        }
+
+        var progression = queuedProgression;
+        queuedProgression = null;
+        queuedTransition = false;
+        if (progression == null)
+        {
+            return;
+        }
+
+        replacementQueued = true;
+        Trace("starting latest queued Cursed transition.");
+        StartCoroutine(ReplaceNativeEquipment(progression));
     }
 
     private static Component FindLiveProgression(Type progressionType)
@@ -249,13 +299,15 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static Component FindProgressionForWeaponBuffer(object weaponBuffer)
     {
-        var progressionType = AccessTools.TypeByName("GunGame.Scripts.Progression");
+        var buffer = weaponBuffer as Component;
+        var progressionType = buffer == null
+            ? null
+            : buffer.GetType().Assembly.GetType("GunGame.Scripts.Progression", false);
         if (progressionType == null)
         {
             return null;
         }
 
-        var buffer = weaponBuffer as Component;
         var progression = buffer == null
             ? null
             : buffer.GetComponentInParent(progressionType) as Component;
@@ -316,12 +368,16 @@ public sealed class Plugin : BaseUnityPlugin
             return false;
         }
 
-        randomGunMethod = randomGunMethod ?? spawner.GetType().GetMethod(
-            RandomGunMethodName,
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        randomGunField = randomGunField ?? spawner.GetType().GetField(
-            RandomGunFieldName,
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (randomSpawnerType != spawner.GetType())
+        {
+            randomSpawnerType = spawner.GetType();
+            randomGunMethod = randomSpawnerType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .FirstOrDefault(method => method.Name == RandomGunMethodName && method.GetParameters().Length == 0);
+            randomGunField = randomSpawnerType.GetField(
+                RandomGunFieldName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        }
+
         if (randomGunMethod == null || randomGunField == null)
         {
             Logger.LogError("Item Spawner random-gun API is unavailable; using GunGame profile weapon.");
@@ -329,16 +385,16 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         missingSpawnerLogged = false;
-        spawningRandomGun = true;
-        var previousGun = randomGunField.GetValue(spawner) as GameObject;
-        var before = CapturePhysicalObjects();
-        Logger.LogInfo(
-            "GunGame Cursed Random trace: invoking vanilla random API; method=" + randomGunMethod +
-            "; resultField=" + randomGunField.Name +
-            "; previousGun=" + NameOf(previousGun) +
-            "; physicalObjectsBefore=" + before.Count + ".");
         try
         {
+            spawningRandomGun = true;
+            var previousGun = randomGunField.GetValue(spawner) as GameObject;
+            var before = CapturePhysicalObjects();
+            Logger.LogInfo(
+                "GunGame Cursed Random trace: invoking vanilla random API; method=" + randomGunMethod +
+                "; resultField=" + randomGunField.Name +
+                "; previousGun=" + NameOf(previousGun) +
+                "; physicalObjectsBefore=" + before.Count + ".");
             randomGunMethod.Invoke(spawner, null);
             Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(randomGunField.GetValue(spawner) as GameObject) + ".");
             StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before, removeNativeEquipment));
@@ -364,7 +420,18 @@ public sealed class Plugin : BaseUnityPlugin
         for (var frame = 0; frame < RandomGunWaitFrames; frame++)
         {
             waitedFrames = frame + 1;
-            randomGun = randomGunField.GetValue(spawner) as GameObject;
+            try
+            {
+                randomGun = randomGunField.GetValue(spawner) as GameObject;
+            }
+            catch (Exception exception)
+            {
+                spawningRandomGun = false;
+                Logger.LogWarning("GunGame Cursed Random trace: random result read failed: " + exception.GetType().Name + ".");
+                StartQueuedReplacement();
+                yield break;
+            }
+
             if (randomGun != null && randomGun != previousGun)
             {
                 break;
@@ -380,8 +447,11 @@ public sealed class Plugin : BaseUnityPlugin
             Logger.LogWarning(
                 "GunGame Cursed Random trace: vanilla random API produced no usable firearm after " +
                 waitedFrames + " frames; keeping current GunGame weapon.");
+            StartQueuedReplacement();
             yield break;
         }
+
+        directTransitionProgressionType = null;
 
         var spawned = CapturePhysicalObjectsList()
             .Where(item => item != null && !before.Contains(item.GetInstanceID()))
@@ -396,23 +466,46 @@ public sealed class Plugin : BaseUnityPlugin
             "; gun=" + NameOf(gun) +
             "; newPhysicalObjects=" + spawned.Count + ".");
 
+        if (queuedTransition)
+        {
+            Trace("discarding stale random result for a newer Cursed transition.");
+            foreach (var item in spawned)
+            {
+                DestroyGeneratedFeed(item);
+            }
+
+            StartQueuedReplacement();
+            yield break;
+        }
+
         if (removeNativeEquipment)
         {
             DestroyGunGameEquipment(progression);
+            ClearNativePlaceholderFeed(progression);
         }
 
         DestroyTrackedEquipment();
         yield return null;
         activeRandomGun = gun.gameObject;
 
-        var looseFeeds = spawned
-            .Where(item => item != gun && !item.transform.IsChildOf(gun.transform) && IsFeed(item))
+        var allFeeds = spawned
+            .Where(item => item != gun && IsFeed(item))
             .OrderBy(FeedSortOrder)
             .ToList();
-        var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
+        var looseFeeds = allFeeds
+            .Where(item => !item.transform.IsChildOf(gun.transform))
+            .ToList();
+        var loadedFeed = allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform));
+        if (loadedFeed != null)
+        {
+            FillStandardFeed(loadedFeed);
+            Trace("retained loaded generated feed=" + NameOf(loadedFeed) + "; gun=" + NameOf(gun) + ".");
+        }
+
+        loadedFeed = loadedFeed ?? LoadFirstCompatibleFeed(gun, looseFeeds);
         MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, gun, progression == null ? null : progression.GetType().Assembly);
-        EquipInGunGameHand(gun);
-        LogRandomLoadout(gun, looseFeeds, loadedFeed);
+        EquipInGunGameHand(gun, progression == null ? null : progression.GetType().Assembly);
+        LogRandomLoadout(gun, allFeeds, loadedFeed);
     }
 
     private static HashSet<int> CapturePhysicalObjects()
@@ -427,6 +520,17 @@ public sealed class Plugin : BaseUnityPlugin
         return UnityEngine.Object.FindObjectsOfType<FVRPhysicalObject>()
             .Where(item => item != null)
             .ToList();
+    }
+
+    private static void DestroyGeneratedFeed(FVRPhysicalObject item)
+    {
+        if (item == null)
+        {
+            return;
+        }
+
+        item.ForceBreakInteraction();
+        UnityEngine.Object.Destroy(item.gameObject);
     }
 
     private static bool IsFeed(FVRPhysicalObject item)
@@ -445,7 +549,7 @@ public sealed class Plugin : BaseUnityPlugin
                 if (firearm != null && magazine != null)
                 {
                     magazine.Load(firearm);
-                    FillMagazineOrClip(magazine);
+                    FillStandardFeed(magazine);
                     Trace("loaded magazine=" + NameOf(magazine) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
@@ -454,7 +558,7 @@ public sealed class Plugin : BaseUnityPlugin
                 if (firearm != null && clip != null)
                 {
                     firearm.LoadClip(clip);
-                    FillMagazineOrClip(clip);
+                    FillStandardFeed(clip);
                     Trace("loaded clip=" + NameOf(clip) + "; gun=" + NameOf(gun) + ".");
                     return feed;
                 }
@@ -463,6 +567,7 @@ public sealed class Plugin : BaseUnityPlugin
                 var speedloader = feed as Speedloader;
                 if (cylinder != null && speedloader != null)
                 {
+                    FillStandardFeed(speedloader);
                     cylinder.LoadFromSpeedLoader(speedloader);
                     Trace("loaded speedloader=" + NameOf(speedloader) + "; gun=" + NameOf(gun) + ".");
                     return feed;
@@ -493,28 +598,60 @@ public sealed class Plugin : BaseUnityPlugin
             return 0;
         }
 
-        if (feed is Speedloader)
+        if (feed is FVRFireArmClip)
         {
             return 1;
         }
 
-        return 2;
+        if (feed is Speedloader)
+        {
+            return 2;
+        }
+
+        return 3;
     }
 
-    private static void FillMagazineOrClip(FVRPhysicalObject feed)
+    private static void FillStandardFeed(FVRPhysicalObject feed)
     {
-        var magazine = feed as FVRFireArmMagazine;
-        if (magazine != null)
+        try
         {
-            magazine.ReloadMagWithType(AM.SRoundDisplayDataDic[magazine.RoundType].Classes[0].Class);
-            return;
+            var magazine = feed as FVRFireArmMagazine;
+            if (magazine != null && TryGetDefaultRoundClass(magazine.RoundType, out var magazineRoundClass))
+            {
+                magazine.ReloadMagWithType(magazineRoundClass);
+                return;
+            }
+
+            var clip = feed as FVRFireArmClip;
+            if (clip != null && TryGetDefaultRoundClass(clip.RoundType, out var clipRoundClass))
+            {
+                clip.ReloadClipWithType(clipRoundClass);
+                return;
+            }
+
+            var speedloader = feed as Speedloader;
+            if (speedloader != null && speedloader.Chambers != null && speedloader.Chambers.Length > 0 &&
+                TryGetDefaultRoundClass(speedloader.Chambers[0].Type, out var speedloaderRoundClass))
+            {
+                speedloader.ReloadClipWithType(speedloaderRoundClass);
+            }
+        }
+        catch (Exception exception)
+        {
+            Trace("feed fill skipped=" + NameOf(feed) + "; reason=" + exception.GetType().Name + ".");
+        }
+    }
+
+    private static bool TryGetDefaultRoundClass(FireArmRoundType roundType, out FireArmRoundClass roundClass)
+    {
+        roundClass = default(FireArmRoundClass);
+        if (!AM.SRoundDisplayDataDic.TryGetValue(roundType, out var display) || display.Classes == null || display.Classes.Count == 0)
+        {
+            return false;
         }
 
-        var clip = feed as FVRFireArmClip;
-        if (clip != null)
-        {
-            clip.ReloadClipWithType(AM.SRoundDisplayDataDic[clip.RoundType].Classes[0].Class);
-        }
+        roundClass = display.Classes[0].Class;
+        return true;
     }
 
     private static FVRPhysicalObject SpawnQuickbeltSpare(FVRPhysicalObject loadedFeed, FVRPhysicalObject gun)
@@ -526,9 +663,10 @@ public sealed class Plugin : BaseUnityPlugin
             return null;
         }
 
+        GameObject spawnedObject = null;
         try
         {
-            var spawnedObject = UnityEngine.Object.Instantiate(
+            spawnedObject = UnityEngine.Object.Instantiate(
                 feedObject.GetGameObject(),
                 gun.transform.position + Vector3.up * 0.2f,
                 gun.transform.rotation);
@@ -544,15 +682,26 @@ public sealed class Plugin : BaseUnityPlugin
                 return null;
             }
 
-            FillMagazineOrClip(spare);
+            FillStandardFeed(spare);
             Trace("quickbelt: spawned compatible spare=" + NameOf(spare) + "; source=loaded feed.");
             return spare;
         }
         catch (Exception exception)
         {
+            if (spawnedObject != null)
+            {
+                UnityEngine.Object.Destroy(spawnedObject);
+            }
+
             Trace("quickbelt: spare spawn failed=" + exception.GetType().Name + ".");
             return null;
         }
+    }
+
+    private static bool SameFeedType(FVRPhysicalObject left, FVRPhysicalObject right)
+    {
+        return left != null && right != null && left.ObjectWrapper != null && right.ObjectWrapper != null &&
+               string.Equals(left.ObjectWrapper.ItemID, right.ObjectWrapper.ItemID, StringComparison.Ordinal);
     }
 
     private void MoveSpareFeedsToQuickbelt(
@@ -561,7 +710,6 @@ public sealed class Plugin : BaseUnityPlugin
         FVRPhysicalObject gun,
         Assembly assembly)
     {
-        var spares = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
         var candidateSlots = new[]
             {
                 GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0),
@@ -570,30 +718,49 @@ public sealed class Plugin : BaseUnityPlugin
             .Where(slot => slot != null)
             .Distinct()
             .ToList();
-        Trace(
-            "quickbelt: spares=" + spares.Count +
-            "; slots=[" + string.Join(", ", candidateSlots.Select(slot => slot.name + "=" + NameOf(slot.CurObject)).ToArray()) + "].");
-        var emptySlots = candidateSlots.Where(slot => slot.CurObject == null).ToList();
-        if (spares.Count == 0 && emptySlots.Count > 0)
+        var slot = candidateSlots.FirstOrDefault(candidate => candidate.CurObject == null);
+        var generatedFeeds = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
+        var spare = generatedFeeds.FirstOrDefault(feed => SameFeedType(feed, loadedFeed));
+        if (spare == null && slot != null)
         {
-            var spare = SpawnQuickbeltSpare(loadedFeed, gun);
-            if (spare != null)
+            spare = SpawnQuickbeltSpare(loadedFeed, gun);
+        }
+
+        var placed = false;
+        if (spare != null && slot != null)
+        {
+            spare.m_isSpawnLock = true;
+            spare.ForceObjectIntoInventorySlot(slot);
+            if (slot.CurObject == spare)
             {
-                spares.Add(spare);
+                managedQuickbeltFeeds.Add(new ManagedQuickbeltFeed { Slot = slot, Object = spare });
+                placed = true;
+                Trace("quickbelt: placed=" + NameOf(spare) + "; slot=" + slot.name + ".");
+            }
+            else
+            {
+                DestroyGeneratedFeed(spare);
+                spare = null;
+                Trace("quickbelt: selected slot rejected compatible spare.");
             }
         }
 
-        var placed = 0;
-        for (var index = 0; index < spares.Count && index < emptySlots.Count; index++)
+        var discarded = 0;
+        foreach (var feed in generatedFeeds)
         {
-            spares[index].ForceObjectIntoInventorySlot(emptySlots[index]);
-            spares[index].m_isSpawnLock = true;
-            managedQuickbeltFeeds.Add(new ManagedQuickbeltFeed { Slot = emptySlots[index], Object = spares[index] });
-            placed++;
-            Trace("quickbelt: placed=" + NameOf(spares[index]) + "; slot=" + emptySlots[index].name + ".");
+            if (feed == spare)
+            {
+                continue;
+            }
+
+            DestroyGeneratedFeed(feed);
+            discarded++;
         }
 
-        Trace("quickbelt: managedSpareSlots=" + placed + "; unplacedGeneratedSpares=" + (spares.Count - placed) + ".");
+        Trace(
+            "quickbelt: selectedSlot=" + (slot == null ? "none" : slot.name) +
+            "; placed=" + placed +
+            "; discardedGeneratedFeeds=" + discarded + ".");
     }
 
     private static FVRQuickBeltSlot GetQuickbeltSlot(Assembly assembly, string fieldName, int fallbackIndex)
@@ -637,9 +804,9 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private static void EquipInGunGameHand(FVRPhysicalObject gun)
+    private static void EquipInGunGameHand(FVRPhysicalObject gun, Assembly assembly)
     {
-        var leftHand = ReadStaticBool("GunGame.Scripts.Options.LeftHandOption", "LeftHandModeEnabled");
+        var leftHand = ReadStaticBool(assembly, "GunGame.Scripts.Options.LeftHandOption", "LeftHandModeEnabled");
         var handIndex = leftHand ? 0 : 1;
         if (GM.CurrentMovementManager == null || GM.CurrentMovementManager.Hands == null || GM.CurrentMovementManager.Hands.Length <= handIndex)
         {
@@ -651,9 +818,9 @@ public sealed class Plugin : BaseUnityPlugin
         GM.CurrentMovementManager.Hands[handIndex].RetrieveObject(gun);
     }
 
-    private static bool ReadStaticBool(string typeName, string fieldName)
+    private static bool ReadStaticBool(Assembly assembly, string typeName, string fieldName)
     {
-        var type = AccessTools.TypeByName(typeName);
+        var type = assembly == null ? null : assembly.GetType(typeName, false);
         var field = type == null
             ? null
             : type.GetField(fieldName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
@@ -680,6 +847,23 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Trace("cleanup failed: " + exception.GetType().Name + ".");
         }
+    }
+
+    private static void ClearNativePlaceholderFeed(object progression)
+    {
+        var assembly = progression == null ? null : progression.GetType().Assembly;
+        var slot = GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0);
+        var feed = slot == null ? null : slot.CurObject;
+        if (feed == null || feed.ObjectWrapper == null ||
+            !string.Equals(feed.ObjectWrapper.ItemID, PlaceholderMagazineItemId, StringComparison.Ordinal) ||
+            !feed.m_isSpawnLock)
+        {
+            return;
+        }
+
+        feed.ForceBreakInteraction();
+        UnityEngine.Object.Destroy(feed.gameObject);
+        Trace("cleanup: removed spawn-locked native placeholder feed from Ammo slot.");
     }
 
     private void DestroyTrackedEquipment()
