@@ -144,7 +144,6 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("SpawnRandomGunRoutinePostfix", source);
         Assert.Contains("TrackRandomGunRoutine", source);
         Assert.DoesNotContain("AccessTools.TypeByName(\"GunGame.Scripts.Weapons.WeaponBuffer\")", source, StringComparison.Ordinal);
-        Assert.Contains("ClearNativePlaceholderFeed", source);
         Assert.Contains("DestroyGeneratedFeed", source);
         Assert.Contains("queuedProgression", source);
         Assert.Contains("directTransitionProgressionType", source);
@@ -154,9 +153,14 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("MaxRandomSpawnAttempts", source);
         Assert.Contains("not retrying an unfinished routine", source);
         Assert.Contains("rejected random attempt", source);
-        Assert.Contains("FVRObject.GetRandomAmmoObject(gun.ObjectWrapper)", source);
+        Assert.Contains("FindLoadedAttachedFeed", source);
+        Assert.Contains("native random routine created no compatible loaded", source);
         Assert.Contains("randomGun.GetComponent<FVRFireArm>()", source);
         Assert.Contains("RestoreNativeFallback", source);
+        Assert.Contains("nativeFallbackRequired", source);
+        Assert.Contains("abandonedRandomAttempt", source);
+        Assert.Contains("late native random routine result after timeout", source);
+        Assert.Contains("CandidateFeeds", source);
         Assert.Contains("speedloader.ReloadClipWithType", source);
         Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
@@ -167,6 +171,8 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("native DestroyOldEq ran after a validated random loadout", source);
         Assert.Contains("IsReusableFeed", source);
         Assert.Contains("preservedNativeLooseFeeds=true", source);
+        Assert.DoesNotContain("ClearNativePlaceholderFeed", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetRandomAmmoObject", source, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadFirstCompatibleFeed", source, StringComparison.Ordinal);
         Assert.DoesNotContain("SameFeedType", source, StringComparison.Ordinal);
         Assert.DoesNotContain("foreach (var item in spawned)", source, StringComparison.Ordinal);

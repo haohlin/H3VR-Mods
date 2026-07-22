@@ -16,7 +16,6 @@ namespace HLin.GunGameCursedRandom;
 public sealed class Plugin : BaseUnityPlugin
 {
     private const string CursedProfileName = "HLin-Random Cursed";
-    private const string PlaceholderMagazineItemId = "MagazineG17Standard";
     private const string RandomGunMethodName = "BTN_TryToSpawnRandomGun";
     private const string RandomGunFieldName = "CurrentlySpawnedRandomGun";
     private const int RandomGunWaitFrames = 120;
@@ -33,11 +32,13 @@ public sealed class Plugin : BaseUnityPlugin
     private Component queuedProgression;
     private Type directTransitionProgressionType;
     private RandomSpawnAttempt activeRandomAttempt;
+    private RandomSpawnAttempt abandonedRandomAttempt;
     private bool replacementQueued;
     private bool queuedTransition;
     private bool spawningRandomGun;
     private bool missingSpawnerLogged;
     private bool nativeFallbackPending;
+    private bool nativeFallbackRequired;
     private bool randomGunRoutineHookInstalled;
     private bool weaponBufferSpawnHookInstalled;
 
@@ -246,7 +247,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var progression = FindProgressionForWeaponBuffer(__instance);
-        if (progression == null || !plugin.TryStartRandomSpawn(progression))
+        if (progression == null || !plugin.TryStartRandomSpawn(progression, true))
         {
             Trace("WeaponBuffer.SpawnAsync direct hook could not start random spawn; keeping native fallback.");
             return true;
@@ -303,6 +304,12 @@ public sealed class Plugin : BaseUnityPlugin
         }
         finally
         {
+            var plugin = instance;
+            if (plugin != null)
+            {
+                plugin.OnRandomGunRoutineSettled(attempt);
+            }
+
             if (disposable != null)
             {
                 disposable.Dispose();
@@ -329,6 +336,7 @@ public sealed class Plugin : BaseUnityPlugin
             nativeFallbackPending = false;
             directTransitionProgressionType = null;
             Trace("WeaponChangedEvent acknowledged native fallback after exhausted random attempts.");
+            StartQueuedReplacement();
             return;
         }
 
@@ -363,7 +371,7 @@ public sealed class Plugin : BaseUnityPlugin
             yield break;
         }
 
-        if (!TryStartRandomSpawn(progression))
+        if (!TryStartRandomSpawn(progression, false))
         {
             Logger.LogWarning(CursedProfileName + " random API unavailable; keeping current profile equipment.");
             StartQueuedReplacement();
@@ -372,7 +380,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void StartQueuedReplacement()
     {
-        if (!queuedTransition || replacementQueued)
+        if (!queuedTransition || replacementQueued || nativeFallbackPending)
         {
             return;
         }
@@ -458,12 +466,19 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private bool TryStartRandomSpawn(object progression)
+    private bool TryStartRandomSpawn(object progression, bool requireNativeFallback)
     {
         if (spawningRandomGun)
         {
             Logger.LogWarning("GunGame Cursed Random trace: random spawn already pending; suppressing duplicate GunGame profile spawn.");
             return true;
+        }
+
+        if (abandonedRandomAttempt != null)
+        {
+            Logger.LogWarning(
+                "GunGame Cursed Random trace: native random routine is still finishing after a timeout; keeping GunGame profile equipment until it settles.");
+            return false;
         }
 
         var spawners = UnityEngine.Object.FindObjectsOfType<ItemSpawnerV2>();
@@ -506,6 +521,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         missingSpawnerLogged = false;
+        nativeFallbackRequired = requireNativeFallback;
         spawningRandomGun = true;
         StartCoroutine(FinishRandomSpawn(progression, spawner));
         return true;
@@ -521,7 +537,7 @@ public sealed class Plugin : BaseUnityPlugin
                 Logger.LogWarning(
                     "GunGame Cursed Random trace: random attempt " + number + "/" + MaxRandomSpawnAttempts +
                     " did not start; preserving native GunGame equipment.");
-                CompletePendingRandomSpawn();
+                FailRandomSpawn(progression, "native random API did not start");
                 yield break;
             }
 
@@ -534,10 +550,11 @@ public sealed class Plugin : BaseUnityPlugin
 
             if (!attempt.RoutineCompleted)
             {
+                abandonedRandomAttempt = attempt;
                 Logger.LogWarning(
                     "GunGame Cursed Random trace: vanilla random routine timed out after " + waitedFrames +
                     " frames; preserving native GunGame equipment and not retrying an unfinished routine.");
-                CompletePendingRandomSpawn();
+                FailRandomSpawn(progression, "native random routine timed out");
                 yield break;
             }
 
@@ -545,7 +562,7 @@ public sealed class Plugin : BaseUnityPlugin
             string reason;
             if (!TryGetAttemptFirearm(spawner, attempt, out gun, out reason))
             {
-                RejectRandomAttempt(attempt, null, reason);
+                RejectRandomAttempt(attempt, reason);
                 if (number < MaxRandomSpawnAttempts)
                 {
                     yield return null;
@@ -558,16 +575,16 @@ public sealed class Plugin : BaseUnityPlugin
             if (queuedTransition)
             {
                 Trace("discarding completed random result for a newer Cursed transition.");
-                RejectRandomAttempt(attempt, gun, "superseded by a newer transition");
+                RejectRandomAttempt(attempt, "superseded by a newer transition");
                 CompletePendingRandomSpawn();
                 yield break;
             }
 
             var generatedFeeds = FindAttemptFeeds(attempt, gun);
             FVRPhysicalObject loadedFeed;
-            if (!TryLoadValidatedFeed(gun, generatedFeeds, attempt, out loadedFeed, out reason))
+            if (!TryLoadValidatedFeed(gun, generatedFeeds, out loadedFeed, out reason))
             {
-                RejectRandomAttempt(attempt, gun, reason);
+                RejectRandomAttempt(attempt, reason);
                 if (number < MaxRandomSpawnAttempts)
                 {
                     yield return null;
@@ -577,16 +594,14 @@ public sealed class Plugin : BaseUnityPlugin
                 break;
             }
 
-            ClearNativePlaceholderFeed(progression);
             DestroyGunGameEquipment(progression);
             DestroyTrackedEquipment();
             yield return null;
             if (gun == null)
             {
                 Logger.LogWarning("GunGame Cursed Random trace: accepted firearm disappeared during native cleanup; restoring GunGame equipment.");
-                DestroyGeneratedFeed(loadedFeed);
-                RestoreNativeFallback(progression);
-                CompletePendingRandomSpawn();
+                RejectRandomAttempt(attempt, "accepted firearm disappeared during native cleanup");
+                FailRandomSpawn(progression, "accepted firearm disappeared during native cleanup");
                 yield break;
             }
 
@@ -601,7 +616,7 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogError(
             "GunGame Cursed Random trace: all " + MaxRandomSpawnAttempts +
             " completed random attempts were invalid; preserving native GunGame equipment.");
-        CompletePendingRandomSpawn();
+        FailRandomSpawn(progression, "all completed random attempts were invalid");
     }
 
     private RandomSpawnAttempt StartRandomAttempt(ItemSpawnerV2 spawner, int number)
@@ -652,7 +667,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            var randomGun = randomGunField.GetValue(spawner) as GameObject;
+            var randomGun = CaptureAttemptResult(spawner, attempt);
             if (randomGun == null || randomGun == attempt.PreviousGun)
             {
                 reason = "no new random firearm result";
@@ -699,17 +714,50 @@ public sealed class Plugin : BaseUnityPlugin
         return true;
     }
 
+    private GameObject CaptureAttemptResult(ItemSpawnerV2 spawner, RandomSpawnAttempt attempt)
+    {
+        if (attempt.ResultGun != null)
+        {
+            return attempt.ResultGun;
+        }
+
+        var result = spawner == null || randomGunField == null ? null : randomGunField.GetValue(spawner) as GameObject;
+        if (result == null || result == attempt.PreviousGun || !ResultBelongsToAttempt(result, attempt))
+        {
+            return result;
+        }
+
+        attempt.ResultGun = result;
+        return result;
+    }
+
+    private static bool ResultBelongsToAttempt(GameObject result, RandomSpawnAttempt attempt)
+    {
+        var physicalObject = result == null ? null : result.GetComponent<FVRPhysicalObject>();
+        return physicalObject != null && physicalObject.ObjectWrapper != null && attempt.ExpectedFirearm != null &&
+               string.Equals(physicalObject.ObjectWrapper.ItemID, attempt.ExpectedFirearm.ItemID, StringComparison.Ordinal);
+    }
+
     private static List<FVRPhysicalObject> FindAttemptFeeds(RandomSpawnAttempt attempt, FVRFireArm gun)
     {
-        return CapturePhysicalObjectsList()
+        var resultRoot = attempt.ResultGun;
+        foreach (var feed in CapturePhysicalObjectsList()
             .Where(item => item != null &&
                            item != gun &&
                            !attempt.BeforePhysicalObjectIds.Contains(item.GetInstanceID()) &&
                            IsNearSpawnerSmallPoint(attempt.Spawner, item) &&
-                           !item.transform.IsChildOf(gun.transform) &&
+                           (resultRoot == null || !item.transform.IsChildOf(resultRoot.transform)) &&
                            IsReusableFeed(item))
             .OrderBy(FeedSortOrder)
-            .ToList();
+            .ToList())
+        {
+            if (!attempt.CandidateFeeds.Contains(feed))
+            {
+                attempt.CandidateFeeds.Add(feed);
+            }
+        }
+
+        return attempt.CandidateFeeds;
     }
 
     private static bool IsNearSpawnerSmallPoint(ItemSpawnerV2 spawner, FVRPhysicalObject item)
@@ -726,7 +774,6 @@ public sealed class Plugin : BaseUnityPlugin
     private bool TryLoadValidatedFeed(
         FVRFireArm gun,
         IEnumerable<FVRPhysicalObject> generatedFeeds,
-        RandomSpawnAttempt attempt,
         out FVRPhysicalObject loadedFeed,
         out string reason)
     {
@@ -739,64 +786,30 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        var resolvedFeed = SpawnVanillaCompatibleFeed(gun, attempt, out reason);
-        if (resolvedFeed != null && TryLoadFeed(gun, resolvedFeed, out reason))
+        var attachedFeed = FindLoadedAttachedFeed(gun);
+        if (attachedFeed != null)
         {
-            loadedFeed = resolvedFeed;
+            loadedFeed = attachedFeed;
+            reason = null;
+            Trace("using vanilla-loaded attached feed=" + NameOf(attachedFeed) + "; gun=" + NameOf(gun) + ".");
             return true;
         }
 
         loadedFeed = null;
         if (string.IsNullOrEmpty(reason))
         {
-            reason = "no compatible magazine, clip, speedloader, or cartridge";
+            reason = "native random routine created no compatible loaded magazine, clip, speedloader, or cartridge";
         }
 
         return false;
     }
 
-    private static FVRPhysicalObject SpawnVanillaCompatibleFeed(
-        FVRFireArm gun,
-        RandomSpawnAttempt attempt,
-        out string reason)
+    private static FVRPhysicalObject FindLoadedAttachedFeed(FVRFireArm gun)
     {
-        reason = null;
-        try
-        {
-            var feedObject = gun == null || gun.ObjectWrapper == null
-                ? null
-                : FVRObject.GetRandomAmmoObject(gun.ObjectWrapper);
-            if (feedObject == null || !IsFeedCategory(feedObject.Category.ToString()))
-            {
-                reason = "vanilla ammo resolver returned no supported feed";
-                return null;
-            }
-
-            var spawnedObject = UnityEngine.Object.Instantiate(
-                feedObject.GetGameObject(),
-                gun.transform.position + Vector3.up * 0.2f,
-                gun.transform.rotation);
-            var feed = spawnedObject == null ? null : spawnedObject.GetComponent<FVRPhysicalObject>();
-            if (!IsReusableFeed(feed))
-            {
-                if (spawnedObject != null)
-                {
-                    UnityEngine.Object.Destroy(spawnedObject);
-                }
-
-                reason = "vanilla ammo resolver produced an invalid feed object";
-                return null;
-            }
-
-            attempt.OwnedFeeds.Add(feed);
-            Trace("feed setup: created compatible fallback feed=" + NameOf(feed) + ".");
-            return feed;
-        }
-        catch (Exception exception)
-        {
-            reason = "vanilla ammo resolver failed: " + exception.GetType().Name;
-            return null;
-        }
+        return gun == null
+            ? null
+            : gun.GetComponentsInChildren<FVRPhysicalObject>()
+                .FirstOrDefault(feed => IsReusableFeed(feed) && IsLoadedFeed(gun, feed));
     }
 
     private static bool TryLoadFeed(FVRFireArm gun, FVRPhysicalObject feed, out string reason)
@@ -888,22 +901,46 @@ public sealed class Plugin : BaseUnityPlugin
         return false;
     }
 
-    private void RejectRandomAttempt(RandomSpawnAttempt attempt, FVRFireArm gun, string reason)
+    private static bool IsLoadedFeed(FVRFireArm gun, FVRPhysicalObject feed)
     {
-        Logger.LogWarning(
-            "GunGame Cursed Random trace: rejected random attempt " + attempt.Number + "/" +
-            MaxRandomSpawnAttempts + "; gun=" + NameOf(gun) + "; reason=" + reason + ".");
-        if (gun != null)
+        var magazine = feed as FVRFireArmMagazine;
+        if (magazine != null)
         {
-            DestroyGeneratedFeed(gun);
+            return magazine.FireArm == gun && gun.Magazine == magazine && magazine.m_numRounds > 0;
         }
 
-        foreach (var feed in attempt.OwnedFeeds)
+        var clip = feed as FVRFireArmClip;
+        if (clip != null)
         {
-            if (feed != null && (gun == null || feed.gameObject != gun.gameObject))
+            return clip.FireArm == gun && clip.m_numRounds > 0;
+        }
+
+        var round = feed as FVRFireArmRound;
+        return round != null && gun.GetChambers().Any(chamber => chamber != null && chamber.GetRound() == round);
+    }
+
+    private void RejectRandomAttempt(RandomSpawnAttempt attempt, string reason)
+    {
+        CaptureAttemptResult(attempt.Spawner, attempt);
+        if (attempt.ResultGun != null)
+        {
+            FindAttemptFeeds(attempt, attempt.ResultGun.GetComponent<FVRFireArm>());
+        }
+        Logger.LogWarning(
+            "GunGame Cursed Random trace: rejected random attempt " + attempt.Number + "/" +
+            MaxRandomSpawnAttempts + "; gun=" + NameOf(attempt.ResultGun) + "; reason=" + reason + ".");
+        var resultGun = attempt.ResultGun;
+        foreach (var feed in attempt.CandidateFeeds)
+        {
+            if (feed != null && (resultGun == null || !feed.transform.IsChildOf(resultGun.transform)))
             {
                 DestroyGeneratedFeed(feed);
             }
+        }
+
+        if (resultGun != null)
+        {
+            DestroyGeneratedObject(resultGun);
         }
     }
 
@@ -930,6 +967,22 @@ public sealed class Plugin : BaseUnityPlugin
 
         item.ForceBreakInteraction();
         UnityEngine.Object.Destroy(item.gameObject);
+    }
+
+    private static void DestroyGeneratedObject(GameObject item)
+    {
+        if (item == null)
+        {
+            return;
+        }
+
+        var physicalObject = item.GetComponent<FVRPhysicalObject>();
+        if (physicalObject != null)
+        {
+            physicalObject.ForceBreakInteraction();
+        }
+
+        UnityEngine.Object.Destroy(item);
     }
 
     private static bool IsFeed(FVRPhysicalObject item)
@@ -1197,10 +1250,43 @@ public sealed class Plugin : BaseUnityPlugin
         spawningRandomGun = false;
         directTransitionProgressionType = null;
         activeRandomAttempt = null;
+        nativeFallbackRequired = false;
+        if (!nativeFallbackPending)
+        {
+            StartQueuedReplacement();
+        }
+    }
+
+    private void FailRandomSpawn(object progression, string reason)
+    {
+        Trace("preserving GunGame equipment after random spawn failure; reason=" + reason + "; directFallback=" + nativeFallbackRequired + ".");
+        if (nativeFallbackRequired)
+        {
+            RestoreNativeFallback(progression);
+        }
+
+        CompletePendingRandomSpawn();
+    }
+
+    private void OnRandomGunRoutineSettled(RandomSpawnAttempt attempt)
+    {
+        if (abandonedRandomAttempt != attempt)
+        {
+            return;
+        }
+
+        CaptureAttemptResult(attempt.Spawner, attempt);
+        if (attempt.ResultGun != null)
+        {
+            FindAttemptFeeds(attempt, attempt.ResultGun.GetComponent<FVRFireArm>());
+        }
+        RejectRandomAttempt(attempt, "late native random routine result after timeout");
+        abandonedRandomAttempt = null;
+        Trace("late native random routine settled; random generation re-enabled for later GunGame transitions.");
         StartQueuedReplacement();
     }
 
-    private void RestoreNativeFallback(object progression)
+    private bool RestoreNativeFallback(object progression)
     {
         try
         {
@@ -1214,42 +1300,20 @@ public sealed class Plugin : BaseUnityPlugin
                     null);
             if (spawnAndEquip == null)
             {
-                Trace("native fallback unavailable after accepted random firearm cleanup.");
-                return;
+                Trace("native fallback unavailable after random spawn failure.");
+                return false;
             }
 
             nativeFallbackPending = true;
             spawnAndEquip.Invoke(progression, new object[] { false });
-            Trace("requested one native GunGame fallback after accepted random firearm cleanup failure.");
+            Trace("requested one native GunGame fallback after random spawn failure.");
+            return true;
         }
         catch (Exception exception)
         {
             nativeFallbackPending = false;
             Trace("native fallback failed; reason=" + exception.GetType().Name + ".");
-        }
-    }
-
-    private static void ClearNativePlaceholderFeed(object progression)
-    {
-        try
-        {
-            var assembly = progression == null ? null : progression.GetType().Assembly;
-            var slot = GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0);
-            var feed = slot == null ? null : slot.CurObject;
-            if (feed == null || feed.ObjectWrapper == null ||
-                !string.Equals(feed.ObjectWrapper.ItemID, PlaceholderMagazineItemId, StringComparison.Ordinal) ||
-                !feed.m_isSpawnLock)
-            {
-                return;
-            }
-
-            feed.ForceBreakInteraction();
-            UnityEngine.Object.Destroy(feed.gameObject);
-            Trace("cleanup: removed spawn-locked native placeholder feed from Ammo slot.");
-        }
-        catch (Exception exception)
-        {
-            Trace("cleanup: native placeholder feed skipped; reason=" + exception.GetType().Name + ".");
+            return false;
         }
     }
 
@@ -1339,12 +1403,13 @@ public sealed class Plugin : BaseUnityPlugin
 
     private sealed class RandomSpawnAttempt
     {
-        public readonly List<FVRPhysicalObject> OwnedFeeds = new List<FVRPhysicalObject>();
+        public readonly List<FVRPhysicalObject> CandidateFeeds = new List<FVRPhysicalObject>();
         public HashSet<int> BeforePhysicalObjectIds;
         public string Error;
         public FVRObject ExpectedFirearm;
         public int Number;
         public GameObject PreviousGun;
+        public GameObject ResultGun;
         public bool RoutineCompleted;
         public bool RoutineObserved;
         public ItemSpawnerV2 Spawner;
