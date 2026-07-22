@@ -16,6 +16,8 @@
 - Fill supported magazines, clips, and speedloaders safely; preserve an
   already-loaded generated feed; leave one matching spawn-locked spare only in
   an empty configured Ammo or Extra slot.
+- Suppress every native `WeaponBuffer.SpawnAsync` call during a pending Cursed
+  transition, then clear native GunGame equipment before handing over random gun.
 
 ## 1.0.0
 

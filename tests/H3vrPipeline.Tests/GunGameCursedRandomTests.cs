@@ -108,6 +108,8 @@ public sealed class GunGameCursedRandomTests
 
         Assert.Contains("WeaponBufferSpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source);
         Assert.Contains("suppressing native placeholder", source);
+        Assert.Contains("suppressing duplicate native placeholder during pending random spawn", source);
+        Assert.Contains("queued post-spawn fallback; keeping native fallback", source);
         Assert.Contains("WeaponChangedEvent found no pending direct random spawn; using post-spawn fallback.", source);
         Assert.Contains("SpawnQuickbeltSpare", source);
         Assert.Contains("feedObject.GetGameObject()", source);
@@ -149,6 +151,8 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
         Assert.Contains("TryGetValue", source);
+        Assert.Contains("DestroyGunGameEquipment(progression);\n        ClearNativePlaceholderFeed(progression);", source.Replace("\r\n", "\n"));
+        Assert.Contains("quickbelt: candidates=[", source);
     }
 
     [Fact]

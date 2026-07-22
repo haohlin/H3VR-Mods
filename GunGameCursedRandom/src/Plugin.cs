@@ -184,14 +184,21 @@ public sealed class Plugin : BaseUnityPlugin
             return true;
         }
 
-        if (plugin.spawningRandomGun || plugin.replacementQueued)
+        if (plugin.spawningRandomGun)
         {
-            Trace("WeaponBuffer.SpawnAsync direct hook found a pending random spawn; keeping native fallback.");
+            __result = EmptyEnumerator();
+            Trace("WeaponBuffer.SpawnAsync suppressing duplicate native placeholder during pending random spawn.");
+            return false;
+        }
+
+        if (plugin.replacementQueued)
+        {
+            Trace("WeaponBuffer.SpawnAsync direct hook found queued post-spawn fallback; keeping native fallback.");
             return true;
         }
 
         var progression = FindProgressionForWeaponBuffer(__instance);
-        if (progression == null || !plugin.TryStartRandomSpawn(progression, false))
+        if (progression == null || !plugin.TryStartRandomSpawn(progression))
         {
             Trace("WeaponBuffer.SpawnAsync direct hook could not start random spawn; keeping native fallback.");
             return true;
@@ -248,7 +255,7 @@ public sealed class Plugin : BaseUnityPlugin
             yield break;
         }
 
-        if (!TryStartRandomSpawn(progression, true))
+        if (!TryStartRandomSpawn(progression))
         {
             Logger.LogWarning(CursedProfileName + " random API unavailable; keeping current profile equipment.");
             StartQueuedReplacement();
@@ -343,7 +350,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private bool TryStartRandomSpawn(object progression, bool removeNativeEquipment)
+    private bool TryStartRandomSpawn(object progression)
     {
         if (spawningRandomGun)
         {
@@ -397,7 +404,7 @@ public sealed class Plugin : BaseUnityPlugin
                 "; physicalObjectsBefore=" + before.Count + ".");
             randomGunMethod.Invoke(spawner, null);
             Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(randomGunField.GetValue(spawner) as GameObject) + ".");
-            StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before, removeNativeEquipment));
+            StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before));
             return true;
         }
         catch (Exception exception)
@@ -412,8 +419,7 @@ public sealed class Plugin : BaseUnityPlugin
         object progression,
         ItemSpawnerV2 spawner,
         GameObject previousGun,
-        HashSet<int> before,
-        bool removeNativeEquipment)
+        HashSet<int> before)
     {
         GameObject randomGun = null;
         var waitedFrames = 0;
@@ -478,11 +484,8 @@ public sealed class Plugin : BaseUnityPlugin
             yield break;
         }
 
-        if (removeNativeEquipment)
-        {
-            DestroyGunGameEquipment(progression);
-            ClearNativePlaceholderFeed(progression);
-        }
+        DestroyGunGameEquipment(progression);
+        ClearNativePlaceholderFeed(progression);
 
         DestroyTrackedEquipment();
         yield return null;
@@ -718,6 +721,10 @@ public sealed class Plugin : BaseUnityPlugin
             .Where(slot => slot != null)
             .Distinct()
             .ToList();
+        Trace(
+            "quickbelt: candidates=[" +
+            string.Join(", ", candidateSlots.Select(candidate => candidate.name + "=" + NameOf(candidate.CurObject)).ToArray()) +
+            "].");
         var slot = candidateSlots.FirstOrDefault(candidate => candidate.CurObject == null);
         var generatedFeeds = feeds.Where(feed => feed != null && feed != loadedFeed).ToList();
         var spare = generatedFeeds.FirstOrDefault(feed => SameFeedType(feed, loadedFeed));

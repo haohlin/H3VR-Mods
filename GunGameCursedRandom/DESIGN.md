@@ -24,7 +24,8 @@ GunGame profile loader
 
 Native GunGame WeaponBuffer.SpawnAsync
   -> Cursed prefix starts ItemSpawnerV2 BTN_TryToSpawnRandomGun
-  -> returns empty native coroutine; no placeholder G17 or G17 magazine
+  -> every SpawnAsync call during that pending transition returns empty; no G17
+     gun or magazine reaches player hand or selected Ammo slot
   -> wait for vanilla random result
   -> remove previous Cursed gun and only spare feeds still in Cursed-managed slots
   -> load, hand-equip, clone one loaded feed through its vanilla FVRObject wrapper if no spare exists
@@ -48,6 +49,9 @@ Native GunGame WeaponBuffer.SpawnAsync
   never select a duplicate disabled GunGame assembly through global lookup.
 - A `WeaponChangedEvent` caused by a direct interception only acknowledges that
   same pending transition. Later promotions remain eligible for generation.
+- Every `WeaponBuffer.SpawnAsync` call belonging to a pending direct Cursed
+  transition is suppressed. Native GunGame equipment cleanup runs before the
+  random firearm is handed to player.
 - Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
   by Cursed are removed on transition. Moved feeds and every other quickbelt
   object remain player-owned.
@@ -71,6 +75,7 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Clone loaded feed from its FVRObject wrapper. | H3VR's random-gun button instantiates `FVRObject.GetGameObject()`; matching that native construction yields one compatible spare without a second weapon roll. | 2026-07-22 |
 | Bind reflection to active GunGame assembly. | BepInEx can load an older GunGame DLL beside active version; global type lookup can patch inactive `WeaponBuffer`. | 2026-07-22 |
 | Acknowledge direct transition event once. | Native `WeaponChangedEvent` can follow suppressed `SpawnAsync`; treating it as a second transition rolls and destroys an unnecessary random gun. | 2026-07-22 |
+| Suppress all pending SpawnAsync calls. | Live trace proved GunGame invokes the buffer multiple times per transition; allowing later calls creates overlapping native G17 equipment and occupies Ammo slot. | 2026-07-22 |
 
 ## Known limits / backlog
 
