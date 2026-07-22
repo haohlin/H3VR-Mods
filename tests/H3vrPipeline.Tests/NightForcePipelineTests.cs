@@ -89,6 +89,34 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Deploy_uses_a_transactional_manager_owned_r2modman_install()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var installStart = pipeline.IndexOf("function Install-R2modmanManagedPackage", StringComparison.Ordinal);
+        var auditStart = pipeline.IndexOf("function Get-R2modmanManagedDeploymentAudit", StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("function Invoke-WindowsShutdown", auditStart, StringComparison.Ordinal);
+
+        Assert.True(installStart >= 0 && auditStart > installStart && auditEnd > auditStart,
+            "Pipeline must keep the manager install and audit helpers bounded before shutdown.");
+        var install = pipeline[installStart..auditStart];
+        var audit = pipeline[auditStart..auditEnd];
+
+        Assert.Contains("Install-R2modmanManagedPackage -ModConfig $ModConfig -Package $package", pipeline,
+            StringComparison.Ordinal);
+        Assert.Contains("'AuditManagedDeployment'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("AuditManagedDeployment", wrapper, StringComparison.Ordinal);
+        Assert.Contains("mm_v2_manifest.json", install, StringComparison.Ordinal);
+        Assert.Contains("mods.yml", install, StringComparison.Ordinal);
+        Assert.Contains("enabled: true", install, StringComparison.Ordinal);
+        Assert.Contains("Assert-DirectoryPayloadMatch", install, StringComparison.Ordinal);
+        Assert.Contains("Copy-Item -LiteralPath $cacheTarget -Destination $cacheBackup", install, StringComparison.Ordinal);
+        Assert.Contains("Manager payload match: True", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", audit, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_item_spawner_rule_requires_mod_content_metadata()
     {
         var developmentSkill = File.ReadAllText(Path.Combine(

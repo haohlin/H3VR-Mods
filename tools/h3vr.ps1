@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AuditManagedDeployment', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
     [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaScopeCandidatesLocal', 'Teleport', 'RemoveWhiteOut')]
@@ -1154,32 +1154,351 @@ function Invoke-Deploy {
     }
 
     $package = New-Package $ModConfig -ReuseExistingUnityPackage:$ReuseExistingUnityPackage
-    $deployStaging = Join-Path (Join-Path $BuildRoot 'staging') ("deploy-" + $Mod)
-    Remove-Item -LiteralPath $deployStaging -Recurse -Force -ErrorAction SilentlyContinue
-    Ensure-Directory $deployStaging
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($package.ZipPath, $deployStaging)
+    $target = Install-R2modmanManagedPackage -ModConfig $ModConfig -Package $package
+    $vrReceipt = New-VrReceipt -Package $package -DeployPath $target
+    Write-Host "Deployed $Mod as an enabled manager-owned mod in the configured r2modman Default profile."
+    Write-Host 'VR receipt written.'
+}
 
-    $target = Join-Path $EnvironmentConfig.r2modman.pluginsRoot $ModConfig.deploymentFolder
-    $backupRoot = Join-Path (Join-Path $BuildRoot 'receipts') 'backups'
-    Ensure-Directory $backupRoot
-    if (Test-Path -LiteralPath $target) {
-        Copy-Item -LiteralPath $target -Destination (Join-Path $backupRoot ("$($ModConfig.deploymentFolder)-" + (Get-Date).ToString('yyyyMMdd-HHmmss'))) -Recurse
-        Remove-Item -LiteralPath $target -Recurse -Force
+function Get-R2modmanProfileRoot {
+    $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
+    if (-not (Test-Path -LiteralPath $pluginsRoot -PathType Container)) {
+        throw 'Configured r2modman Default profile plugin root is missing.'
     }
-    Ensure-Directory $target
 
-    if ($ModConfig.layout -eq 'legacy-flat') {
-        Copy-Item -Path (Join-Path $deployStaging '*') -Destination $target -Recurse -Force
+    $bepInExRoot = Split-Path -Parent $pluginsRoot
+    $profileRoot = Split-Path -Parent $bepInExRoot
+    if ((Split-Path -Leaf $bepInExRoot) -ne 'BepInEx' -or -not (Test-Path -LiteralPath $profileRoot -PathType Container)) {
+        throw 'Configured r2modman Default profile layout is invalid.'
+    }
+
+    return $profileRoot
+}
+
+function Get-R2modmanManagedName {
+    param([object]$ModConfig)
+
+    return "$($ModConfig.namespace)-$($ModConfig.packageName)"
+}
+
+function ConvertTo-YamlScalar {
+    param([AllowEmptyString()][string]$Value)
+
+    return ($Value | ConvertTo-Json -Compress)
+}
+
+function Get-ObjectStringProperty {
+    param(
+        [object]$Value,
+        [string]$Name
+    )
+
+    $property = $Value.PSObject.Properties[$Name]
+    if ($null -eq $property -or $null -eq $property.Value) {
+        return [string]::Empty
+    }
+
+    return [string]$property.Value
+}
+
+function Get-DirectoryFileMap {
+    param(
+        [string]$Root,
+        [string[]]$ExcludeRelativePaths = @()
+    )
+
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
+    $prefix = $resolvedRoot + [IO.Path]::DirectorySeparatorChar
+    $files = [ordered]@{}
+    foreach ($file in @(Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse -Force | Sort-Object FullName)) {
+        $relative = $file.FullName.Substring($prefix.Length).Replace('\', '/')
+        if ($relative -in $ExcludeRelativePaths) {
+            continue
+        }
+        $files[$relative] = $file.FullName
+    }
+
+    return ,$files
+}
+
+function Assert-DirectoryPayloadMatch {
+    param(
+        [string]$ExpectedRoot,
+        [string]$ActualRoot,
+        [string[]]$ExpectedExcludedRelativePaths = @()
+    )
+
+    $expected = Get-DirectoryFileMap -Root $ExpectedRoot -ExcludeRelativePaths $ExpectedExcludedRelativePaths
+    $actual = Get-DirectoryFileMap $ActualRoot
+    if ($expected.Count -ne $actual.Count) {
+        throw "Managed payload file count differs: expected $($expected.Count), got $($actual.Count)."
+    }
+
+    foreach ($entry in $expected.GetEnumerator()) {
+        if (-not $actual.Contains($entry.Key)) {
+            throw "Managed payload file is missing: $($entry.Key)"
+        }
+        if ((Get-FileSha256 $entry.Value) -ne (Get-FileSha256 $actual[$entry.Key])) {
+            throw "Managed payload hash differs: $($entry.Key)"
+        }
+    }
+}
+
+function New-R2modmanManagedRecord {
+    param(
+        [string]$ManagedName,
+        [object]$PackageManifest,
+        [string]$PackageVersion,
+        [long]$InstalledAt
+    )
+
+    $versionMatch = [regex]::Match($PackageVersion, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$')
+    if (-not $versionMatch.Success) {
+        throw "Manager deployment requires a three-part package version, got '$PackageVersion'."
+    }
+
+    $dependencies = @()
+    $dependencyProperty = $PackageManifest.PSObject.Properties['dependencies']
+    if ($null -ne $dependencyProperty -and $null -ne $dependencyProperty.Value) {
+        $dependencies = @($dependencyProperty.Value | ForEach-Object { [string]$_ })
+    }
+
+    $dependencyYaml = if ($dependencies.Count -eq 0) {
+        '  dependencies: []'
     }
     else {
-        $payloadRoot = Join-Path $deployStaging ("BepInEx\\plugins\\" + $ModConfig.deploymentFolder)
-        Copy-Item -Path (Join-Path $payloadRoot '*') -Destination $target -Recurse -Force
+        "  dependencies:`r`n" + (($dependencies | ForEach-Object { '    - ' + (ConvertTo-YamlScalar $_) }) -join "`r`n")
     }
 
-    $vrReceipt = New-VrReceipt -Package $package -DeployPath $target
-    Write-Host "Deployed $Mod to the configured r2modman Default profile."
-    Write-Host 'VR receipt written.'
+    $authorName = $ManagedName.Split('-', 2)[0]
+    $displayName = Get-ObjectStringProperty -Value $PackageManifest -Name 'name'
+    $description = Get-ObjectStringProperty -Value $PackageManifest -Name 'description'
+    $websiteUrl = Get-ObjectStringProperty -Value $PackageManifest -Name 'website_url'
+    return @"
+- manifestVersion: 1
+  name: $(ConvertTo-YamlScalar $ManagedName)
+  authorName: $(ConvertTo-YamlScalar $authorName)
+  websiteUrl: $(ConvertTo-YamlScalar $websiteUrl)
+  displayName: $(ConvertTo-YamlScalar $displayName)
+  description: $(ConvertTo-YamlScalar $description)
+  gameVersion: ''
+  networkMode: ''
+  packageType: ''
+  installMode: ''
+  installedAtTime: $InstalledAt
+  loaders: []
+$dependencyYaml
+  incompatibilities: []
+  optionalDependencies: []
+  versionNumber:
+    major: $($versionMatch.Groups['major'].Value)
+    minor: $($versionMatch.Groups['minor'].Value)
+    patch: $($versionMatch.Groups['patch'].Value)
+  enabled: true
+  onlineSource: false
+"@
+}
+
+function Remove-R2modmanManagedRecord {
+    param(
+        [string]$Original,
+        [string]$ManagedName
+    )
+
+    $recordPattern = '(?ms)^- manifestVersion:.*?(?=^- manifestVersion:|\z)'
+    $namePattern = '(?m)^  name:\s*(?:"' + [regex]::Escape($ManagedName) + '"|' + [regex]::Escape($ManagedName) + ')\s*$'
+    $remaining = [regex]::Replace($Original, $recordPattern, {
+            param($match)
+            if ($match.Value -match $namePattern) {
+                return [string]::Empty
+            }
+            return $match.Value
+        })
+    if ($remaining -match $namePattern) {
+        throw 'Existing r2modman record has an unsupported layout; refusing replacement.'
+    }
+
+    return $remaining.TrimEnd()
+}
+
+function New-R2modmanCacheManifest {
+    param(
+        [string]$ManagedName,
+        [object]$PackageManifest,
+        [string]$PackageVersion,
+        [long]$InstalledAt
+    )
+
+    $versionMatch = [regex]::Match($PackageVersion, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$')
+    $dependencies = @()
+    $dependencyProperty = $PackageManifest.PSObject.Properties['dependencies']
+    if ($null -ne $dependencyProperty -and $null -ne $dependencyProperty.Value) {
+        $dependencies = @($dependencyProperty.Value | ForEach-Object { [string]$_ })
+    }
+
+    return [ordered]@{
+        manifestVersion = 1
+        name = $ManagedName
+        authorName = $ManagedName.Split('-', 2)[0]
+        websiteUrl = Get-ObjectStringProperty -Value $PackageManifest -Name 'website_url'
+        displayName = Get-ObjectStringProperty -Value $PackageManifest -Name 'name'
+        description = Get-ObjectStringProperty -Value $PackageManifest -Name 'description'
+        gameVersion = ''
+        networkMode = ''
+        packageType = ''
+        installMode = ''
+        installedAtTime = $InstalledAt
+        loaders = @()
+        dependencies = $dependencies
+        incompatibilities = @()
+        optionalDependencies = @()
+        versionNumber = [ordered]@{
+            major = [int]$versionMatch.Groups['major'].Value
+            minor = [int]$versionMatch.Groups['minor'].Value
+            patch = [int]$versionMatch.Groups['patch'].Value
+        }
+        enabled = $true
+        icon = ''
+        onlineSource = $false
+    }
+}
+
+function Install-R2modmanManagedPackage {
+    param(
+        [object]$ModConfig,
+        [object]$Package
+    )
+
+    $profileRoot = Get-R2modmanProfileRoot
+    $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
+    $modsFile = Join-Path $profileRoot 'mods.yml'
+    if (-not (Test-Path -LiteralPath $modsFile -PathType Leaf)) {
+        throw 'Configured r2modman Default profile mods.yml is missing.'
+    }
+
+    $managedName = Get-R2modmanManagedName $ModConfig
+    $managerRoot = Split-Path -Parent (Split-Path -Parent $profileRoot)
+    $cacheTarget = Join-Path (Join-Path (Join-Path $managerRoot 'cache') $managedName) $Package.Version
+    $profileTarget = Join-Path $pluginsRoot $ModConfig.deploymentFolder
+    $stagingRoot = Join-Path (Join-Path $BuildRoot 'staging') ("managed-install-" + $Mod)
+    $payloadStaging = Join-Path $stagingRoot 'payload'
+    $backupRoot = Join-Path (Join-Path (Join-Path $BuildRoot 'receipts') 'backups') 'manager'
+    $timestamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
+    $cacheBackup = Join-Path $backupRoot ("$managedName-$timestamp-cache")
+    $profileBackup = Join-Path $backupRoot ("$managedName-$timestamp-profile")
+    $modsBackup = Join-Path $backupRoot ("$managedName-$timestamp-mods.yml")
+
+    Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Ensure-Directory $payloadStaging
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($Package.ZipPath, $payloadStaging)
+
+    $packageManifestPath = Join-Path $payloadStaging 'manifest.json'
+    if (-not (Test-Path -LiteralPath $packageManifestPath -PathType Leaf)) {
+        throw 'Manager package payload is missing manifest.json.'
+    }
+    $packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw | ConvertFrom-Json
+    if ([string]::IsNullOrWhiteSpace((Get-ObjectStringProperty -Value $packageManifest -Name 'name')) -or
+        (Get-ObjectStringProperty -Value $packageManifest -Name 'version_number') -ne $Package.Version) {
+        throw 'Manager package manifest identity does not match the validated package.'
+    }
+    foreach ($required in @('README.md', 'icon.png')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $payloadStaging $required) -PathType Leaf)) {
+            throw "Manager package payload is missing $required."
+        }
+    }
+
+    Ensure-Directory $backupRoot
+    $originalMods = [IO.File]::ReadAllText($modsFile)
+    $installedAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $record = New-R2modmanManagedRecord -ManagedName $managedName -PackageManifest $packageManifest -PackageVersion $Package.Version -InstalledAt $installedAt
+    $updatedMods = (Remove-R2modmanManagedRecord -Original $originalMods -ManagedName $managedName).TrimEnd() + "`r`n" + $record
+    $utf8 = New-Object Text.UTF8Encoding($false)
+    $hadCache = Test-Path -LiteralPath $cacheTarget
+    $hadProfile = Test-Path -LiteralPath $profileTarget
+    $recordWritten = $false
+
+    try {
+        Copy-Item -LiteralPath $modsFile -Destination $modsBackup -Force
+        if ($hadCache) {
+            Copy-Item -LiteralPath $cacheTarget -Destination $cacheBackup -Recurse -Force
+            Remove-Item -LiteralPath $cacheTarget -Recurse -Force
+        }
+        if ($hadProfile) {
+            Copy-Item -LiteralPath $profileTarget -Destination $profileBackup -Recurse -Force
+            Remove-Item -LiteralPath $profileTarget -Recurse -Force
+        }
+
+        Ensure-Directory (Split-Path -Parent $cacheTarget)
+        Ensure-Directory $cacheTarget
+        Copy-Item -Path (Join-Path $payloadStaging '*') -Destination $cacheTarget -Recurse -Force
+        $cacheManifest = New-R2modmanCacheManifest -ManagedName $managedName -PackageManifest $packageManifest -PackageVersion $Package.Version -InstalledAt $installedAt
+        [IO.File]::WriteAllText((Join-Path $cacheTarget 'mm_v2_manifest.json'), ($cacheManifest | ConvertTo-Json -Depth 8), $utf8)
+
+        [IO.File]::WriteAllText($modsFile, $updatedMods, $utf8)
+        $recordWritten = $true
+
+        Ensure-Directory $profileTarget
+        Copy-Item -Path (Join-Path $payloadStaging '*') -Destination $profileTarget -Recurse -Force
+        Assert-DirectoryPayloadMatch -ExpectedRoot $payloadStaging -ActualRoot $profileTarget
+        if (-not (Test-Path -LiteralPath (Join-Path $cacheTarget 'mm_v2_manifest.json') -PathType Leaf)) {
+            throw 'Manager cache manifest was not written.'
+        }
+        $updatedText = Get-Content -LiteralPath $modsFile -Raw
+        if ($updatedText -notmatch ('(?s)name:\s*(?:"' + [regex]::Escape($managedName) + '"|' + [regex]::Escape($managedName) + ').*?enabled:\s*true')) {
+            throw 'Manager enabled record was not written.'
+        }
+    }
+    catch {
+        if ($recordWritten) {
+            [IO.File]::WriteAllText($modsFile, $originalMods, $utf8)
+        }
+        if (Test-Path -LiteralPath $cacheTarget) {
+            Remove-Item -LiteralPath $cacheTarget -Recurse -Force
+        }
+        if ($hadCache -and (Test-Path -LiteralPath $cacheBackup)) {
+            Copy-Item -LiteralPath $cacheBackup -Destination $cacheTarget -Recurse -Force
+        }
+        if (Test-Path -LiteralPath $profileTarget) {
+            Remove-Item -LiteralPath $profileTarget -Recurse -Force
+        }
+        if ($hadProfile -and (Test-Path -LiteralPath $profileBackup)) {
+            Copy-Item -LiteralPath $profileBackup -Destination $profileTarget -Recurse -Force
+        }
+        throw
+    }
+
+    Write-Host "Manager-owned package installed: $managedName $($Package.Version)."
+    return $profileTarget
+}
+
+function Get-R2modmanManagedDeploymentAudit {
+    param([object]$ModConfig)
+
+    $profileRoot = Get-R2modmanProfileRoot
+    $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
+    $version = Get-ProjectVersion $ModConfig
+    $managedName = Get-R2modmanManagedName $ModConfig
+    $managerRoot = Split-Path -Parent (Split-Path -Parent $profileRoot)
+    $cacheTarget = Join-Path (Join-Path (Join-Path $managerRoot 'cache') $managedName) $version
+    $profileTarget = Join-Path $pluginsRoot $ModConfig.deploymentFolder
+    $modsFile = Join-Path $profileRoot 'mods.yml'
+    $recordText = Get-Content -LiteralPath $modsFile -Raw
+    $recordCount = @([regex]::Matches($recordText, '(?m)^  name:\s*(?:"' + [regex]::Escape($managedName) + '"|' + [regex]::Escape($managedName) + ')\s*$')).Count
+    $enabled = $recordText -match ('(?s)name:\s*(?:"' + [regex]::Escape($managedName) + '"|' + [regex]::Escape($managedName) + ').*?enabled:\s*true')
+    $cacheManifest = Join-Path $cacheTarget 'mm_v2_manifest.json'
+
+    if ($recordCount -ne 1 -or -not $enabled -or -not (Test-Path -LiteralPath $cacheManifest -PathType Leaf) -or -not (Test-Path -LiteralPath $profileTarget -PathType Container)) {
+        throw 'Manager-owned deployment audit failed: record, cache manifest, or profile payload is missing.'
+    }
+
+    Assert-DirectoryPayloadMatch -ExpectedRoot $cacheTarget -ActualRoot $profileTarget `
+        -ExpectedExcludedRelativePaths @('mm_v2_manifest.json')
+
+    Write-Host "Manager record count: $recordCount"
+    Write-Host "Manager enabled: $enabled"
+    Write-Host 'Manager cache manifest: True'
+    Write-Host 'Manager payload match: True'
 }
 
 function Invoke-WindowsShutdown {
@@ -2184,6 +2503,7 @@ switch ($Action) {
     'SyncUnitySource' { Sync-UnityProjectSource $Query }
     'AuditItemId' { Find-InstalledItemId $Query }
     'AuditUnityDeployment' { Get-UnityDeploymentAudit (Get-ModConfig $Mod) }
+    'AuditManagedDeployment' { Get-R2modmanManagedDeploymentAudit (Get-ModConfig $Mod) }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
     'FindAssetRip' { Find-PrivateAssetRip $Query }
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }
