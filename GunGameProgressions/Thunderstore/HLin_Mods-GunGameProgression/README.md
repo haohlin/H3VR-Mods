@@ -20,12 +20,12 @@ Your last complete Modded profiles remain available after restarting H3VR. The m
 
 | Profile | Weapons | Enemies | Play style |
 | --- | --- | --- | --- |
-| Runtime 01 - Vanilla Rot | Vanilla firearms | Rotwieners only | A consistent, lower-pressure progression. |
-| Runtime 02 - Modded Rot | Currently enabled mod firearms only | Rotwieners only | Practice your active mod collection without mixing in vanilla guns. |
-| Runtime 03 - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
-| Runtime 04 - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
+| HLin - Vanilla Rot | Vanilla firearms | Rotwieners only | A consistent, lower-pressure progression. |
+| HLin - Modded Rot | Currently enabled mod firearms only | Rotwieners only | Practice your active mod collection without mixing in vanilla guns. |
+| HLin - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
+| HLin - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
 
-Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents.
+Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents. Internal Runtime file IDs remain unchanged for saved-profile compatibility.
 
 ## First Start
 

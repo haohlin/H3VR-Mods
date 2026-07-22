@@ -29,7 +29,7 @@ public static class RuntimeProfileFamily
 
     public static bool IsCompatibilityProbePoolName(string name)
     {
-        return name == "Runtime 05 - Compatibility Probe";
+        return name == "HLin - Compatibility Probe";
     }
 
     public static bool IsCompatibilityProbePoolFile(string fileName)

@@ -287,7 +287,7 @@ public static class RuntimeProfileBuilder
         {
             CreateScenarioPool(
                 "01_Vanilla_Rot",
-                "Runtime 01 - Vanilla Rot",
+                "HLin - Vanilla Rot",
                 "A Rot-only random progression using active vanilla firearms.",
                 1,
                 0,
@@ -295,7 +295,7 @@ public static class RuntimeProfileBuilder
                 rot),
             CreateScenarioPool(
                 "03_Vanilla_Mixed_Enemy",
-                "Runtime 03 - Vanilla Mixed Enemy",
+                "HLin - Vanilla Mixed Enemy",
                 "A weighted mixed-enemy progression using active vanilla firearms.",
                 1,
                 0,
@@ -307,7 +307,7 @@ public static class RuntimeProfileBuilder
         {
             pools.Insert(1, CreateScenarioPool(
                 "02_Modded_Rot",
-                "Runtime 02 - Modded Rot",
+                "HLin - Modded Rot",
                 "A Rot-only random progression using active modded firearms and compatible active feeds.",
                 1,
                 0,
@@ -315,7 +315,7 @@ public static class RuntimeProfileBuilder
                 rot));
             pools.Add(CreateScenarioPool(
                 "04_Modded_Mixed_Enemy",
-                "Runtime 04 - Modded Mixed Enemy",
+                "HLin - Modded Mixed Enemy",
                 "A weighted mixed-enemy progression using active modded firearms and active Sosigs.",
                 1,
                 0,
@@ -389,7 +389,7 @@ public static class RuntimeProfileBuilder
         {
             pools.Add(CreateScenarioPool(
                 "05_Compatibility_Probe",
-                "Runtime 05 - Compatibility Probe",
+                "HLin - Compatibility Probe",
                 "Experimental legacy-firearm profile. Uses verified feeds and safe universal optic fallback.",
                 1,
                 0,

@@ -409,6 +409,24 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
+    public void Runtime_selector_migrates_previous_profile_display_labels()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var pluginType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.Plugin"));
+        var normalize = Assert.IsAssignableFrom<MethodInfo>(pluginType.GetMethod(
+            "NormalizePersistedRuntimePoolDisplayName",
+            BindingFlags.Static | BindingFlags.NonPublic));
+        using var workspace = TestWorkspace.Create();
+        const string poolFileName = "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json";
+        var poolPath = Path.Combine(workspace.Path, poolFileName);
+        File.WriteAllText(poolPath, "{\n  \"Name\": \"Runtime 02 - Modded Rot\"\n}");
+
+        normalize.Invoke(null, new object[] { workspace.Path, poolFileName });
+
+        Assert.Contains("\"Name\": \"HLin - Modded Rot\"", File.ReadAllText(poolPath), StringComparison.Ordinal);
+    }
+
+    [WindowsH3vrFact]
     public void Runtime_profile_builder_emits_origin_split_count_progression_runtime_pools()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -492,7 +510,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "Comperator_Heavy_Tier5_LMG", false, 30), 7);
 
         var mixed = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-            .Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy");
+            .Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Mixed Enemy");
         var grouped = ReadObjects(mixed, "Enemies")
             .GroupBy(enemy => ReadString(enemy, "EnemyNameString"))
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
@@ -1199,7 +1217,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
         var modded = pools
-            .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+            .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy");
         var guns = ReadObjects(modded, "Guns");
 
         Assert.Equal("Z_RmrReflex", ReadString(guns.Single(gun => ReadString(gun, "GunName") == "RmrPistol"), "Extra"));
@@ -1234,7 +1252,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var modded = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-            .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+            .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy");
         var gun = ReadObjects(modded, "Guns").Single();
 
         Assert.Equal("ReflexCom4", ReadString(gun, "Extra"));
@@ -1272,7 +1290,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -1326,7 +1344,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
@@ -1365,7 +1383,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var useCounts = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .GroupBy(gun => ReadString(gun, "Extra"), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
@@ -1410,7 +1428,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
@@ -1465,8 +1483,8 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
 
-        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"), "Guns").Single();
-        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"), "Guns").Single();
+        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Rot"), "Guns").Single();
+        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"), "Guns").Single();
 
         Assert.Equal("VanillaVariableScope", ReadString(vanillaGun, "Extra"));
         Assert.Equal("ModdedReflex", ReadString(moddedGun, "Extra"));
@@ -1502,8 +1520,8 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
 
-        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"), "Guns").Single();
-        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"), "Guns").Single();
+        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Rot"), "Guns").Single();
+        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"), "Guns").Single();
 
         Assert.Equal("VanillaRifleMagazine", ReadString(vanillaGun, "MagName"));
         Assert.Equal("ModdedRifleMagazine", ReadString(moddedGun, "MagName"));
@@ -1535,7 +1553,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Rot"),
             "Guns");
 
         Assert.Equal(new[] { "SafeGun" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
@@ -1573,7 +1591,7 @@ public sealed class GunGameGeneratorTests
         var pools = ReadObjects(result!, "Pools");
 
         var pool = Assert.Single(pools);
-        Assert.Equal("Runtime 05 - Compatibility Probe", ReadString(pool, "Name"));
+        Assert.Equal("HLin - Compatibility Probe", ReadString(pool, "Name"));
         var gun = Assert.Single(ReadObjects(pool, "Guns"));
         Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
         Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
@@ -1676,7 +1694,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -1744,7 +1762,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
@@ -1784,7 +1802,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns");
 
         Assert.Equal(mountTypes.Length, guns.Count);
@@ -1865,7 +1883,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -1909,7 +1927,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -1954,7 +1972,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -1996,7 +2014,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .Single();
 
@@ -2035,7 +2053,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .Single();
 
@@ -2077,7 +2095,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .Single();
 
@@ -2102,7 +2120,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -2133,7 +2151,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .Single();
 
@@ -2166,7 +2184,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -2215,7 +2233,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns");
 
         Assert.Equal(
@@ -2258,7 +2276,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
@@ -2293,7 +2311,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns");
 
         Assert.Equal(new[] { "SafeFirearm" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());
@@ -2334,7 +2352,7 @@ public sealed class GunGameGeneratorTests
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
@@ -2365,7 +2383,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -2404,7 +2422,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"),
             "Guns");
         var pump = guns.Single(gun => ReadString(gun, "GunName") == "InternalPumpShotgun");
 
@@ -2445,8 +2463,8 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
         var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
 
-        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot"), "Guns").Single();
-        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"), "Guns").Single();
+        var vanillaGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Vanilla Rot"), "Guns").Single();
+        var moddedGun = ReadObjects(pools.Single(pool => ReadString(pool, "Name") == "HLin - Modded Rot"), "Guns").Single();
 
         Assert.Equal("Shell12Gauge", ReadString(vanillaGun, "MagName"));
         Assert.Equal("Shell12Gauge", ReadString(moddedGun, "MagName"));
@@ -2479,7 +2497,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns")
             .Single();
 
@@ -2513,7 +2531,7 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
         var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
-                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+                .Single(pool => ReadString(pool, "Name") == "HLin - Modded Mixed Enemy"),
             "Guns");
 
         Assert.Equal(new[] { "SafeControlFirearm" }, guns.Select(gun => ReadString(gun, "GunName")).ToArray());

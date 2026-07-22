@@ -504,6 +504,63 @@ public sealed class Plugin : BaseUnityPlugin
     {
         if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
         {
+            return "HLin - Modded Rot";
+        }
+
+        if (poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0)
+        {
+            return "HLin - Modded Mixed Enemy";
+        }
+
+#if GUNGAME_COMPATIBILITY_PROBE
+        return poolFileName != null && poolFileName.IndexOf("_05_Compatibility_Probe_", StringComparison.Ordinal) >= 0
+            ? "HLin - Compatibility Probe"
+            : string.Empty;
+#else
+        return string.Empty;
+#endif
+    }
+
+    private static void NormalizePersistedRuntimePoolDisplayName(string packagePath, string poolFileName)
+    {
+        var currentName = RuntimePoolDisplayName(poolFileName);
+        var legacyName = LegacyRuntimePoolDisplayName(poolFileName);
+        if (string.IsNullOrEmpty(packagePath) ||
+            string.IsNullOrEmpty(currentName) ||
+            string.IsNullOrEmpty(legacyName))
+        {
+            return;
+        }
+
+        try
+        {
+            var poolPath = Path.Combine(packagePath, poolFileName);
+            if (!File.Exists(poolPath))
+            {
+                return;
+            }
+
+            var contents = File.ReadAllText(poolPath);
+            var legacyProperty = "\"Name\": \"" + legacyName + "\"";
+            if (contents.IndexOf(legacyProperty, StringComparison.Ordinal) < 0)
+            {
+                return;
+            }
+
+            WriteTextAtomically(
+                poolPath,
+                contents.Replace(legacyProperty, "\"Name\": \"" + currentName + "\""));
+        }
+        catch (Exception)
+        {
+            // A read-only or externally-held legacy file remains loadable under its old label.
+        }
+    }
+
+    private static string LegacyRuntimePoolDisplayName(string poolFileName)
+    {
+        if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
+        {
             return "Runtime 02 - Modded Rot";
         }
 
@@ -567,6 +624,7 @@ public sealed class Plugin : BaseUnityPlugin
             var added = 0;
             foreach (var poolFileName in poolFileNames ?? Enumerable.Empty<string>())
             {
+                NormalizePersistedRuntimePoolDisplayName(packagePath, poolFileName);
                 var poolName = RuntimePoolDisplayName(poolFileName);
                 if (!string.IsNullOrEmpty(poolName) && existingNames.Contains(poolName))
                 {
@@ -612,11 +670,11 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static int RuntimePoolInsertionIndex(IList pools, string generatedPoolName)
     {
-        if (generatedPoolName.StartsWith("Runtime 02", StringComparison.Ordinal))
+        if (generatedPoolName.StartsWith("HLin - Modded Rot", StringComparison.Ordinal))
         {
             for (var index = 0; index < pools.Count; index++)
             {
-                if (GunGamePoolName(pools[index]).StartsWith("Runtime 03", StringComparison.Ordinal))
+                if (GunGamePoolName(pools[index]).StartsWith("HLin - Vanilla Mixed Enemy", StringComparison.Ordinal))
                 {
                     return index;
                 }

@@ -38,17 +38,18 @@ same integration; no map-specific patch is the normal design.
 
 ## Pool contract
 
-| Order | Pool | Weapons | Enemies |
+| File order | Display name | Weapons | Enemies |
 | ---: | --- | --- | --- |
-| 01 | Vanilla Rot | Live vanilla firearms | Rotwieners |
-| 02 | Modded Rot | Active mod firearms | Rotwieners |
-| 03 | Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
-| 04 | Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
-| 05 | Compatibility Probe — Debug only | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
+| 01 | HLin - Vanilla Rot | Live vanilla firearms | Rotwieners |
+| 02 | HLin - Modded Rot | Active mod firearms | Rotwieners |
+| 03 | HLin - Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
+| 04 | HLin - Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
+| 05 | HLin - Compatibility Probe — Debug only | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
 
-The names and order are compatibility contracts. The two tracked offline
-Vanilla files are the safe packaged fallback; user-specific Modded files are
-created only at runtime and are never published in a package.
+Runtime file IDs and order are compatibility contracts; player-visible labels
+are `HLin - <profile name>`. The two tracked offline Vanilla files are the safe
+packaged fallback; user-specific Modded files are created only at runtime and
+are never published in a package.
 
 Runtime 05 is an unconfirmed-worklist available only in a local Debug build.
 Release builds neither generate nor restore it, and release packaging rejects

@@ -173,7 +173,7 @@ GunGame spawn safety or have a live damage failure.
 MP5/SP5 variants. It does not change the versioned offline fallback.
 
 `compatibilityProbeFirearms` is a Debug-only test-candidate list, not a bypass.
-It builds **Runtime 05 - Compatibility Probe** only in a local Debug build and
+It builds **HLin - Compatibility Probe** (`Runtime 05` file family) only in a local Debug build and
 only from entries that pass the same firearm, feed, blacklist, and optic gates
 as Modded profiles. Release builds neither generate nor restore Runtime 05;
 their package check rejects Runtime 05 pool files. No force-include mechanism
