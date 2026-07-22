@@ -897,11 +897,35 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("if (startupWarmupScheduled)", warmupBody, StringComparison.Ordinal);
         Assert.Contains("startupWarmupScheduled = true;", warmupBody, StringComparison.Ordinal);
         Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", warmupBody, StringComparison.Ordinal);
-        Assert.Contains("RequestModdedRefresh();", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh(\"startup immediate\");", warmupBody, StringComparison.Ordinal);
         Assert.DoesNotContain("WeaponPoolLoader", warmupBody, StringComparison.Ordinal);
         Assert.DoesNotContain("FindGunGamePoolLoader", warmupBody, StringComparison.Ordinal);
         Assert.DoesNotContain("StartCoroutine(GenerateModdedPoolsAtStartup());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_emits_bounded_modded_scan_diagnostics()
+    {
+        var source = File.ReadAllText(PluginSourcePath);
+        var captureStart = source.IndexOf("private IEnumerator CaptureRuntimeMetadata(", StringComparison.Ordinal);
+        var captureEnd = source.IndexOf("private static bool HasGunGameRoundDisplayData", StringComparison.Ordinal);
+
+        Assert.Contains("private string moddedRefreshTrigger;", source, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh(\"startup immediate\");", source, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh(traceMessage);", source, StringComparison.Ordinal);
+        Assert.Contains("private void LogModdedRefreshStart(", source, StringComparison.Ordinal);
+        Assert.Contains("private void LogModdedRefreshOutcome(", source, StringComparison.Ordinal);
+        Assert.Equal(2, source.Split("GunGame Progressions debug: scan #", StringSplitOptions.None).Length - 1);
+        Assert.Contains("start; trigger=", source, StringComparison.Ordinal);
+        Assert.Contains("outcome=", source, StringComparison.Ordinal);
+        Assert.Contains("capture=", source, StringComparison.Ordinal);
+        Assert.Contains("worker=", source, StringComparison.Ordinal);
+        Assert.Contains("total=", source, StringComparison.Ordinal);
+        Assert.True(captureStart >= 0 && captureEnd > captureStart);
+        var captureBody = source.Substring(captureStart, captureEnd - captureStart);
+        Assert.DoesNotContain("LogModdedRefreshStart", captureBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("LogModdedRefreshOutcome", captureBody, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
