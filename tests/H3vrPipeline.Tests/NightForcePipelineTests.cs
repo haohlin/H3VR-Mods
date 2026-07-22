@@ -95,7 +95,7 @@ public sealed class NightForcePipelineTests
         var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
         var installStart = pipeline.IndexOf("function Install-R2modmanManagedPackage", StringComparison.Ordinal);
         var auditStart = pipeline.IndexOf("function Get-R2modmanManagedDeploymentAudit", StringComparison.Ordinal);
-        var auditEnd = pipeline.IndexOf("function Invoke-WindowsShutdown", auditStart, StringComparison.Ordinal);
+        var auditEnd = pipeline.IndexOf("function Test-R2modmanManagedRecord", auditStart, StringComparison.Ordinal);
 
         Assert.True(installStart >= 0 && auditStart > installStart && auditEnd > auditStart,
             "Pipeline must keep the manager install and audit helpers bounded before shutdown.");
