@@ -777,6 +777,8 @@ public sealed class Plugin : BaseUnityPlugin
         out FVRPhysicalObject loadedFeed,
         out string reason)
     {
+        loadedFeed = null;
+        reason = null;
         foreach (var feed in generatedFeeds)
         {
             if (TryLoadFeed(gun, feed, out reason))
@@ -795,7 +797,6 @@ public sealed class Plugin : BaseUnityPlugin
             return true;
         }
 
-        loadedFeed = null;
         if (string.IsNullOrEmpty(reason))
         {
             reason = "native random routine created no compatible loaded magazine, clip, speedloader, or cartridge";
