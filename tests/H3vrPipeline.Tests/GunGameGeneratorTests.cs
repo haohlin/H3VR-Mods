@@ -158,9 +158,9 @@ public sealed class GunGameGeneratorTests
             .ToArray();
         try
         {
-            Assert.Equal("Runtime 01 - Vanilla Rot", pools[0].RootElement.GetProperty("Name").GetString());
+            Assert.Equal("HLin- Vanilla Rot", pools[0].RootElement.GetProperty("Name").GetString());
             Assert.Equal("RW_Rot", pools[0].RootElement.GetProperty("Enemies")[0].GetProperty("EnemyNameString").GetString());
-            Assert.Equal("Runtime 03 - Vanilla Mixed Enemy", pools[1].RootElement.GetProperty("Name").GetString());
+            Assert.Equal("HLin- Vanilla Mixed Enemy", pools[1].RootElement.GetProperty("Name").GetString());
             Assert.True(pools[1].RootElement.GetProperty("Enemies").GetArrayLength() > 1);
             Assert.Equal(0, pools[1].RootElement.GetProperty("EnemyProgressionType").GetInt32());
             Assert.Equal(
@@ -433,13 +433,13 @@ public sealed class GunGameGeneratorTests
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "-55001", true, 45), 3);
 
         var pools = BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d));
-        var vanillaRot = pools.Single(pool => ReadString(pool, "Name") == "Runtime 01 - Vanilla Rot");
-        var moddedRot = pools.Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot");
-        var vanillaMixed = pools.Single(pool => ReadString(pool, "Name") == "Runtime 03 - Vanilla Mixed Enemy");
-        var moddedMixed = pools.Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
+        var vanillaRot = pools.Single(pool => ReadString(pool, "Name") == "HLin- Vanilla Rot");
+        var moddedRot = pools.Single(pool => ReadString(pool, "Name") == "HLin- Modded Rot");
+        var vanillaMixed = pools.Single(pool => ReadString(pool, "Name") == "HLin- Vanilla Mixed Enemy");
+        var moddedMixed = pools.Single(pool => ReadString(pool, "Name") == "HLin- Modded Mixed Enemy");
 
         Assert.Equal(4, pools.Count);
-        Assert.Equal("Runtime 01 - Vanilla Rot", ReadString(pools[0], "Name"));
+        Assert.Equal("HLin- Vanilla Rot", ReadString(pools[0], "Name"));
         Assert.All(pools, pool => Assert.Equal("Advanced", ReadString(pool, "WeaponPoolType")));
         Assert.Equal(new[] { "VanillaGun" }, ReadObjects(vanillaRot, "Guns").Select(gun => ReadString(gun, "GunName")).ToArray());
         Assert.Equal(
