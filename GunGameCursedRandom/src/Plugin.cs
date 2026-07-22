@@ -630,7 +630,7 @@ public sealed class Plugin : BaseUnityPlugin
             }
 
             var speedloader = feed as Speedloader;
-            if (speedloader != null && speedloader.Chambers != null && speedloader.Chambers.Length > 0 &&
+            if (speedloader != null && speedloader.Chambers != null && speedloader.Chambers.Count > 0 &&
                 TryGetDefaultRoundClass(speedloader.Chambers[0].Type, out var speedloaderRoundClass))
             {
                 speedloader.ReloadClipWithType(speedloaderRoundClass);
@@ -645,7 +645,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static bool TryGetDefaultRoundClass(FireArmRoundType roundType, out FireArmRoundClass roundClass)
     {
         roundClass = default(FireArmRoundClass);
-        if (!AM.SRoundDisplayDataDic.TryGetValue(roundType, out var display) || display.Classes == null || display.Classes.Count == 0)
+        if (!AM.SRoundDisplayDataDic.TryGetValue(roundType, out var display) || display.Classes == null || !display.Classes.Any())
         {
             return false;
         }
