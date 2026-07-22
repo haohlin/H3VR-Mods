@@ -29,6 +29,8 @@ public sealed class Plugin : BaseUnityPlugin
     private bool vanillaGenerationFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
+    private string moddedRefreshTrigger;
+    private int moddedRefreshSequence;
     private bool policyReplacementEligible;
     private bool startupWarmupScheduled;
     private Harmony harmony;
@@ -68,7 +70,7 @@ public sealed class Plugin : BaseUnityPlugin
         startupWarmupScheduled = true;
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
-        RequestModdedRefresh();
+        RequestModdedRefresh("startup immediate");
         StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested.", false));
         StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested.", false));
         StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested; policy replacement eligible.", true));
@@ -209,8 +211,9 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogInfo("GunGame Progressions trace: " + message);
     }
 
-    private void RequestModdedRefresh()
+    private void RequestModdedRefresh(string trigger)
     {
+        moddedRefreshTrigger = string.IsNullOrEmpty(trigger) ? "unspecified" : trigger;
         moddedRefreshRequested = true;
         if (!moddedRefreshRunning)
         {
@@ -230,7 +233,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Trace(traceMessage);
-        RequestModdedRefresh();
+        RequestModdedRefresh(traceMessage);
     }
 
     private IEnumerator GenerateVanillaPoolsAtStartup()
@@ -292,26 +295,37 @@ public sealed class Plugin : BaseUnityPlugin
         while (moddedRefreshRequested)
         {
             moddedRefreshRequested = false;
+            var trigger = moddedRefreshTrigger ?? "unspecified";
+            moddedRefreshTrigger = null;
+            var scanNumber = ++moddedRefreshSequence;
             var allowPolicyReplacement = policyReplacementEligible;
-            yield return StartCoroutine(GenerateModdedPoolsForRefresh(allowPolicyReplacement));
+            yield return StartCoroutine(GenerateModdedPoolsForRefresh(
+                allowPolicyReplacement,
+                scanNumber,
+                trigger));
         }
 
         moddedRefreshRunning = false;
     }
 
-    private IEnumerator GenerateModdedPoolsForRefresh(bool allowPolicyReplacement)
+    private IEnumerator GenerateModdedPoolsForRefresh(
+        bool allowPolicyReplacement,
+        int scanNumber,
+        string trigger)
     {
+        var totalTimer = Stopwatch.StartNew();
+        LogModdedRefreshStart(scanNumber, trigger);
         while (!vanillaGenerationFinished)
         {
             yield return null;
         }
 
-        var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
         Dictionary<string, FVRObject> objects;
         if (!TryGetObjectData(out objects) || objects.Count == 0)
         {
             Trace("modded capture skipped; object registry unavailable.");
+            LogModdedRefreshOutcome(scanNumber, trigger, "registry-unavailable", 0, null, null, null, totalTimer);
             yield break;
         }
 
@@ -328,15 +342,32 @@ public sealed class Plugin : BaseUnityPlugin
         if (metadataCapture == null)
         {
             Trace("modded capture failed.");
+            LogModdedRefreshOutcome(scanNumber, trigger, "capture-failed", objects.Count, null, null, null, totalTimer);
             yield break;
         }
 
         Trace("modded capture complete: " + metadataCapture.Entries.Count + " entries.");
+        RuntimeGenerationReport report = null;
+        RuntimeEnemyCapture enemyCapture = null;
         yield return StartCoroutine(GenerateModdedPoolCandidate(
             metadataCapture,
             totalTimer,
             externalLoadState == ExternalContentLoadState.Complete,
-            allowPolicyReplacement));
+            allowPolicyReplacement,
+            (generated, capturedEnemies) =>
+            {
+                report = generated;
+                enemyCapture = capturedEnemies;
+            }));
+        LogModdedRefreshOutcome(
+            scanNumber,
+            trigger,
+            report == null ? "generation-failed" : report.WasWritten ? "complete-written" : "complete-retained",
+            objects.Count,
+            metadataCapture,
+            enemyCapture,
+            report,
+            totalTimer);
     }
 
     private IEnumerator GenerateModdedPoolCandidate(
@@ -344,7 +375,7 @@ public sealed class Plugin : BaseUnityPlugin
         Stopwatch totalTimer,
         bool confirmedEmptySnapshot,
         bool allowPolicyReplacement,
-        Action<RuntimeGenerationReport> complete = null)
+        Action<RuntimeGenerationReport, RuntimeEnemyCapture> complete = null)
     {
         RuntimeEnemyCapture enemyCapture = null;
         yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
@@ -372,7 +403,7 @@ public sealed class Plugin : BaseUnityPlugin
             Logger.LogDebug("GunGame runtime pool generation failed: " + job.Error);
             if (complete != null)
             {
-                complete(null);
+                complete(null, enemyCapture);
             }
             yield break;
         }
@@ -400,18 +431,43 @@ public sealed class Plugin : BaseUnityPlugin
         {
             Logger.LogDebug("GunGame Modded candidate did not exceed the saved profile count.");
         }
-        Logger.LogDebug(
-            "GunGame runtime pools: " + report.PoolCount + " pools, " + report.EntryCount +
-            " items, " + report.EnemyCount + " Sosig types; capture " + metadataCapture.ElapsedMilliseconds +
-            "ms + enemy capture " + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) +
-            "ms + background build/write " + report.ElapsedMilliseconds + "ms, total " + totalTimer.ElapsedMilliseconds + "ms.");
         Logger.LogInfo(RuntimeStatusMessages.ModdedScanCompleted(
             totalTimer.ElapsedMilliseconds,
             metadataCapture.Entries.Count));
         if (complete != null)
         {
-            complete(report);
+            complete(report, enemyCapture);
         }
+    }
+
+    private void LogModdedRefreshStart(int scanNumber, string trigger)
+    {
+        Logger.LogDebug(
+            "GunGame Progressions debug: scan #" + scanNumber + " start; trigger=" + trigger + ".");
+    }
+
+    private void LogModdedRefreshOutcome(
+        int scanNumber,
+        string trigger,
+        string outcome,
+        int registryEntries,
+        RuntimeMetadataCapture metadataCapture,
+        RuntimeEnemyCapture enemyCapture,
+        RuntimeGenerationReport report,
+        Stopwatch totalTimer)
+    {
+        Logger.LogDebug(
+            "GunGame Progressions debug: scan #" + scanNumber + " outcome=" + outcome +
+            "; trigger=" + trigger +
+            "; registry=" + registryEntries +
+            "; modded=" + (metadataCapture == null ? 0 : metadataCapture.Entries.Count) +
+            "; capture=" + (metadataCapture == null ? 0 : metadataCapture.ElapsedMilliseconds) + "ms" +
+            "; enemy=" + (enemyCapture == null ? 0 : enemyCapture.ElapsedMilliseconds) + "ms" +
+            "; worker=" + (report == null ? 0 : report.ElapsedMilliseconds) + "ms" +
+            "; total=" + totalTimer.ElapsedMilliseconds + "ms" +
+            "; written=" + (report != null && report.WasWritten) +
+            "; pools=" + (report == null ? 0 : report.PoolCount) +
+            "; weapons=" + (report == null ? 0 : report.EligibleWeaponsPerPool) + ".");
     }
 
 #if GUNGAME_COMPATIBILITY_PROBE
