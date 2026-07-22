@@ -50,8 +50,10 @@ Native GunGame WeaponBuffer.SpawnAsync
 - A `WeaponChangedEvent` caused by a direct interception only acknowledges that
   same pending transition. Later promotions remain eligible for generation.
 - Every `WeaponBuffer.SpawnAsync` call belonging to a pending direct Cursed
-  transition is suppressed. Native GunGame equipment cleanup runs before the
-  random firearm is handed to player.
+  transition is suppressed. Only spawn-locked native G17 magazine placeholder
+  is removed; random firearm reaches player hand before optional feed work.
+- A Cursed transition remains pending through cleanup, handoff, feed load, and
+  quickbelt placement. Later events queue instead of racing current handoff.
 - Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
   by Cursed are removed on transition. Moved feeds and every other quickbelt
   object remain player-owned.
@@ -76,6 +78,7 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Bind reflection to active GunGame assembly. | BepInEx can load an older GunGame DLL beside active version; global type lookup can patch inactive `WeaponBuffer`. | 2026-07-22 |
 | Acknowledge direct transition event once. | Native `WeaponChangedEvent` can follow suppressed `SpawnAsync`; treating it as a second transition rolls and destroys an unnecessary random gun. | 2026-07-22 |
 | Suppress all pending SpawnAsync calls. | Live trace proved GunGame invokes the buffer multiple times per transition; allowing later calls creates overlapping native G17 equipment and occupies Ammo slot. | 2026-07-22 |
+| Complete firearm handoff before feeds. | Live trace proved a later progression can start after random result but before feed work; serializing full transition prevents empty hand and protects gun when optional feed handling fails. | 2026-07-22 |
 
 ## Known limits / backlog
 

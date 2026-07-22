@@ -151,7 +151,10 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
         Assert.Contains("TryGetValue", source);
-        Assert.Contains("DestroyGunGameEquipment(progression);\n        ClearNativePlaceholderFeed(progression);", source.Replace("\r\n", "\n"));
+        Assert.Contains("CompletePendingRandomSpawn", source);
+        Assert.Contains("generated firearm disappeared during cleanup", source);
+        Assert.Contains("loadout setup failed after firearm handoff; keeping gun", source);
+        Assert.DoesNotContain("DestroyGunGameEquipment", source, StringComparison.Ordinal);
         Assert.Contains("quickbelt: candidates=[", source);
     }
 

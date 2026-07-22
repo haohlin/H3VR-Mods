@@ -18,6 +18,8 @@
   an empty configured Ammo or Extra slot.
 - Suppress every native `WeaponBuffer.SpawnAsync` call during a pending Cursed
   transition, then clear native GunGame equipment before handing over random gun.
+- Keep transition pending through handoff and optional feed setup. Feed/setup
+  failures now preserve equipped random firearm and queue next promotion.
 
 ## 1.0.0
 

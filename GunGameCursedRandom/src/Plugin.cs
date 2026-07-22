@@ -432,9 +432,8 @@ public sealed class Plugin : BaseUnityPlugin
             }
             catch (Exception exception)
             {
-                spawningRandomGun = false;
                 Logger.LogWarning("GunGame Cursed Random trace: random result read failed: " + exception.GetType().Name + ".");
-                StartQueuedReplacement();
+                CompletePendingRandomSpawn();
                 yield break;
             }
 
@@ -446,18 +445,15 @@ public sealed class Plugin : BaseUnityPlugin
             yield return null;
         }
 
-        spawningRandomGun = false;
         var gun = randomGun == null ? null : randomGun.GetComponent<FVRPhysicalObject>();
         if (gun == null)
         {
             Logger.LogWarning(
                 "GunGame Cursed Random trace: vanilla random API produced no usable firearm after " +
                 waitedFrames + " frames; keeping current GunGame weapon.");
-            StartQueuedReplacement();
+            CompletePendingRandomSpawn();
             yield break;
         }
-
-        directTransitionProgressionType = null;
 
         var spawned = CapturePhysicalObjectsList()
             .Where(item => item != null && !before.Contains(item.GetInstanceID()))
@@ -480,35 +476,52 @@ public sealed class Plugin : BaseUnityPlugin
                 DestroyGeneratedFeed(item);
             }
 
-            StartQueuedReplacement();
+            CompletePendingRandomSpawn();
             yield break;
         }
 
-        DestroyGunGameEquipment(progression);
         ClearNativePlaceholderFeed(progression);
 
         DestroyTrackedEquipment();
         yield return null;
-        activeRandomGun = gun.gameObject;
-
-        var allFeeds = spawned
-            .Where(item => item != gun && IsFeed(item))
-            .OrderBy(FeedSortOrder)
-            .ToList();
-        var looseFeeds = allFeeds
-            .Where(item => !item.transform.IsChildOf(gun.transform))
-            .ToList();
-        var loadedFeed = allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform));
-        if (loadedFeed != null)
+        if (gun == null)
         {
-            FillStandardFeed(loadedFeed);
-            Trace("retained loaded generated feed=" + NameOf(loadedFeed) + "; gun=" + NameOf(gun) + ".");
+            Logger.LogWarning("GunGame Cursed Random trace: generated firearm disappeared during cleanup.");
+            CompletePendingRandomSpawn();
+            yield break;
         }
 
-        loadedFeed = loadedFeed ?? LoadFirstCompatibleFeed(gun, looseFeeds);
-        MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, gun, progression == null ? null : progression.GetType().Assembly);
+        activeRandomGun = gun.gameObject;
         EquipInGunGameHand(gun, progression == null ? null : progression.GetType().Assembly);
-        LogRandomLoadout(gun, allFeeds, loadedFeed);
+
+        try
+        {
+            var allFeeds = spawned
+                .Where(item => item != gun && IsFeed(item))
+                .OrderBy(FeedSortOrder)
+                .ToList();
+            var looseFeeds = allFeeds
+                .Where(item => !item.transform.IsChildOf(gun.transform))
+                .ToList();
+            var loadedFeed = allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform));
+            if (loadedFeed != null)
+            {
+                FillStandardFeed(loadedFeed);
+                Trace("retained loaded generated feed=" + NameOf(loadedFeed) + "; gun=" + NameOf(gun) + ".");
+            }
+
+            loadedFeed = loadedFeed ?? LoadFirstCompatibleFeed(gun, looseFeeds);
+            MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, gun, progression == null ? null : progression.GetType().Assembly);
+            LogRandomLoadout(gun, allFeeds, loadedFeed);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogWarning(
+                "GunGame Cursed Random trace: loadout setup failed after firearm handoff; keeping gun. reason=" +
+                exception.GetType().Name + ".");
+        }
+
+        CompletePendingRandomSpawn();
     }
 
     private static HashSet<int> CapturePhysicalObjects()
@@ -822,7 +835,14 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Trace("hand equip: gun=" + NameOf(gun) + "; handIndex=" + handIndex + "; leftHandMode=" + leftHand + ".");
-        GM.CurrentMovementManager.Hands[handIndex].RetrieveObject(gun);
+        try
+        {
+            GM.CurrentMovementManager.Hands[handIndex].RetrieveObject(gun);
+        }
+        catch (Exception exception)
+        {
+            Trace("hand equip failed: gun=" + NameOf(gun) + "; reason=" + exception.GetType().Name + ".");
+        }
     }
 
     private static bool ReadStaticBool(Assembly assembly, string typeName, string fieldName)
@@ -834,43 +854,35 @@ public sealed class Plugin : BaseUnityPlugin
         return field != null && field.GetValue(null) is bool && (bool)field.GetValue(null);
     }
 
-    private static void DestroyGunGameEquipment(object progression)
+    private void CompletePendingRandomSpawn()
     {
-        var destroyedOldEquipment = false;
-        try
-        {
-            var clearEquipment = progression == null
-                ? null
-                : progression.GetType().GetMethod("DestroyOldEq", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (clearEquipment != null)
-            {
-                clearEquipment.Invoke(progression, null);
-                destroyedOldEquipment = true;
-            }
-
-            Trace("cleanup: DestroyOldEq=" + destroyedOldEquipment + "; preserved native next-weapon buffer.");
-        }
-        catch (Exception exception)
-        {
-            Trace("cleanup failed: " + exception.GetType().Name + ".");
-        }
+        spawningRandomGun = false;
+        directTransitionProgressionType = null;
+        StartQueuedReplacement();
     }
 
     private static void ClearNativePlaceholderFeed(object progression)
     {
-        var assembly = progression == null ? null : progression.GetType().Assembly;
-        var slot = GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0);
-        var feed = slot == null ? null : slot.CurObject;
-        if (feed == null || feed.ObjectWrapper == null ||
-            !string.Equals(feed.ObjectWrapper.ItemID, PlaceholderMagazineItemId, StringComparison.Ordinal) ||
-            !feed.m_isSpawnLock)
+        try
         {
-            return;
-        }
+            var assembly = progression == null ? null : progression.GetType().Assembly;
+            var slot = GetQuickbeltSlot(assembly, "AmmoQuickbeltSlot", 0);
+            var feed = slot == null ? null : slot.CurObject;
+            if (feed == null || feed.ObjectWrapper == null ||
+                !string.Equals(feed.ObjectWrapper.ItemID, PlaceholderMagazineItemId, StringComparison.Ordinal) ||
+                !feed.m_isSpawnLock)
+            {
+                return;
+            }
 
-        feed.ForceBreakInteraction();
-        UnityEngine.Object.Destroy(feed.gameObject);
-        Trace("cleanup: removed spawn-locked native placeholder feed from Ammo slot.");
+            feed.ForceBreakInteraction();
+            UnityEngine.Object.Destroy(feed.gameObject);
+            Trace("cleanup: removed spawn-locked native placeholder feed from Ammo slot.");
+        }
+        catch (Exception exception)
+        {
+            Trace("cleanup: native placeholder feed skipped; reason=" + exception.GetType().Name + ".");
+        }
     }
 
     private void DestroyTrackedEquipment()
