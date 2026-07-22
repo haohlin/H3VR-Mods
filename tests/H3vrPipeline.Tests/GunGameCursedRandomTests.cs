@@ -128,6 +128,24 @@ public sealed class GunGameCursedRandomTests
     }
 
     [Fact]
+    public void Cursed_random_mod_hardens_active_gungame_and_feed_transitions()
+    {
+        var root = FindRepositoryRoot();
+        var source = File.ReadAllText(Path.Combine(root, "GunGameCursedRandom", "src", "Plugin.cs"));
+
+        Assert.Contains("InstallWeaponBufferSpawnHooks", source);
+        Assert.DoesNotContain("AccessTools.TypeByName(\"GunGame.Scripts.Weapons.WeaponBuffer\")", source, StringComparison.Ordinal);
+        Assert.Contains("ClearNativePlaceholderFeed", source);
+        Assert.Contains("SameFeedType", source);
+        Assert.Contains("DestroyGeneratedFeed", source);
+        Assert.Contains("queuedProgression", source);
+        Assert.Contains("randomSpawnerType", source);
+        Assert.Contains("speedloader.ReloadClipWithType", source);
+        Assert.Contains("slot.CurObject == spare", source);
+        Assert.Contains("TryGetValue", source);
+    }
+
+    [Fact]
     public void Local_r2modman_registration_has_an_executable_yaml_regression_check()
     {
         var root = FindRepositoryRoot();
