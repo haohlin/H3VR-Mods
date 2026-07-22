@@ -115,6 +115,15 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
+    public void GunGame_pipeline_validates_branded_fallback_display_names()
+    {
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+
+        Assert.Contains("$data.Name -ne 'HLin - Vanilla Rot'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("$data.Name -ne 'HLin - Vanilla Mixed Enemy'", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GunGame_runtime_05_is_debug_only_and_release_packages_reject_it()
     {
         var project = File.ReadAllText(MetadataExporterProjectPath);
