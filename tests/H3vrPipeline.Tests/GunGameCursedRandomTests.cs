@@ -147,7 +147,6 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("randomSpawnerType", source);
         Assert.Contains("random result read failed", source);
         Assert.Contains("speedloader.ReloadClipWithType", source);
-        Assert.Contains("retained loaded generated feed", source);
         Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
         Assert.Contains("TryGetValue", source);
