@@ -32,28 +32,28 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
-    public void Local_vanilla_scope_candidates_have_a_separate_unity_package_descriptor()
+    public void Vanilla_rip_scopes_have_a_separate_unity_package_descriptor()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "mods.json")));
         var candidates = document.RootElement
             .GetProperty("mods")
-            .GetProperty("VanillaScopeCandidatesLocal");
+            .GetProperty("VanillaRipScopes");
 
         Assert.Equal("unity", candidates.GetProperty("kind").GetString());
-        Assert.Equal("LocalVanillaScopeCandidates", candidates.GetProperty("packageName").GetString());
-        Assert.Equal("HLin_Mods-LocalVanillaScopeCandidates", candidates.GetProperty("deploymentFolder").GetString());
+        Assert.Equal("VanillaRipScopes", candidates.GetProperty("packageName").GetString());
+        Assert.Equal("HLin_Mods-VanillaRipScopes", candidates.GetProperty("deploymentFolder").GetString());
         Assert.Equal("legacy-flat", candidates.GetProperty("layout").GetString());
         Assert.Equal(
-            "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-LocalVanillaScopeCandidates.asset",
+            "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-VanillaRipScopes.asset",
             candidates.GetProperty("versionProfileRelativePath").GetString());
         Assert.Equal(
-            "AssetBundles\\LocalVanillaScopeCandidates\\{version}\\HLin_Mods-LocalVanillaScopeCandidates-{version}.zip",
+            "AssetBundles\\VanillaRipScopes\\{version}\\HLin_Mods-VanillaRipScopes-{version}.zip",
             candidates.GetProperty("packageRelativePath").GetString());
         Assert.Equal(
             "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
             candidates.GetProperty("unityBuildMethod").GetString());
         Assert.Equal(
-            "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack, LocalRecoveredLT3x9, and LocalRecoveredEVU1x10.",
+            "[VanillaScopeLocalRuntime] PASS: VanillaRipScopes package built for VanillaRipST6TBlack, VanillaRipLT3x9, and VanillaRipEVU1x10.",
             candidates.GetProperty("unityBuildSuccessMarker").GetString());
         var requiredEntries = candidates.GetProperty("unityRequiredPackageEntries")
             .EnumerateArray()
@@ -61,9 +61,9 @@ public sealed class NightForcePipelineTests
             .ToArray();
         Assert.Equal(new[]
         {
-            "hlin-localrecoveredst6tblack",
-            "hlin-localrecoveredlt3x9",
-            "hlin-localrecoveredevu1x10"
+                "hlin-vanillaripst6tblack",
+                "hlin-vanillariplt3x9",
+                "hlin-vanillaripevu1x10"
         }, requiredEntries);
     }
 
@@ -117,6 +117,33 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Profile_inventory_is_read_only_and_exact_package_removal_is_recoverable()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var inventoryStart = pipeline.IndexOf("function Get-R2modmanProfilePackageInventory", StringComparison.Ordinal);
+        var removalStart = pipeline.IndexOf("function Remove-R2modmanProfilePackage", StringComparison.Ordinal);
+        var removalEnd = pipeline.IndexOf("function Invoke-WindowsShutdown", removalStart, StringComparison.Ordinal);
+
+        Assert.True(inventoryStart >= 0 && removalStart > inventoryStart && removalEnd > removalStart,
+            "Pipeline must keep profile inventory and removal helpers bounded before shutdown.");
+        var inventory = pipeline[inventoryStart..removalStart];
+        var removal = pipeline[removalStart..removalEnd];
+
+        Assert.Contains("'InventoryProfilePackages'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("'RemoveProfilePackage'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("InventoryProfilePackages", wrapper, StringComparison.Ordinal);
+        Assert.Contains("RemoveProfilePackage", wrapper, StringComparison.Ordinal);
+        Assert.Contains("Profile package:", inventory, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item", inventory, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item", inventory, StringComparison.Ordinal);
+        Assert.Contains("Get-Process -Name 'h3vr'", removal, StringComparison.Ordinal);
+        Assert.Contains("profile-removal-", removal, StringComparison.Ordinal);
+        Assert.Contains("Run InventoryProfilePackages", removal, StringComparison.Ordinal);
+        Assert.Contains("Recovery backup", removal, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unity_item_spawner_rule_requires_mod_content_metadata()
     {
         var developmentSkill = File.ReadAllText(Path.Combine(
@@ -147,7 +174,7 @@ public sealed class NightForcePipelineTests
         var action = pipeline[actionStart..statusStart];
         var status = pipeline[statusStart..statusEnd];
 
-        Assert.Contains("'VanillaScopeCandidatesLocal'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("'VanillaRipScopes'", pipeline, StringComparison.Ordinal);
         Assert.Contains("'UnityVanillaRuntimeCandidatePrepare'", pipeline, StringComparison.Ordinal);
         Assert.Contains("'UnityVanillaRuntimeCandidateStatus'", pipeline, StringComparison.Ordinal);
         Assert.Contains("UnityVanillaRuntimeCandidatePrepare", wrapper, StringComparison.Ordinal);

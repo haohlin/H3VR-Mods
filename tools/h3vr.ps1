@@ -1,10 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AuditManagedDeployment', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
+    [ValidateSet('Preflight', 'SourceStatus', 'RefreshSource', 'FindType', 'FindMethod', 'GrepSource', 'PrepareUnitySourceSync', 'SyncUnitySource', 'AuditItemId', 'AuditUnityDeployment', 'AuditManagedDeployment', 'InventoryProfilePackages', 'RemoveProfilePackage', 'AssetRipStatus', 'FindAssetRip', 'InspectAssetRip', 'UnityAssetRipStatus', 'UnityVanillaImportSmokeTest', 'UnityVanillaPrefabSmokeTest', 'UnityVanillaPrefabCompareNightForce', 'UnityVanillaPrefabAuditNightForce', 'UnityVanillaRuntimeCandidatePrepare', 'UnityVanillaRuntimeCandidateStatus', 'UnityVanillaPrefabImportStatus', 'UnityVanillaImportStatus', 'QuarantineVanillaScopeImports', 'UnityNightForcePrefabStatus', 'UnityBuildStatus', 'Verify', 'Build', 'Test', 'Package', 'Deploy', 'ShutdownWindows', 'Logs', 'TailLogs', 'ClearLogs', 'SetPublishToken', 'Publish')]
     [string]$Action,
 
-    [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaScopeCandidatesLocal', 'Teleport', 'RemoveWhiteOut')]
+    [ValidateSet('ThePing', 'GunGameProgressions', 'GunGameCursedRandom', 'BubbleLevel', 'NightForcePlus', 'NightForcePlusLegacy', 'VanillaRipScopes', 'Teleport', 'RemoveWhiteOut')]
     [string]$Mod = 'ThePing',
 
     [string]$EnvironmentConfigPath,
@@ -1501,6 +1501,116 @@ function Get-R2modmanManagedDeploymentAudit {
     Write-Host 'Manager payload match: True'
 }
 
+function Test-R2modmanManagedRecord {
+    param(
+        [string]$Content,
+        [string]$PackageName
+    )
+
+    $nameExpression = '(?m)^  name:\s*(?:"' + [regex]::Escape($PackageName) + '"|' + [regex]::Escape($PackageName) + ')\s*$'
+    return $Content -match $nameExpression
+}
+
+function Get-R2modmanProfilePackageInventory {
+    $profileRoot = Get-R2modmanProfileRoot
+    $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
+    $modsFile = Join-Path $profileRoot 'mods.yml'
+    if (-not (Test-Path -LiteralPath $modsFile -PathType Leaf)) {
+        throw 'Configured r2modman Default profile mods.yml is missing.'
+    }
+
+    $records = Get-Content -LiteralPath $modsFile -Raw
+    foreach ($directory in @(Get-ChildItem -LiteralPath $pluginsRoot -Directory -Force | Sort-Object Name)) {
+        $managed = Test-R2modmanManagedRecord -Content $records -PackageName $directory.Name
+        $enabled = $managed -and ($records -match ('(?s)name:\s*(?:"' + [regex]::Escape($directory.Name) + '"|' + [regex]::Escape($directory.Name) + ').*?enabled:\s*true'))
+        $files = @(Get-ChildItem -LiteralPath $directory.FullName -File -Recurse -Force)
+        $bundles = @($files | Where-Object { $_.Name -match '^(?:early_|late_)?hlin-' } | ForEach-Object { $_.Name } | Sort-Object)
+        Write-Host ("Profile package: {0}; manager-record={1}; enabled={2}; files={3}; bundles={4}" -f
+            $directory.Name, $managed, $enabled, $files.Count,
+            $(if ($bundles.Count -eq 0) { '<none>' } else { $bundles -join ',' }))
+    }
+}
+
+function Remove-R2modmanProfilePackage {
+    param([string]$PackageName)
+
+    if ([string]::IsNullOrWhiteSpace($PackageName) -or $PackageName -notmatch '^[A-Za-z0-9._-]+$') {
+        throw 'RemoveProfilePackage requires an exact package folder name containing only letters, digits, dots, underscores, or hyphens.'
+    }
+    if (@(Get-Process -Name 'h3vr' -ErrorAction SilentlyContinue).Count -gt 0) {
+        throw 'H3VR is running. Close H3VR before removing a profile package.'
+    }
+
+    $profileRoot = Get-R2modmanProfileRoot
+    $pluginsRoot = $EnvironmentConfig.r2modman.pluginsRoot
+    $modsFile = Join-Path $profileRoot 'mods.yml'
+    $pluginTarget = Join-Path $pluginsRoot $PackageName
+    if (-not (Test-Path -LiteralPath $pluginTarget -PathType Container)) {
+        throw 'Profile package folder was not found. Run InventoryProfilePackages and use one exact reported name.'
+    }
+
+    $managerRoot = Split-Path -Parent (Split-Path -Parent $profileRoot)
+    $cacheTarget = Join-Path (Join-Path $managerRoot 'cache') $PackageName
+    $backupParent = Join-Path (Join-Path $BuildRoot 'receipts') 'backups'
+    $backupRoot = Join-Path $backupParent ("profile-removal-" + $PackageName + "-" + (Get-Date).ToString('yyyyMMdd-HHmmss'))
+    $pluginBackup = Join-Path $backupRoot 'plugin'
+    $cacheBackup = Join-Path $backupRoot 'cache'
+    $modsBackup = Join-Path $backupRoot 'mods.yml'
+    $originalMods = Get-Content -LiteralPath $modsFile -Raw
+    $recordPresent = Test-R2modmanManagedRecord -Content $originalMods -PackageName $PackageName
+    $updatedMods = if ($recordPresent) {
+        Remove-R2modmanManagedRecord -Original $originalMods -ManagedName $PackageName
+    }
+    else {
+        $originalMods
+    }
+    $utf8 = New-Object Text.UTF8Encoding($false)
+    $pluginRemoved = $false
+    $cacheRemoved = $false
+    $recordWritten = $false
+
+    try {
+        Ensure-Directory $backupRoot
+        Copy-Item -LiteralPath $modsFile -Destination $modsBackup -Force
+        Copy-Item -LiteralPath $pluginTarget -Destination $pluginBackup -Recurse -Force
+        if (Test-Path -LiteralPath $cacheTarget -PathType Container) {
+            Copy-Item -LiteralPath $cacheTarget -Destination $cacheBackup -Recurse -Force
+        }
+
+        if ($recordPresent) {
+            [IO.File]::WriteAllText($modsFile, $updatedMods, $utf8)
+            $recordWritten = $true
+        }
+        Remove-Item -LiteralPath $pluginTarget -Recurse -Force
+        $pluginRemoved = $true
+        if (Test-Path -LiteralPath $cacheTarget -PathType Container) {
+            Remove-Item -LiteralPath $cacheTarget -Recurse -Force
+            $cacheRemoved = $true
+        }
+    }
+    catch {
+        if ($recordWritten) {
+            [IO.File]::WriteAllText($modsFile, $originalMods, $utf8)
+        }
+        if ($pluginRemoved -and -not (Test-Path -LiteralPath $pluginTarget) -and (Test-Path -LiteralPath $pluginBackup)) {
+            Copy-Item -LiteralPath $pluginBackup -Destination $pluginTarget -Recurse -Force
+        }
+        if ($cacheRemoved -and -not (Test-Path -LiteralPath $cacheTarget) -and (Test-Path -LiteralPath $cacheBackup)) {
+            Copy-Item -LiteralPath $cacheBackup -Destination $cacheTarget -Recurse -Force
+        }
+        throw
+    }
+
+    if ((Test-Path -LiteralPath $pluginTarget) -or (Test-Path -LiteralPath $cacheTarget) -or
+        (Test-R2modmanManagedRecord -Content (Get-Content -LiteralPath $modsFile -Raw) -PackageName $PackageName)) {
+        throw 'Profile package removal verification failed.'
+    }
+
+    Write-Host "Removed profile package: $PackageName"
+    Write-Host "Manager record removed: $recordPresent"
+    Write-Host 'Recovery backup recorded under build receipts.'
+}
+
 function Invoke-WindowsShutdown {
     $projectRoot = Get-UnityProjectRoot
     $openEditors = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction SilentlyContinue |
@@ -2504,6 +2614,8 @@ switch ($Action) {
     'AuditItemId' { Find-InstalledItemId $Query }
     'AuditUnityDeployment' { Get-UnityDeploymentAudit (Get-ModConfig $Mod) }
     'AuditManagedDeployment' { Get-R2modmanManagedDeploymentAudit (Get-ModConfig $Mod) }
+    'InventoryProfilePackages' { Get-R2modmanProfilePackageInventory }
+    'RemoveProfilePackage' { Remove-R2modmanProfilePackage $Query }
     'AssetRipStatus' { Get-PrivateAssetArchiveStatus }
     'FindAssetRip' { Find-PrivateAssetRip $Query }
     'InspectAssetRip' { Get-PrivateAssetRipGraph $Query }

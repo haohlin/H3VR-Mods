@@ -139,21 +139,21 @@
       "unityBuildSuccessMarker": "[NightForcePlusRuntime] MeatKit package built from exact profile.",
       "patchTargets": []
     },
-    "VanillaScopeCandidatesLocal": {
+    "VanillaRipScopes": {
       "kind": "unity",
-      "packageName": "LocalVanillaScopeCandidates",
+      "packageName": "VanillaRipScopes",
       "namespace": "HLin_Mods",
       "community": "h3vr",
-      "deploymentFolder": "HLin_Mods-LocalVanillaScopeCandidates",
+      "deploymentFolder": "HLin_Mods-VanillaRipScopes",
       "layout": "legacy-flat",
-      "versionProfileRelativePath": "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-LocalVanillaScopeCandidates.asset",
-      "packageRelativePath": "AssetBundles\\LocalVanillaScopeCandidates\\{version}\\HLin_Mods-LocalVanillaScopeCandidates-{version}.zip",
+      "versionProfileRelativePath": "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-VanillaRipScopes.asset",
+      "packageRelativePath": "AssetBundles\\VanillaRipScopes\\{version}\\HLin_Mods-VanillaRipScopes-{version}.zip",
       "unityBuildMethod": "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
-      "unityBuildSuccessMarker": "[VanillaScopeLocalRuntime] PASS: MeatKit package built for LocalRecoveredST6TBlack, LocalRecoveredLT3x9, and LocalRecoveredEVU1x10.",
+      "unityBuildSuccessMarker": "[VanillaScopeLocalRuntime] PASS: VanillaRipScopes package built for VanillaRipST6TBlack, VanillaRipLT3x9, and VanillaRipEVU1x10.",
       "unityRequiredPackageEntries": [
-        "hlin-localrecoveredst6tblack",
-        "hlin-localrecoveredlt3x9",
-        "hlin-localrecoveredevu1x10"
+        "hlin-vanillaripst6tblack",
+        "hlin-vanillariplt3x9",
+        "hlin-vanillaripevu1x10"
       ],
       "patchTargets": []
     },
