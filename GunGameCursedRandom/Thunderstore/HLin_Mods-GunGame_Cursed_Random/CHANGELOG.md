@@ -20,6 +20,12 @@
   transition, then clear native GunGame equipment before handing over random gun.
 - Keep transition pending through handoff and optional feed setup. Feed/setup
   failures now preserve equipped random firearm and queue next promotion.
+- After vanilla random API starts, remove parent-created native GunGame
+  placeholder equipment only while its random-result field still holds prior
+  result; prevent duplicate G17 without risking synchronously spawned random gun.
+- Ignore wrapperless generated feed children and load loose wrapper-backed feeds
+  before attached fallback; valid magazines no longer lose to `unknown` child
+  objects.
 
 ## 1.0.0
 

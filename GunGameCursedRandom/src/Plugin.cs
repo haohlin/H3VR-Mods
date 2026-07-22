@@ -403,7 +403,17 @@ public sealed class Plugin : BaseUnityPlugin
                 "; previousGun=" + NameOf(previousGun) +
                 "; physicalObjectsBefore=" + before.Count + ".");
             randomGunMethod.Invoke(spawner, null);
-            Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(randomGunField.GetValue(spawner) as GameObject) + ".");
+            var immediateResult = randomGunField.GetValue(spawner) as GameObject;
+            Logger.LogInfo("GunGame Cursed Random trace: vanilla random API invoked; resultImmediately=" + NameOf(immediateResult) + ".");
+            if (immediateResult == null || immediateResult == previousGun)
+            {
+                DestroyGunGameEquipment(progression);
+            }
+            else
+            {
+                Trace("cleanup: native DestroyOldEq skipped because random firearm materialized synchronously.");
+            }
+
             StartCoroutine(FinishRandomSpawn(progression, spawner, previousGun, before));
             return true;
         }
@@ -496,21 +506,40 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            var allFeeds = spawned
+            var recognizedFeeds = spawned
                 .Where(item => item != gun && IsFeed(item))
+                .ToList();
+            var ignoredWrapperlessFeeds = recognizedFeeds
+                .Where(item => item.ObjectWrapper == null)
+                .ToList();
+            if (ignoredWrapperlessFeeds.Count > 0)
+            {
+                Trace(
+                    "feed setup: ignored wrapperless generated feeds=[" +
+                    string.Join(", ", ignoredWrapperlessFeeds.Select(NameOf).ToArray()) + "].");
+            }
+
+            var allFeeds = recognizedFeeds
+                .Where(IsReusableFeed)
                 .OrderBy(FeedSortOrder)
                 .ToList();
             var looseFeeds = allFeeds
                 .Where(item => !item.transform.IsChildOf(gun.transform))
                 .ToList();
-            var loadedFeed = allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform));
-            if (loadedFeed != null)
+            var attachedFeeds = allFeeds
+                .Where(item => item.transform.IsChildOf(gun.transform))
+                .ToList();
+            var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);
+            if (loadedFeed == null)
             {
-                FillStandardFeed(loadedFeed);
-                Trace("retained loaded generated feed=" + NameOf(loadedFeed) + "; gun=" + NameOf(gun) + ".");
+                loadedFeed = attachedFeeds.FirstOrDefault();
+                if (loadedFeed != null)
+                {
+                    FillStandardFeed(loadedFeed);
+                    Trace("retained attached generated feed=" + NameOf(loadedFeed) + "; gun=" + NameOf(gun) + ".");
+                }
             }
 
-            loadedFeed = loadedFeed ?? LoadFirstCompatibleFeed(gun, looseFeeds);
             MoveSpareFeedsToQuickbelt(looseFeeds, loadedFeed, gun, progression == null ? null : progression.GetType().Assembly);
             LogRandomLoadout(gun, allFeeds, loadedFeed);
         }
@@ -554,10 +583,20 @@ public sealed class Plugin : BaseUnityPlugin
         return item is FVRFireArmMagazine || item is FVRFireArmClip || item is Speedloader || item is FVRFireArmRound;
     }
 
+    private static bool IsReusableFeed(FVRPhysicalObject item)
+    {
+        return IsFeed(item) && item.ObjectWrapper != null;
+    }
+
     private static FVRPhysicalObject LoadFirstCompatibleFeed(FVRPhysicalObject gun, IEnumerable<FVRPhysicalObject> feeds)
     {
         foreach (var feed in feeds)
         {
+            if (!IsReusableFeed(feed))
+            {
+                continue;
+            }
+
             try
             {
                 var firearm = gun as FVRFireArm;
@@ -687,7 +726,7 @@ public sealed class Plugin : BaseUnityPlugin
                 gun.transform.position + Vector3.up * 0.2f,
                 gun.transform.rotation);
             var spare = spawnedObject == null ? null : spawnedObject.GetComponent<FVRPhysicalObject>();
-            if (!IsFeed(spare))
+            if (!IsReusableFeed(spare))
             {
                 if (spawnedObject != null)
                 {
@@ -852,6 +891,28 @@ public sealed class Plugin : BaseUnityPlugin
             ? null
             : type.GetField(fieldName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         return field != null && field.GetValue(null) is bool && (bool)field.GetValue(null);
+    }
+
+    private static void DestroyGunGameEquipment(object progression)
+    {
+        try
+        {
+            var clearEquipment = progression == null
+                ? null
+                : progression.GetType().GetMethod("DestroyOldEq", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (clearEquipment == null)
+            {
+                Trace("cleanup: native DestroyOldEq unavailable.");
+                return;
+            }
+
+            clearEquipment.Invoke(progression, null);
+            Trace("cleanup: native DestroyOldEq ran after vanilla random API start.");
+        }
+        catch (Exception exception)
+        {
+            Trace("cleanup: native DestroyOldEq failed; reason=" + exception.GetType().Name + ".");
+        }
     }
 
     private void CompletePendingRandomSpawn()

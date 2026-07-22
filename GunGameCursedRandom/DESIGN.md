@@ -24,11 +24,15 @@ GunGame profile loader
 
 Native GunGame WeaponBuffer.SpawnAsync
   -> Cursed prefix starts ItemSpawnerV2 BTN_TryToSpawnRandomGun
+  -> after API successfully starts, invoke native DestroyOldEq while Item Spawner
+     still holds previous result; remove parent-created native G17 without risking
+     a synchronously materialized random firearm
   -> every SpawnAsync call during that pending transition returns empty; no G17
      gun or magazine reaches player hand or selected Ammo slot
   -> wait for vanilla random result
   -> remove previous Cursed gun and only spare feeds still in Cursed-managed slots
-  -> load, hand-equip, clone one loaded feed through its vanilla FVRObject wrapper if no spare exists
+  -> use FVRObject-backed loose feed first; use attached feed only as fallback;
+     hand-equip, then clone one loaded feed if no spare exists
   -> quickbelt spawn-lock spare in empty Ammo/Extra slot, log loadout
 ```
 
@@ -50,8 +54,10 @@ Native GunGame WeaponBuffer.SpawnAsync
 - A `WeaponChangedEvent` caused by a direct interception only acknowledges that
   same pending transition. Later promotions remain eligible for generation.
 - Every `WeaponBuffer.SpawnAsync` call belonging to a pending direct Cursed
-  transition is suppressed. Only spawn-locked native G17 magazine placeholder
-  is removed; random firearm reaches player hand before optional feed work.
+  transition is suppressed. After a successful random-API call, `DestroyOldEq`
+  runs only while `CurrentlySpawnedRandomGun` is still its previous result; this
+  removes parent-created native G17 equipment without ever deleting a random
+  firearm that materialized synchronously.
 - A Cursed transition remains pending through cleanup, handoff, feed load, and
   quickbelt placement. Later events queue instead of racing current handoff.
 - Only Cursed spare feeds still occupying the exact Ammo or Extra slot selected
@@ -60,8 +66,10 @@ Native GunGame WeaponBuffer.SpawnAsync
 - A loaded magazine, clip, speedloader, or cartridge gets one matching spare
   only when an assigned Ammo or Extra slot is empty; no player-owned slot is
   replaced.
-- Generated feeds already attached to the firearm count as loaded. Loose,
-  incompatible generated feeds are removed after one compatible spare decision.
+- Only generated feeds with an `FVRObject` wrapper are valid loadout candidates.
+  Compatible loose feeds load first; an attached candidate is fallback only.
+  Wrapperless child objects cannot mask a valid loose magazine such as M240's.
+- Loose, incompatible generated feeds are removed after one compatible spare decision.
 - Log one completed random loadout with firearm, feeds, and attachments.
 
 ## Decisions
@@ -79,6 +87,8 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Acknowledge direct transition event once. | Native `WeaponChangedEvent` can follow suppressed `SpawnAsync`; treating it as a second transition rolls and destroys an unnecessary random gun. | 2026-07-22 |
 | Suppress all pending SpawnAsync calls. | Live trace proved GunGame invokes the buffer multiple times per transition; allowing later calls creates overlapping native G17 equipment and occupies Ammo slot. | 2026-07-22 |
 | Complete firearm handoff before feeds. | Live trace proved a later progression can start after random result but before feed work; serializing full transition prevents empty hand and protects gun when optional feed handling fails. | 2026-07-22 |
+| Cleanup native equipment after starting vanilla API. | Live trace proves parent GunGame equipment can already contain G17 even when all `SpawnAsync` calls are suppressed. `DestroyOldEq` runs only after API invocation and only before a new result appears, preserving failure fallback and random-gun safety. | 2026-07-22 |
+| Prefer loose wrapper-backed feeds. | M240 trace selected an attached wrapperless `unknown` object before valid loose `Magazine M240`, so no magazine loaded or spare spawned. | 2026-07-22 |
 
 ## Known limits / backlog
 

@@ -154,8 +154,24 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("CompletePendingRandomSpawn", source);
         Assert.Contains("generated firearm disappeared during cleanup", source);
         Assert.Contains("loadout setup failed after firearm handoff; keeping gun", source);
-        Assert.DoesNotContain("DestroyGunGameEquipment", source, StringComparison.Ordinal);
+        Assert.Contains("DestroyGunGameEquipment", source);
+        Assert.Contains("DestroyOldEq", source);
+        Assert.Contains("native DestroyOldEq ran after vanilla random API start", source);
+        Assert.Contains("native DestroyOldEq skipped because random firearm materialized synchronously", source);
+        Assert.Contains("IsReusableFeed", source);
+        Assert.Contains("feed setup: ignored wrapperless generated feeds", source);
+        Assert.Contains("retained attached generated feed", source);
+        Assert.DoesNotContain("allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform))", source, StringComparison.Ordinal);
         Assert.Contains("quickbelt: candidates=[", source);
+
+        var randomApiCall = source.IndexOf("randomGunMethod.Invoke(spawner, null);", StringComparison.Ordinal);
+        var nativeCleanup = source.IndexOf("DestroyGunGameEquipment(progression);", StringComparison.Ordinal);
+        var waitCoroutine = source.IndexOf("StartCoroutine(FinishRandomSpawn", StringComparison.Ordinal);
+        Assert.True(randomApiCall >= 0 && randomApiCall < nativeCleanup && nativeCleanup < waitCoroutine);
+
+        var looseFeedLoad = source.IndexOf("var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);", StringComparison.Ordinal);
+        var attachedFeedFallback = source.IndexOf("loadedFeed = attachedFeeds.FirstOrDefault();", StringComparison.Ordinal);
+        Assert.True(looseFeedLoad >= 0 && looseFeedLoad < attachedFeedFallback);
     }
 
     [Fact]
