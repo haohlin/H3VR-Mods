@@ -23,7 +23,7 @@ State: `active`
 | Fallback deployment | `1b3529a` treats only a pending random spawn as direct-hook success; otherwise `WeaponChangedEvent` starts post-spawn replacement. | `5c483ac` deployed to Default after live guard passed; logs cleared; VR trace pending. |
 | Spare-feed deployment | Live trace proved vanilla random result created one Bergmann magazine, which was loaded into gun, leaving `spares=0`. `b273e36` clones the loaded feed through its vanilla FVRObject wrapper only when selected Ammo/Extra has an empty slot, then spawn-locks and tracks it. | `8cca5b6` deployed to Default after live guard passed; logs cleared; VR trace pending. |
 | Spare cleanup barrier | Live trace proved Cursed cleanup schedules `Destroy`, leaving the prior managed spare in its quickbelt slot for the same frame. Slot placement alternated on promotions. `8f86f7e` waits one frame after Cursed cleanup before checking slots. | Windows `Test` `106/106`, `Verify`, build `0` warnings/errors passed; deploy pending H3VR exit. |
-| Transition/feed hardening candidate | Current source resolves direct `WeaponBuffer`, progression, and hand-option types through active GunGame assembly; acknowledges direct event once; queues only newer transitions; waits after cleanup; fills magazine/clip/speedloader safely; retains attached loaded feeds; creates or preserves exactly one matching spare in empty configured Ammo/Extra slot; deletes discarded generated feeds. | Windows test/build/deploy pending. |
+| Transition/feed hardening | `e8f8e75` resolves direct `WeaponBuffer`, progression, and hand-option types through active GunGame assembly; acknowledges direct event once; queues only newer transitions; waits after cleanup; fills magazine/clip/speedloader safely; retains attached loaded feeds; creates or preserves exactly one matching spare in empty configured Ammo/Extra slot; deletes discarded generated feeds. | Windows `Test` `107/107`, `Verify`, release build `0` warnings/errors passed; deployed to Default profile; logs cleared; VR proof pending. |
 
 ### Open blockers
 
@@ -48,7 +48,7 @@ State: `active`
 | `[x]` | Deploy profile-label rename after live H3VR validation. | Default profile received `HLin-Random Cursed`; logs cleared. |
 | `[x]` | Deploy direct-hook fallback repair after live H3VR validation. | `5c483ac` deployed to Default; fresh trace still needs random API and completed-loadout proof. |
 | `[x]` | Deploy spawn-locked spare-feed repair after live H3VR validation. | `8cca5b6` deployed to Default; fresh trace still needs compatible-spare placement proof. |
-| `[ ]` | Build, verify, deploy transition/feed hardening candidate. | Pipeline passes and guarded Default-profile deployment completes. |
+| `[x]` | Build, verify, deploy transition/feed hardening. | `e8f8e75`: Windows `Test` `107/107`, `Verify`, release build `0` warnings/errors; guarded Default-profile deployment passed. |
 | `[ ]` | Validate transition/feed hardening in VR. | Direct hook logs entry; no native G17; every empty configured Ammo/Extra slot gets one matching spare; user-owned/moved items survive; magazine, clip, speedloader, and battery paths log without exceptions. |
 | `[ ]` | Prove current profile/event implementation loads. | Fresh BepInEx startup log says `subscribed to ... WeaponChangedEvent` and `Select HLin-Random Cursed`; no legacy `SpawnAndEquip hook installed` trace. |
 | `[ ]` | Human VR smoke test. | Selected HLin-Random Cursed start/promotion/demotion replace placeholder gear with random loaded gun; occupied Ammo/Extra quickbelt slots remain unchanged. |
@@ -72,7 +72,7 @@ State: `active`
 | Fallback repair | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors; Default deploy passed after live guard for `5c483ac`. |
 | Spare-feed repair | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors; Default deploy passed after live guard for `8cca5b6`. |
 | Spare cleanup barrier | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom` | Passed: `106/106`; Verify passed; build `0` warnings/errors for `8f86f7e`. |
-| Transition/feed hardening candidate | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Pending. |
+| Transition/feed hardening | `h3vr-remote run Test`; `Verify GunGameCursedRandom`; `Build GunGameCursedRandom`; `Deploy GunGameCursedRandom` | Passed: `107/107`; Verify passed; release build `0` warnings/errors; guarded Default deploy passed for `e8f8e75`; logs cleared. |
 | Build / package | `h3vr-remote run Build GunGameCursedRandom`; `Package` | Build passed for `72aac16`; package/deploy waits for H3VR close. |
 | Deploy | `h3vr-remote run Deploy GunGameCursedRandom` | Passed for `d7f5c74`; malformed Cursed entry replaced and written YAML strictly validated. |
 
@@ -92,6 +92,6 @@ State: `active`
 - [x] Current Windows source status checked.
 - [x] Automated checks pass.
 - [x] Package payload/version verified.
-- [x] Current profile/event DLL and profile deployed; old custom-panel DLL identified and replaced.
+- [x] Current transition/feed DLL and profile deployed; logs cleared.
 - [ ] BepInEx log checked after H3VR launch.
 - [ ] Required VR interaction completed.
