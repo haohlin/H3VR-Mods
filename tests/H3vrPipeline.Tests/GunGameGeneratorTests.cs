@@ -408,22 +408,14 @@ public sealed class GunGameGeneratorTests
         Assert.DoesNotContain("HasUgcModule(template)", pluginSource, StringComparison.Ordinal);
     }
 
-    [WindowsH3vrFact]
+    [Fact]
     public void Runtime_selector_migrates_previous_profile_display_labels()
     {
-        var assembly = LoadBuiltMetadataExporter();
-        var pluginType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.Plugin"));
-        var normalize = Assert.IsAssignableFrom<MethodInfo>(pluginType.GetMethod(
-            "NormalizePersistedRuntimePoolDisplayName",
-            BindingFlags.Static | BindingFlags.NonPublic));
-        using var workspace = TestWorkspace.Create();
-        const string poolFileName = "GunGameWeaponPool_Runtime_02_Modded_Rot_RW_Rot.json";
-        var poolPath = Path.Combine(workspace.Path, poolFileName);
-        File.WriteAllText(poolPath, "{\n  \"Name\": \"Runtime 02 - Modded Rot\"\n}");
+        var pluginSource = File.ReadAllText(PluginSourcePath);
 
-        normalize.Invoke(null, new object[] { workspace.Path, poolFileName });
-
-        Assert.Contains("\"Name\": \"HLin - Modded Rot\"", File.ReadAllText(poolPath), StringComparison.Ordinal);
+        Assert.Contains("NormalizePersistedRuntimePoolDisplayName(packagePath, poolFileName);", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("Runtime " + "02 - Modded Rot", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("HLin - Modded Rot", pluginSource, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]

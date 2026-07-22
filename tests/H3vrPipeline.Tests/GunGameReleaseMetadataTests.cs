@@ -38,7 +38,7 @@ public sealed class GunGameReleaseMetadataTests
         var readme = File.ReadAllText(Path.Combine(packageRoot, "README.md"));
         Assert.Contains("## Choose a Pool", readme);
         Assert.Contains("> **Modded profiles generate in the background; time depends on mod count. Reload the GunGame map to show them.**", readme);
-        Assert.Contains("Runtime 02 - Modded Rot", readme);
+        Assert.Contains("HLin - Modded Rot", readme);
         Assert.Contains("## Enemy Pacing", readme);
         Assert.Contains("## Compatible Loadouts", readme);
         Assert.Contains("## Your Enabled Content", readme);
