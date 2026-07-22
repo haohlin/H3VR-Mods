@@ -52,12 +52,7 @@
           "to": "GunGameProgressionsMetadataExporter.dll"
         }
       ],
-      "patchTargets": [
-        {
-          "type": "FistVR.ItemSpawnerV2",
-          "method": "SpawnRandomGunRoutine"
-        }
-      ],
+      "patchTargets": [],
       "externalPatchTargets": [
         {
           "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",
@@ -94,7 +89,12 @@
           "to": "GunGameWeaponPool_Cursed_Random.json"
         }
       ],
-      "patchTargets": [],
+      "patchTargets": [
+        {
+          "type": "FistVR.ItemSpawnerV2",
+          "method": "SpawnRandomGunRoutine"
+        }
+      ],
       "externalPatchTargets": [
         {
           "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",

@@ -36,7 +36,7 @@ public sealed class GunGameCursedRandomTests
     }
 
     [Fact]
-    public void Cursed_random_mod_packages_selectable_profile_without_harmony_targets()
+    public void Cursed_random_mod_packages_selectable_profile_with_required_harmony_targets()
     {
         var root = FindRepositoryRoot();
         using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "build", "mods.json")));
@@ -120,7 +120,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("FVRFireArmClip", source);
         Assert.Contains("ReloadClipWithType", source);
         Assert.Contains("TryLoadValidatedFeed", source);
-        Assert.Contains("DestroyTrackedEquipment();\n        yield return null;", source.Replace("\r\n", "\n"));
+        Assert.Contains("DestroyTrackedEquipment();\n            yield return null;", source.Replace("\r\n", "\n"));
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
         Assert.Contains("managedFeed.Slot.CurObject != managedFeed.Object", source);
@@ -155,7 +155,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("not retrying an unfinished routine", source);
         Assert.Contains("rejected random attempt", source);
         Assert.Contains("FVRObject.GetRandomAmmoObject(gun.ObjectWrapper)", source);
-        Assert.Contains("gun.GetComponent<FVRFireArm>()", source);
+        Assert.Contains("randomGun.GetComponent<FVRFireArm>()", source);
         Assert.Contains("RestoreNativeFallback", source);
         Assert.Contains("speedloader.ReloadClipWithType", source);
         Assert.Contains("ReadStaticBool(assembly", source);
