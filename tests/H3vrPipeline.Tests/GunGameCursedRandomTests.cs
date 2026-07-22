@@ -50,6 +50,10 @@ public sealed class GunGameCursedRandomTests
             target => target.GetProperty("type").GetString() == "GunGame.Scripts.Weapons.WeaponBuffer" &&
                 target.GetProperty("method").GetString() == "SpawnAsync");
         Assert.Contains(
+            mod.GetProperty("patchTargets").EnumerateArray(),
+            target => target.GetProperty("type").GetString() == "FistVR.ItemSpawnerV2" &&
+                target.GetProperty("method").GetString() == "SpawnRandomGunRoutine");
+        Assert.Contains(
             mod.GetProperty("payload").EnumerateArray(),
             payload => payload.GetProperty("to").GetString() == "GunGameWeaponPool_Cursed_Random.json");
 
@@ -115,7 +119,7 @@ public sealed class GunGameCursedRandomTests
         Assert.Contains("feedObject.GetGameObject()", source);
         Assert.Contains("FVRFireArmClip", source);
         Assert.Contains("ReloadClipWithType", source);
-        Assert.Contains("SameFeedType(feed, loadedFeed)", source);
+        Assert.Contains("TryLoadValidatedFeed", source);
         Assert.Contains("DestroyTrackedEquipment();\n        yield return null;", source.Replace("\r\n", "\n"));
         Assert.Contains("ManagedQuickbeltFeed", source);
         Assert.Contains("managedQuickbeltFeeds.Add", source);
@@ -136,41 +140,43 @@ public sealed class GunGameCursedRandomTests
         var source = File.ReadAllText(Path.Combine(root, "GunGameCursedRandom", "src", "Plugin.cs"));
 
         Assert.Contains("InstallWeaponBufferSpawnHooks", source);
+        Assert.Contains("InstallRandomGunRoutineHook", source);
+        Assert.Contains("SpawnRandomGunRoutinePostfix", source);
+        Assert.Contains("TrackRandomGunRoutine", source);
         Assert.DoesNotContain("AccessTools.TypeByName(\"GunGame.Scripts.Weapons.WeaponBuffer\")", source, StringComparison.Ordinal);
         Assert.Contains("ClearNativePlaceholderFeed", source);
-        Assert.Contains("SameFeedType", source);
         Assert.Contains("DestroyGeneratedFeed", source);
         Assert.Contains("queuedProgression", source);
         Assert.Contains("directTransitionProgressionType", source);
         Assert.Contains("WeaponChangedEvent acknowledged direct Cursed transition", source);
         Assert.Contains("buffer.GetType().Assembly.GetType(\"GunGame.Scripts.Progression\", false)", source);
         Assert.Contains("randomSpawnerType", source);
-        Assert.Contains("random result read failed", source);
+        Assert.Contains("MaxRandomSpawnAttempts", source);
+        Assert.Contains("not retrying an unfinished routine", source);
+        Assert.Contains("rejected random attempt", source);
+        Assert.Contains("FVRObject.GetRandomAmmoObject(gun.ObjectWrapper)", source);
+        Assert.Contains("gun.GetComponent<FVRFireArm>()", source);
+        Assert.Contains("RestoreNativeFallback", source);
         Assert.Contains("speedloader.ReloadClipWithType", source);
         Assert.Contains("ReadStaticBool(assembly", source);
         Assert.Contains("slot.CurObject == spare", source);
         Assert.Contains("TryGetValue", source);
         Assert.Contains("CompletePendingRandomSpawn", source);
-        Assert.Contains("generated firearm disappeared during cleanup", source);
-        Assert.Contains("loadout setup failed after firearm handoff; keeping gun", source);
         Assert.Contains("DestroyGunGameEquipment", source);
         Assert.Contains("DestroyOldEq", source);
-        Assert.Contains("native DestroyOldEq ran after vanilla random API start", source);
-        Assert.Contains("native DestroyOldEq skipped because random firearm materialized synchronously", source);
+        Assert.Contains("native DestroyOldEq ran after a validated random loadout", source);
         Assert.Contains("IsReusableFeed", source);
-        Assert.Contains("feed setup: ignored wrapperless generated feeds", source);
-        Assert.Contains("retained attached generated feed", source);
-        Assert.DoesNotContain("allFeeds.FirstOrDefault(item => item.transform.IsChildOf(gun.transform))", source, StringComparison.Ordinal);
+        Assert.Contains("preservedNativeLooseFeeds=true", source);
+        Assert.DoesNotContain("LoadFirstCompatibleFeed", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SameFeedType", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("foreach (var item in spawned)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Promote", source, StringComparison.Ordinal);
         Assert.Contains("quickbelt: candidates=[", source);
 
         var randomApiCall = source.IndexOf("randomGunMethod.Invoke(spawner, null);", StringComparison.Ordinal);
+        var completionWait = source.IndexOf("while (!attempt.RoutineCompleted", StringComparison.Ordinal);
         var nativeCleanup = source.IndexOf("DestroyGunGameEquipment(progression);", StringComparison.Ordinal);
-        var waitCoroutine = source.IndexOf("StartCoroutine(FinishRandomSpawn", StringComparison.Ordinal);
-        Assert.True(randomApiCall >= 0 && randomApiCall < nativeCleanup && nativeCleanup < waitCoroutine);
-
-        var looseFeedLoad = source.IndexOf("var loadedFeed = LoadFirstCompatibleFeed(gun, looseFeeds);", StringComparison.Ordinal);
-        var attachedFeedFallback = source.IndexOf("loadedFeed = attachedFeeds.FirstOrDefault();", StringComparison.Ordinal);
-        Assert.True(looseFeedLoad >= 0 && looseFeedLoad < attachedFeedFallback);
+        Assert.True(randomApiCall >= 0 && completionWait >= 0 && completionWait < nativeCleanup);
     }
 
     [Fact]

@@ -52,7 +52,12 @@
           "to": "GunGameProgressionsMetadataExporter.dll"
         }
       ],
-      "patchTargets": [],
+      "patchTargets": [
+        {
+          "type": "FistVR.ItemSpawnerV2",
+          "method": "SpawnRandomGunRoutine"
+        }
+      ],
       "externalPatchTargets": [
         {
           "relativeAssemblyPath": "Kodeman-GunGame\\GunGame.dll",

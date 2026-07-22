@@ -24,9 +24,12 @@ GunGame profile loader
 
 Native GunGame WeaponBuffer.SpawnAsync
   -> Cursed prefix starts ItemSpawnerV2 BTN_TryToSpawnRandomGun
-  -> after API successfully starts, invoke native DestroyOldEq while Item Spawner
-     still holds previous result; remove parent-created native G17 without risking
-     a synchronously materialized random firearm
+  -> completion hook waits for the native SpawnRandomGunRoutine, including its
+     ammo and attachment work
+  -> validate a real registered FVRFireArm and a feed that actually loads
+  -> reject only the owned failed result, wait one frame, then reroll the same
+     transition up to three times while native/profile equipment remains intact
+  -> after a validated result, invoke native DestroyOldEq to remove parent-created G17 equipment
   -> every SpawnAsync call during that pending transition returns empty; no G17
      gun or magazine reaches player hand or selected Ammo slot
   -> wait for vanilla random result
@@ -46,7 +49,7 @@ Native GunGame WeaponBuffer.SpawnAsync
 - Use the live `ItemSpawnerV2` random-gun API; do not maintain a second random
   weapon or attachment selector.
 - No polling: one coroutine runs per GunGame equipment transition and stops
-  after a bounded result wait.
+  after a bounded native-routine completion wait.
 - If direct interception or Item Spawner is unavailable, retain normal GunGame
   profile spawning instead of crashing or deleting current equipment.
 - Resolve GunGame types from the active `WeaponBuffer` / `Progression` assembly;
@@ -69,8 +72,12 @@ Native GunGame WeaponBuffer.SpawnAsync
 - Only generated feeds with an `FVRObject` wrapper are valid loadout candidates.
   Compatible loose feeds load first; an attached candidate is fallback only.
   Wrapperless child objects cannot mask a valid loose magazine such as M240's.
-- Loose, incompatible generated feeds are removed after one compatible spare decision.
+- Native loose feeds are preserved; only Cursed-owned helper feeds and spares may be destroyed.
 - Log one completed random loadout with firearm, feeds, and attachments.
+- A random result is valid only when it is a registered `FVRFireArm` and a
+  magazine, clip, speedloader, or cartridge has demonstrably loaded. Failed
+  completed results reroll the same GunGame tier at most three times; an
+  unfinished native routine never overlaps with a retry.
 
 ## Decisions
 
@@ -87,8 +94,10 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Acknowledge direct transition event once. | Native `WeaponChangedEvent` can follow suppressed `SpawnAsync`; treating it as a second transition rolls and destroys an unnecessary random gun. | 2026-07-22 |
 | Suppress all pending SpawnAsync calls. | Live trace proved GunGame invokes the buffer multiple times per transition; allowing later calls creates overlapping native G17 equipment and occupies Ammo slot. | 2026-07-22 |
 | Complete firearm handoff before feeds. | Live trace proved a later progression can start after random result but before feed work; serializing full transition prevents empty hand and protects gun when optional feed handling fails. | 2026-07-22 |
-| Cleanup native equipment after starting vanilla API. | Live trace proves parent GunGame equipment can already contain G17 even when all `SpawnAsync` calls are suppressed. `DestroyOldEq` runs only after API invocation and only before a new result appears, preserving failure fallback and random-gun safety. | 2026-07-22 |
+| Cleanup native equipment after accepted random loadout. | Live trace proves parent GunGame equipment can already contain G17 even when all `SpawnAsync` calls are suppressed. Preserve it through validation/retry, then run `DestroyOldEq` only after a valid random gun and feed are ready. | 2026-07-22 |
 | Prefer loose wrapper-backed feeds. | M240 trace selected an attached wrapperless `unknown` object before valid loose `Magazine M240`, so no magazine loaded or spare spawned. | 2026-07-22 |
+| Completion-aware reroll. | `CurrentlySpawnedRandomGun` is assigned before vanilla ammo/attachment work ends; a bounded hook around `SpawnRandomGunRoutine` prevents feed races and overlapping retries. | 2026-07-22 |
+| Preserve native equipment during invalid rolls. | A reroll must not consume Cursed placeholder tiers or leave the player empty; only accepted loadouts clear native/previous Cursed equipment. | 2026-07-22 |
 
 ## Known limits / backlog
 
