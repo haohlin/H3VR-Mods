@@ -5,13 +5,13 @@
 ## Status
 
 Last verified: `2026-07-22`
-State: `VanillaRipScopes 0.0.1 Windows-built ZIP is ready for manual r2modman import; obsolete private scope packages were removed from Default profile. NightForce native-PIP runtime acceptance remains unresolved and needs a fresh post-cleanup H3VR log plus VR test.`
+State: `VanillaRipScopes 0.0.1 is installed but rejected: its profile bypasses OtherLoader build-root registration, so no Item Spawner entries can appear. Corrected 0.0.2 source is committed and awaits Windows build proof. NightForce native-PIP runtime acceptance remains unresolved and needs a fresh post-cleanup H3VR log plus VR test.`
 
 ### Verified now
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Unity source | `H3VR-unity-projects/NightForcePlus` branch `codex/vanilla-scope-importer` commit `85d85e4` names the three-candidate local package `VanillaRipScopes`; guarded Windows source payload hash verification passed. | Source synced. |
+| Unity source | `H3VR-unity-projects/NightForcePlus` branch `codex/vanilla-scope-importer` commit `fd45f33` creates `VanillaRipScopes` 0.0.2 through a self-loading `OtherLoaderBuildRoot`; profile references only root and root references all three items through `BuildItemsAny`. It also creates isolated `Assets/Projects/VanillaRipScopes/VanillaRipScopesPreview.unity` only if absent. | Committed/pushed; Windows source sync and build pending. |
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Black mount content is no longer packaged. NightForce requests it from BubbleLevelSet by object ID. | Package boundary validated. |
 | Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`; MeatKit compiles that one source into each package while preserving existing scope component identity and fields. | Windows Unity suite passed. |
@@ -48,7 +48,8 @@ State: `VanillaRipScopes 0.0.1 Windows-built ZIP is ready for manual r2modman im
 | Native controller lifecycle | Current game `FVRFireArmAttachment` calls `OnAttach()` then activates `AttachmentInterface`, and deactivates it on detach. Rebound ST6T serializes its `PIPScopeController` object inactive. | NightForce `_Interface` now serializes inactive and the runtime test enforces mount-time activation semantics. |
 | Native PIP presentation | Rebound ST6T uses `Unlit/PIPScope` on both PIP lenses. NightForce current source uses that shader and serializes the retired `ScopeRendererNightforce` MeshRenderer disabled. | Serialized parity is not visual proof; fresh VR test must establish reticle, magnification, and absence of floating legacy circles. |
 | Mod-content Item Spawner metadata | User rule: every authored item must set `FVRObject.IsModContent: 1` and matching `SpawnerEntry.IsModded: 1`. NightForce source assets and generic local-candidate generator now enforce both; Windows Unity runtime tests and local preparation verifier enforce them too. | Fresh runtime registration proof pending. |
-| VanillaRipScopes local package | Fresh private preparation completed with ST6T, LT3x9, and EVU 1–10 under new object/spawner IDs. Windows MeatKit build and package validation passed; `VanillaRipScopes-0.0.1.zip` SHA-256 `7372FBB40B6E2885935D0E539121C429F0E92345C4F10341043F9471BC33AF29` was fetched and hash-verified for manual import. | ZIP only; not deployed by pipeline, not published. |
+| VanillaRipScopes local package | `VanillaRipScopes-0.0.1.zip` installed and enabled with all six required bundles, but user observed no Item Spawner entries. Source inspection proved profile `BuildItems` directly contained three concrete build items. Existing NightForce root has `SelfLoading: 1` and one `BuildItemsAny` concrete item; OtherLoader requires that root topology. | 0.0.1 rejected. Do not retest. |
+| VanillaRipScopes corrected candidate | `fd45f33` uses copied known-good OtherLoader build-root template, asserts root type, self-loading flag, exact three-item `BuildItemsAny` order, and exact one-root profile. It creates a fresh 0.0.2 package version and dedicated generated preview scene without touching existing scenes. | Awaiting Windows source sync, preparation, build, package inspection. |
 
 ### Open blockers
 
@@ -80,9 +81,9 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | `[x]` | Audit ST6T fields, component sequence, and physical layout against NightForce. | Private report records all readable serialized fields plus node/component/visual layout; no required native field schema is absent. |
 | `[x]` | Import and audit two high-power variable reference scopes. | Classic 3–12x and EVU 1–10x complete full private import/rebind/audit with zero unresolved/ambiguous scripts and zero required-native gap. |
 | `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, redundant scope renderer is disabled, and both PIP lenses use `Unlit/PIPScope`; Windows serialized checks pass. |
-| `[x]` | Build three recovered scopes into one manual-test mod. | ST6T, LT3x9, and EVU 1–10 rebind exactly, receive `VanillaRip*` metadata, and build/package into hash-verified `VanillaRipScopes-0.0.1.zip` without deployment. |
+| `[ ]` | Rebuild three recovered scopes through OtherLoader root. | Windows preparation verifies one self-loading root with all three concrete items in `BuildItemsAny`, profile references only root, dedicated preview scene exists, then 0.0.2 build/package inspection passes. |
 | `[x]` | Deploy corrected native-PIP candidate locally. | H3VR was closed; exact validated package replaced Default-profile candidate. Fresh startup/VR test remains required. |
-| `[ ]` | Verify post-cleanup Item Spawner registration. | After manual `VanillaRipScopes` import, BepInEx/OtherLoader log confirms only intended package bundles load and Item Spawner exposes its three new entries. |
+| `[ ]` | Verify corrected Item Spawner registration. | After manual `VanillaRipScopes` 0.0.2 import, BepInEx/OtherLoader log confirms root/item registration and Item Spawner exposes all three new entries. |
 
 ### Deferred
 
@@ -120,9 +121,9 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
-| Vanilla Rip ST6T Black | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
-| Vanilla Rip LT3x9 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
-| Vanilla Rip EVU 1–10x28 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
+| Vanilla Rip ST6T Black | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | 0.0.1 has no entries. Corrected 0.0.2 must build first. |
+| Vanilla Rip LT3x9 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | 0.0.1 has no entries. Corrected 0.0.2 must build first. |
+| Vanilla Rip EVU 1–10x28 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | 0.0.1 has no entries. Corrected 0.0.2 must build first. |
 
 ### Release gate
 
@@ -131,8 +132,9 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 - [x] Fresh MeatKit source package created from the exact profile after physical PIP repair; SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`.
 - [x] Pipeline package/deploy receipt for the repaired candidate.
 - [x] Generic private importer and field/layout audit validate ST6T against authored NightForce; fresh repaired `1.0.5` candidate package validated and deployed locally.
-- [x] `VanillaRipScopes` has exact rebind evidence, fresh build-marker evidence, three-bundle archive proof, and a hash-verified ZIP fetched for manual import; obsolete prior candidate deployment was removed.
-- [ ] User H3VR acceptance for manually imported VanillaRip ST6T/LT3x9/EVU 1–10 spawning, PIP/reticle render, rail mount, and controls.
+- [x] `VanillaRipScopes` 0.0.1 has exact rebind evidence, build-marker evidence, three-bundle archive proof, and manager installation evidence; root topology audit rejects it before further VR testing.
+- [ ] Corrected `VanillaRipScopes` 0.0.2 Windows preparation/build/package inspection must prove OtherLoader root topology before manual import.
+- [ ] User H3VR acceptance for manually imported corrected VanillaRip ST6T/LT3x9/EVU 1–10 spawning, PIP/reticle render, rail mount, and controls.
 - [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.

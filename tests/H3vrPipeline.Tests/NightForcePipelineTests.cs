@@ -44,7 +44,7 @@ public sealed class NightForcePipelineTests
         Assert.Equal("HLin_Mods-VanillaRipScopes", candidates.GetProperty("deploymentFolder").GetString());
         Assert.Equal("legacy-flat", candidates.GetProperty("layout").GetString());
         Assert.Equal(
-            "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-VanillaRipScopes.asset",
+            "Assets\\Projects\\VanillaRipScopes\\Profile-VanillaRipScopes.asset",
             candidates.GetProperty("versionProfileRelativePath").GetString());
         Assert.Equal(
             "AssetBundles\\VanillaRipScopes\\{version}\\HLin_Mods-VanillaRipScopes-{version}.zip",

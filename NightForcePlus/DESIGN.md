@@ -65,6 +65,7 @@ that progression rather than the archived wheel-angle list.
 | Reticle scaling boundary | The archived shader started at `0.846` and multiplied by `M / 7`. `0.846` is mesh/UV-shader-specific, so the native PIP implementation preserves the transferable `M / 7` FFP behavior and uses angular reticle canvases. | 2026-07-20 |
 | Native PIP presentation repair | Remove serialized Canvas/menu legacy presentation, normalize the supported PIP optical axis, retire the redundant Scope_Simplified renderer, and preserve authored controls with native mount lifecycle. Runtime visual acceptance remains required. | 2026-07-22 |
 | Private recovered-prefab boundary | Generic importer may resolve a full GUID-plus-local-ID script pointer into a private candidate. With explicit user authorization, a fully rebound candidate may enter a unique local-only MeatKit test package; raw C# remains excluded. Keep raw assets and package output out of Git, GitHub, Thunderstore, and public distribution. NightForce remains authored native PIP. | 2026-07-21 |
+| VanillaRipScopes registration topology | Match existing OtherLoader mods: profile has one self-loading `OtherLoaderBuildRoot`; its `BuildItemsAny` contains all three concrete scope build items. Direct concrete items in profile build successfully but do not register. | 2026-07-22 |
 
 ## Known limits / backlog
 

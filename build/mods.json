@@ -146,7 +146,7 @@
       "community": "h3vr",
       "deploymentFolder": "HLin_Mods-VanillaRipScopes",
       "layout": "legacy-flat",
-      "versionProfileRelativePath": "Assets\\Projects\\PrivateVanillaRuntimeCandidates\\Profile-VanillaRipScopes.asset",
+      "versionProfileRelativePath": "Assets\\Projects\\VanillaRipScopes\\Profile-VanillaRipScopes.asset",
       "packageRelativePath": "AssetBundles\\VanillaRipScopes\\{version}\\HLin_Mods-VanillaRipScopes-{version}.zip",
       "unityBuildMethod": "HLin_Mods.PrivateTools.VanillaScopeReferenceImporter.BuildLocalRuntimeCandidatePackage",
       "unityBuildSuccessMarker": "[VanillaScopeLocalRuntime] PASS: VanillaRipScopes package built for VanillaRipST6TBlack, VanillaRipLT3x9, and VanillaRipEVU1x10.",
