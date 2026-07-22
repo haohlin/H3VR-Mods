@@ -5,13 +5,13 @@
 ## Status
 
 Last verified: `2026-07-22`
-State: `native-PIP acceptance pending; NightForce and ST6T/LT3x9/EVU 1-10 local packages redeployed with explicit mod-content Item Spawner metadata, awaiting fresh H3VR startup and VR acceptance`
+State: `VanillaRipScopes 0.0.1 Windows-built ZIP is ready for manual r2modman import; obsolete private scope packages were removed from Default profile. NightForce native-PIP runtime acceptance remains unresolved and needs a fresh post-cleanup H3VR log plus VR test.`
 
 ### Verified now
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Unity source | `H3VR-unity-projects/NightForcePlus` commit `12b7af2` contains physical PIP calibration, a mount-activated native controller interface, native ST6T-compatible PIP lens shader repair, and retained authored scope renderer. Windows source payload hash verification passed. | Verified. |
+| Unity source | `H3VR-unity-projects/NightForcePlus` branch `codex/vanilla-scope-importer` commit `85d85e4` names the three-candidate local package `VanillaRipScopes`; guarded Windows source payload hash verification passed. | Source synced. |
 | Existing scope bubble | `BubbleLevelScope.cs` maps root Euler Z directly to local X. | Legacy behavior identified. |
 | Included mount | Black mount content is no longer packaged. NightForce requests it from BubbleLevelSet by object ID. | Package boundary validated. |
 | Shared motion source | Unity source commit `6112947` owns `GravityBubbleLevelMotion`; MeatKit compiles that one source into each package while preserving existing scope component identity and fields. | Windows Unity suite passed. |
@@ -20,14 +20,14 @@ State: `native-PIP acceptance pending; NightForce and ST6T/LT3x9/EVU 1-10 local 
 | Package candidate | MeatKit package and archive validation passed. SHA-256 `B5ABFF605116697FD64BCAED276A5FD98BDC36988A5771CDD0463E44C61CAF7C`. | Passed. |
 | Deployment / H3VR | Validated `1.0.5` package deployed after BubbleLevelSet `2.0.4`; installed manifest confirms the BubbleLevelSet dependency. User verified the mod in H3VR before release authorization. | Passed. |
 | Release documentation overlay | Source `main` documentation replaced only ZIP `README.md` and added `CHANGELOG.md`; every existing non-document archive entry kept its content hash. `H3vrPipeline validate` passed. Release SHA-256 `0C6E24310314E3132CA9FA9F660B9FDE5AFB1351AE02EBA0C50FD38C590F2021`. | Passed. |
-| Pipeline wrapper | Dedicated macOS and Windows `codex/nightforce-runtime` worktrees are current. Windows `h3vr-remote run --worktree codex/nightforce-runtime Test` passed `121/121`; branch-selected actions reuse machine-local configuration without exposing paths. | Passed. |
-| Windows Unity source | Editor closed; guarded source payload from `codex/vanilla-scope-importer` commit `12b7af2` synchronized with verified hashes. | Source synced. |
+| Pipeline wrapper | Dedicated macOS and Windows `codex/nightforce-runtime` worktrees are current. Windows suite passed `132/132`; guarded actions inventory/remove exact Default-profile packages and stop only `h3vr.exe` when explicitly authorized. | Passed. |
+| Windows Unity source | Editor closed; guarded source payload from `codex/vanilla-scope-importer` commit `85d85e4` synchronized with verified hashes. | Source synced. |
 | Native PIP migration | `PIPScope`, controller, front/rear PIP lenses, direct-hand magnification/elevation/windage interactions, and attachment references are serialized. `ScopeShaderZoom` is absent at runtime. | Windows runtime suite passed. |
 | Native magnification | Smooth 7--35x geometric magnification and matching native geometric ring positions are serialized. No archived wheel-angle mapping is used. | Windows runtime suite passed. |
 | Reticle visual scaling | Archived custom shader behavior was `0.846 * (M / 7)`. Native FFP preserves the transferable `M / 7` apparent-scale multiplier. Named MOA-XT, MIL-XT, and TREMOR3 canvases have measured angular FOVs. | Windows runtime suite passed. |
 | Current candidate package | Windows Unity batch build and package validation completed after the ST6T comparison correction. The package is ready for an authorized local deployment; no public release. | Built and package-validated; not yet deployed. |
 | Prior candidate deployment | Earlier native-PIP candidate deployed locally with a pipeline-created VR receipt. User runtime report superseded it. It is not a public release. | Superseded by repaired candidate. |
-| Runtime failure report | User observed a permanently visible legacy menu, black scope glass, and inactive direct controls. Runtime log contained no NightForce exception. Later ST6T audit disproved two prior repair assumptions. | Corrected causes: NightForce used `PIPScope` instead of `Unlit/PIPScope`, forced its attachment controller active despite native mount lifecycle, and disabled the authored scope renderer that supplied the visible reticle path. |
+| Runtime failure report | User reported see-through NightForce glass, missing reticle/magnification, and two right-eye-only floating circles. BepInEx log loaded obsolete `NativePipScopeBootstrap` from profile scope packages, which current tested prefab does not serialize. | `HLin_Mods-L115PrivateScope`, `HLin_Mods-H3VRGameScopePrivate`, and superseded `HLin_Mods-LocalVanillaScopeCandidates` were removed after authorized `h3vr.exe` stop. Fresh post-cleanup log/VR proof pending. |
 | Runtime ItemID conflict | Prior H3VR startup reported duplicate `NightForcePlus` registration. Source now uses `NightForcePlusPIP` / `NightForcePlus PIP`; both enabled packages need a fresh H3VR startup-log check before conflict is considered resolved. | Fresh-session verification pending. |
 | Windows Unity source sync | Configured Windows MeatKit project is an unversioned import. Guarded, narrow source transfer copied only committed NightForcePlus source and matching metadata, then hash-verified every transferred file. | Passed. |
 | Native PIP repair | Repaired prefab has no serialized Canvas, one native PIP camera, positive lens axis, native clip spacing, and native click feedback on magnification/elevation/windage. Authored control transforms are unchanged. | Serialized contract passed in Windows Unity batch run. |
@@ -46,13 +46,13 @@ State: `native-PIP acceptance pending; NightForce and ST6T/LT3x9/EVU 1-10 local 
 | Cross-reference PIP contract | ST6T 1–6x, Classic 3–12x, and EVU 1–10x all serialize active `PIPScope`, inactive mount-controlled `PIPScopeController`, and `Unlit/PIPScope` on both lenses. | NightForce now matches this native presentation/lifecycle contract. |
 | Cross-reference gaps | Each candidate has `0` required native component/field-schema gap against NightForce. All carry `UnityEngine.SphereCollider`; NightForce instead carries its authored physical layout. Its extra `FVRFireArmAttachmentMount` is shared by EVU; its `BubbleLevelScope` is intentional. | Do not add a recovered component or alter physical layout without a runtime collision/interaction defect. |
 | Native controller lifecycle | Current game `FVRFireArmAttachment` calls `OnAttach()` then activates `AttachmentInterface`, and deactivates it on detach. Rebound ST6T serializes its `PIPScopeController` object inactive. | NightForce `_Interface` now serializes inactive and the runtime test enforces mount-time activation semantics. |
-| Native PIP presentation | Rebound ST6T uses `Unlit/PIPScope` on both PIP lenses. NightForce had `PIPScope`; a prior repair also disabled `ScopeRendererNightforce`, which removed its authored reticle fallback in user testing. | NightForce now retains enabled `ScopeRendererNightforce` and forces both native PIP lenses to `Unlit/PIPScope`; fresh private audit confirms shader and controller active-state parity. |
+| Native PIP presentation | Rebound ST6T uses `Unlit/PIPScope` on both PIP lenses. NightForce current source uses that shader and serializes the retired `ScopeRendererNightforce` MeshRenderer disabled. | Serialized parity is not visual proof; fresh VR test must establish reticle, magnification, and absence of floating legacy circles. |
 | Mod-content Item Spawner metadata | User rule: every authored item must set `FVRObject.IsModContent: 1` and matching `SpawnerEntry.IsModded: 1`. NightForce source assets and generic local-candidate generator now enforce both; Windows Unity runtime tests and local preparation verifier enforce them too. | Fresh runtime registration proof pending. |
-| Local recovered scope package | Fresh local preparation completed with ST6T, LT3x9, and EVU 1–10. Exact package marker names all three candidates; three-bundle ZIP guard passed; package `0.0.1` SHA-256 `A71C71B61249C9F08AB1A4F67631CF54682E2737CE3D37F6390CA37F826EE500` deployed through Default-profile pipeline while H3VR was stopped. | Fresh H3VR restart and manual acceptance pending; no public release or distribution. |
+| VanillaRipScopes local package | Fresh private preparation completed with ST6T, LT3x9, and EVU 1–10 under new object/spawner IDs. Windows MeatKit build and package validation passed; `VanillaRipScopes-0.0.1.zip` SHA-256 `7372FBB40B6E2885935D0E539121C429F0E92345C4F10341043F9471BC33AF29` was fetched and hash-verified for manual import. | ZIP only; not deployed by pipeline, not published. |
 
 ### Open blockers
 
-Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR.
+Manual H3VR acceptance remains required for repaired native PIP candidate: Item Spawner availability, pickup, rail mount, direct controls, reticle selection/illumination, visual centering/subtension, and non-black scope view in VR. Start with a fresh BepInEx log after obsolete-profile cleanup.
 
 The vanilla-reference task uses only the authoritative raw export. Do not import recovered C# source into Unity. Full GUID-plus-local-ID rebinding must resolve every reference exactly before candidate packaging. User-authorized local-only packages may include fully rebound candidates with unique IDs, profile, and deployment folder. Keep raw exports, candidates, and local packages out of Git, GitHub, Thunderstore, and public distribution.
 
@@ -79,10 +79,10 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | `[x]` | Compare ST6T with authored NightForce. | ST6T candidate is `10/10` rebound with no missing required native NightForce component; component differences are reported and intentional. |
 | `[x]` | Audit ST6T fields, component sequence, and physical layout against NightForce. | Private report records all readable serialized fields plus node/component/visual layout; no required native field schema is absent. |
 | `[x]` | Import and audit two high-power variable reference scopes. | Classic 3–12x and EVU 1–10x complete full private import/rebind/audit with zero unresolved/ambiguous scripts and zero required-native gap. |
-| `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, `ScopeRendererNightforce` stays enabled, and both PIP lenses use `Unlit/PIPScope`; Windows build/package/private audit pass. |
-| `[x]` | Build and deploy ST6T, LT3x9, and EVU 1–10 local candidates. | All three candidates rebind every script exactly, receive unique object/spawner/build metadata, build into `LocalVanillaScopeCandidates`, pass its three-bundle ZIP guard, and deploy through the Default-profile pipeline while H3VR is closed. |
+| `[x]` | Correct native PIP lifecycle and presentation against ST6T. | `_Interface` starts inactive, attachment lifecycle activates it on mount, redundant scope renderer is disabled, and both PIP lenses use `Unlit/PIPScope`; Windows serialized checks pass. |
+| `[x]` | Build three recovered scopes into one manual-test mod. | ST6T, LT3x9, and EVU 1–10 rebind exactly, receive `VanillaRip*` metadata, and build/package into hash-verified `VanillaRipScopes-0.0.1.zip` without deployment. |
 | `[x]` | Deploy corrected native-PIP candidate locally. | H3VR was closed; exact validated package replaced Default-profile candidate. Fresh startup/VR test remains required. |
-| `[ ]` | Verify post-restart Item Spawner registration. | BepInEx/OtherLoader log confirms each package bundle loaded and Item Spawner exposes NightForce, ST6T, LT3x9, and EVU 1–10 entries. |
+| `[ ]` | Verify post-cleanup Item Spawner registration. | After manual `VanillaRipScopes` import, BepInEx/OtherLoader log confirms only intended package bundles load and Item Spawner exposes its three new entries. |
 
 ### Deferred
 
@@ -104,7 +104,7 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Private comparison | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabCompareNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Comparison marker reports required-native gap and symmetric component-type differences without modifying authored prefab content. |
 | Private field/layout audit | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaPrefabAuditNightForce -Query <leaf.prefab>` then `UnityVanillaPrefabImportStatus` | Audit marker has `0` missing required-native field schemas and `0` unreadable properties; private report retains fields, node order, transforms, bounds, and materials. |
 | Local runtime candidate preparation | `h3vr-remote run --worktree codex/nightforce-runtime UnityVanillaRuntimeCandidatePrepare` then `UnityVanillaRuntimeCandidateStatus` | Preparation marker confirms fully rebound ST6T, LT3x9, and EVU 1–10 candidates plus unique local metadata. |
-| Local runtime candidate package | `Build`, `Package`, and `Deploy` for `VanillaScopeCandidatesLocal` | Fresh MeatKit marker, validated package, and Default-profile deployment receipt. |
+| VanillaRipScopes package | `Build` and `Package` for `VanillaRipScopes` | Fresh MeatKit marker, three required bundles, and hash-verified ZIP; manual r2modman import only. |
 
 ### Manual H3VR acceptance
 
@@ -120,19 +120,19 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | Reticle centering and subtension | Reticle stays centered; named MOA/MIL/TREMOR markings have expected target angular scale. | Pending candidate VR test. |
 | Native PIP presentation | No legacy scope-renderer image or menu remains visible; native popup appears only during control use; scope view is not black. | Pending repaired-candidate VR test. |
 | Native PIP physical alignment | Rear and front PIP lens planes sit on physical eyepiece and objective glass; scope image is visible and magnified. | Pending repaired-candidate VR test. |
-| Recovered ST6T local candidate | `Local Test Recovered ST6T Black` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
-| Recovered LT3x9 local candidate | `Local Test Recovered LT3x9` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
-| Recovered EVU 1–10 local candidate | `Local Test Recovered EVU 1-10x28` appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | Mod-content package deployed; pending fresh startup/user VR test. |
+| Vanilla Rip ST6T Black | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
+| Vanilla Rip LT3x9 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
+| Vanilla Rip EVU 1–10x28 | Appears under `Attachments/Magnifier_Scope`; it spawns, grabs, mounts, renders PIP/reticle, and its controls work. | ZIP ready for manual import; user VR test pending. |
 
 ### Release gate
 
 - [x] Current Windows source and managed DLL status checked.
-- [x] Automated checks pass: pipeline `121/121`; Unity runtime PIP/gravity suite passes; fresh package validated and deployed locally.
+- [x] Automated checks pass: pipeline `132/132`; latest `VanillaRipScopes` Windows build/package validation passes.
 - [x] Fresh MeatKit source package created from the exact profile after physical PIP repair; SHA-256 `1113E3B8F18C1AAE83840C5D66E63F247F8CE7F1DA3CBCFB3FBBE60AF68E79FF`.
 - [x] Pipeline package/deploy receipt for the repaired candidate.
 - [x] Generic private importer and field/layout audit validate ST6T against authored NightForce; fresh repaired `1.0.5` candidate package validated and deployed locally.
-- [x] Fresh local-only ST6T/LT3x9/EVU 1–10 runtime candidate package has exact rebind evidence, build-marker evidence, three-bundle archive proof, and Default-profile deployment receipt.
-- [ ] User H3VR acceptance for local ST6T/LT3x9/EVU 1–10 candidate spawning, PIP/reticle render, rail mount, and controls.
+- [x] `VanillaRipScopes` has exact rebind evidence, fresh build-marker evidence, three-bundle archive proof, and a hash-verified ZIP fetched for manual import; obsolete prior candidate deployment was removed.
+- [ ] User H3VR acceptance for manually imported VanillaRip ST6T/LT3x9/EVU 1–10 spawning, PIP/reticle render, rail mount, and controls.
 - [ ] User H3VR acceptance for repaired native PIP interaction, visual view, and reticle visuals.
 - [x] Historical release: BubbleLevelSet `2.0.4` published before NightForcePlus `1.0.5`.
 - [x] Historical release: exact Thunderstore download URL returned HTTP `200` for `1.0.5`.

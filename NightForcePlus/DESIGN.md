@@ -63,7 +63,7 @@ that progression rather than the archived wheel-angle list.
 | Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
 | Native PIP optic | Replace the obsolete custom scope runtime with H3VR's PIP scope/controller/interactions while preserving user-adjusted prefab transforms. | 2026-07-20 |
 | Reticle scaling boundary | The archived shader started at `0.846` and multiplied by `M / 7`. `0.846` is mesh/UV-shader-specific, so the native PIP implementation preserves the transferable `M / 7` FFP behavior and uses angular reticle canvases. | 2026-07-20 |
-| Native PIP presentation repair | Remove serialized Canvas/menu legacy presentation, normalize the supported PIP optical axis, retain authored scope-renderer reticle presentation, and preserve authored controls with native mount lifecycle. | 2026-07-20 |
+| Native PIP presentation repair | Remove serialized Canvas/menu legacy presentation, normalize the supported PIP optical axis, retire the redundant Scope_Simplified renderer, and preserve authored controls with native mount lifecycle. Runtime visual acceptance remains required. | 2026-07-22 |
 | Private recovered-prefab boundary | Generic importer may resolve a full GUID-plus-local-ID script pointer into a private candidate. With explicit user authorization, a fully rebound candidate may enter a unique local-only MeatKit test package; raw C# remains excluded. Keep raw assets and package output out of Git, GitHub, Thunderstore, and public distribution. NightForce remains authored native PIP. | 2026-07-21 |
 
 ## Known limits / backlog
