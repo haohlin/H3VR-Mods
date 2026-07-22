@@ -442,7 +442,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void LogModdedRefreshStart(int scanNumber, string trigger)
     {
-        Logger.LogDebug(
+        Logger.LogInfo(
             "GunGame Progressions debug: scan #" + scanNumber + " start; trigger=" + trigger + ".");
     }
 
@@ -456,7 +456,7 @@ public sealed class Plugin : BaseUnityPlugin
         RuntimeGenerationReport report,
         Stopwatch totalTimer)
     {
-        Logger.LogDebug(
+        Logger.LogInfo(
             "GunGame Progressions debug: scan #" + scanNumber + " outcome=" + outcome +
             "; trigger=" + trigger +
             "; registry=" + registryEntries +
