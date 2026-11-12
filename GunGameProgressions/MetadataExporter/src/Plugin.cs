@@ -99,11 +99,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void InstallGunGameSpawnSafety()
     {
-        if (harmony == null)
-        {
-            harmony = new Harmony(HarmonyId);
-        }
-
+        harmony = new Harmony(HarmonyId);
         spawnSafety = new GunGameSpawnSafety(this, Trace);
         if (spawnSafety.Install(harmony))
         {
@@ -1417,15 +1413,7 @@ public sealed class Plugin : BaseUnityPlugin
             // Preserve a complete saved pair until a larger current snapshot,
             // or the scheduled ten-minute policy-upgrade window. An empty
             // snapshot can clear it only after loader completion is explicit.
-            return new RuntimeGenerationReport(
-                profileEntries.Count,
-                profileEntries.Count(entry => entry.IsModContent),
-                enemyEntries.Count,
-                phasePools.Count,
-                eligibleWeaponsPerPool,
-                result.SkippedFirearms.Count,
-                new List<string>(),
-                false);
+            return new RuntimeGenerationReport(phasePools.Count, eligibleWeaponsPerPool, false);
         }
 
         var expectedPoolFiles = new HashSet<string>(StringComparer.Ordinal);
@@ -1445,15 +1433,7 @@ public sealed class Plugin : BaseUnityPlugin
         var shouldWrite = RuntimePoolPersistence.ShouldWrite(storedFingerprint, contentFingerprint, poolFilesMatch);
         if (!shouldWrite)
         {
-            return new RuntimeGenerationReport(
-                profileEntries.Count,
-                profileEntries.Count(entry => entry.IsModContent),
-                enemyEntries.Count,
-                phasePools.Count,
-                eligibleWeaponsPerPool,
-                result.SkippedFirearms.Count,
-                expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
-                false);
+            return new RuntimeGenerationReport(phasePools.Count, eligibleWeaponsPerPool, false);
         }
 
         if (phase != RuntimeGenerationPhase.CompatibilityProbe)
@@ -1476,15 +1456,7 @@ public sealed class Plugin : BaseUnityPlugin
             SerializeReceipt(profileEntries, enemyEntries, phaseResult, randomSeed, phaseName, contentFingerprint));
         WriteTextAtomically(Path.Combine(runtimePoolsPath, "enemy-catalog.json"), SerializeEnemyCatalog(enemyEntries));
 
-        return new RuntimeGenerationReport(
-            profileEntries.Count,
-            profileEntries.Count(entry => entry.IsModContent),
-            enemyEntries.Count,
-            phasePools.Count,
-            eligibleWeaponsPerPool,
-            result.SkippedFirearms.Count,
-            expectedPoolFiles.OrderBy(fileName => fileName, StringComparer.Ordinal).ToList(),
-            true);
+        return new RuntimeGenerationReport(phasePools.Count, eligibleWeaponsPerPool, true);
     }
 
     private enum RuntimeGenerationPhase
@@ -1638,33 +1610,15 @@ public sealed class Plugin : BaseUnityPlugin
 
     private sealed class RuntimeGenerationReport
     {
-        public RuntimeGenerationReport(
-            int entryCount,
-            int moddedEntryCount,
-            int enemyCount,
-            int poolCount,
-            int eligibleWeaponsPerPool,
-            int skippedFirearmCount,
-            List<string> poolFileNames,
-            bool wasWritten)
+        public RuntimeGenerationReport(int poolCount, int eligibleWeaponsPerPool, bool wasWritten)
         {
-            EntryCount = entryCount;
-            ModdedEntryCount = moddedEntryCount;
-            EnemyCount = enemyCount;
             PoolCount = poolCount;
             EligibleWeaponsPerPool = eligibleWeaponsPerPool;
-            SkippedFirearmCount = skippedFirearmCount;
-            PoolFileNames = poolFileNames;
             WasWritten = wasWritten;
         }
 
-        public int EntryCount { get; private set; }
-        public int ModdedEntryCount { get; private set; }
-        public int EnemyCount { get; private set; }
         public int PoolCount { get; private set; }
         public int EligibleWeaponsPerPool { get; private set; }
-        public int SkippedFirearmCount { get; private set; }
-        public List<string> PoolFileNames { get; private set; }
         public bool WasWritten { get; private set; }
         public long ElapsedMilliseconds { get; set; }
     }
