@@ -313,13 +313,13 @@ public sealed class Plugin : BaseUnityPlugin
         int scanNumber,
         string trigger)
     {
-        var totalTimer = Stopwatch.StartNew();
         LogModdedRefreshStart(scanNumber, trigger);
         while (!vanillaGenerationFinished)
         {
             yield return null;
         }
 
+        var totalTimer = Stopwatch.StartNew();
         Logger.LogInfo(RuntimeStatusMessages.Preparing);
         Dictionary<string, FVRObject> objects;
         if (!TryGetObjectData(out objects) || objects.Count == 0)
