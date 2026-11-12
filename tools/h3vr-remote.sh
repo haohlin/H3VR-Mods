@@ -35,6 +35,14 @@ windows_quote() {
   printf '"%s"' "$value"
 }
 
+# ssh names the host in its own connection errors; keep them quiet and report
+# the failure without the private value.
+report_ssh_failure() {
+  if [[ $1 -eq 255 ]]; then
+    printf 'SSH to H3VR_WINDOWS_HOST failed (exit 255). Verify the host in private configuration.\n' >&2
+  fi
+}
+
 pipeline_repository="$H3VR_WINDOWS_REPOSITORY"
 
 resolve_windows_worktree() {
@@ -42,6 +50,7 @@ resolve_windows_worktree() {
   local worktree_listing
   local line
   local candidate_repository=""
+  local ssh_status=0
 
   if [[ -z "$requested_branch" ]]; then
     return
@@ -54,8 +63,12 @@ resolve_windows_worktree() {
       ;;
   esac
 
-  worktree_listing=$(ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" \
-    "git -C $(windows_quote "$H3VR_WINDOWS_REPOSITORY") worktree list --porcelain")
+  worktree_listing=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o LogLevel=QUIET "$H3VR_WINDOWS_HOST" \
+    "git -C $(windows_quote "$H3VR_WINDOWS_REPOSITORY") worktree list --porcelain") || ssh_status=$?
+  if [[ $ssh_status -ne 0 ]]; then
+    report_ssh_failure "$ssh_status"
+    exit "$ssh_status"
+  fi
   while IFS= read -r line; do
     case "$line" in
       'worktree '*)
@@ -120,4 +133,7 @@ if [[ -n "${H3VR_PRIVATE_ASSET_LAB:-}" ]]; then
   asset_lab_prefix="set \"H3VR_PRIVATE_ASSET_LAB=${H3VR_PRIVATE_ASSET_LAB}\" && "
 fi
 
-exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$asset_lab_prefix$remote_command"
+ssh_status=0
+ssh -o BatchMode=yes -o ConnectTimeout=15 -o LogLevel=QUIET "$H3VR_WINDOWS_HOST" "$asset_lab_prefix$remote_command" || ssh_status=$?
+report_ssh_failure "$ssh_status"
+exit "$ssh_status"

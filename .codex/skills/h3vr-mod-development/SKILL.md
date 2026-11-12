@@ -80,6 +80,13 @@ For every serialized `PIPScopeController`, set both directions before package:
 non-null; empty is valid. One-way wiring can fail during pick-up or mounting;
 add editor assertions for both links and VR-test spawn, pick-up, detach, mount.
 
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
+
 ## Cross-session mod state
 
 Chat memory is only a convenience; tracked mod records are source of truth for
