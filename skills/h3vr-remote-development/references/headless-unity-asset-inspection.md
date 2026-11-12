@@ -126,6 +126,41 @@ Delete old rip directories only after all of these are true:
 Remove exact obsolete directories, never broad parent directories or unknown
 tools. Record what was removed and that it cannot be restored from the workflow.
 
+## Verification state
+
+Last verified: `2026-11-12`, code at commit `0342835`.
+
+This section describes the current code. Replace a row when its fact changes;
+Git history keeps the earlier state.
+
+### Verified now
+
+| Area | Evidence | State |
+| --- | --- | --- |
+| Source | Branch `feat/headless-asset-inspection` pushed as a fast-forward, `5336bff..0342835`, on 2026-11-12. | Pushed. |
+| Hosted portable checks | Run `43205836108` of "Verify H3VR Portable Checks" on `windows-latest` at `0342835` concluded success. The workflow does not set `H3VR_METADATA_EXPORTER_TESTS`, so the `[WindowsH3vrFact]` tests were skipped. | Passed. |
+| C# pipeline tests | macOS, isolated clone, .NET SDK 8.0.428 with the 7.0.20 runtime, at `0342835`. Full mode with `H3VR_METADATA_EXPORTER_TESTS=1`: 106 passed, 0 failed, 0 skipped; CI mode: 45 passed, 0 failed, 61 skipped. | Passed; not on the Windows host. |
+| Offline profile generator | `OfflineProfileGenerator --verify` reported PASS in the same macOS gate. | Passed. |
+| Python inspector tests | `tools/H3VRAssetInspector/tests/test_inspect_assets.py` at `0342835` on macOS: 8 passed. | Passed. |
+| PowerShell scripts | `tools/h3vr.ps1` and `tools/H3VRAssetInspector/export_private_asset_rip.ps1` show 0 parser errors and 0 PowerShell 7-only constructs under the PowerShell 7.4 parser. Neither script was executed, and nothing ran under Windows PowerShell 5.1. | Parsed only. |
+| Mod project compilation | Mod projects compile against NuGet reference libraries the same as at `5336bff`. BetterHearing fails to compile on every branch, including `main`. | Unchanged from baseline. |
+| Remote wrapper | With a stub in place of `ssh`, `tools/h3vr-remote.sh` forwards `SetupAssetInspector` and `InspectAssets` and rejects an unknown action with exit status 2. | Checked without a Windows connection. |
+
+### Pending Windows confirmation
+
+The Windows host was unreachable on 2026-11-12, so nothing in this table has
+run on the current code.
+
+| Item | Needed |
+| --- | --- |
+| `SetupAssetInspector` | A run on Windows. |
+| `InspectAssets` with the Unity batch audit | A run on Windows with a hash-locked input. |
+| `export_private_asset_rip.ps1` | A run on Windows, with a log path that contains a space to confirm the quoted `--log-path` argument. |
+| Environment file without an `inspection` section | A pipeline action that completes under strict mode. |
+| `inspection` section with `pythonExecutable` or `managedAssemblyDirectory` removed | `SetupAssetInspector` and `InspectAssets` that complete under strict mode. |
+| `unityBatchAudits` for an input with one bundle | A manifest in which the field is a one-element array. |
+| `h3vr-remote run InspectAssets` | A run from macOS through the wrapper against the Windows host. |
+
 ## Sources
 
 - [UnityPy](https://github.com/K0lb3/UnityPy) for read-only Unity serialized
