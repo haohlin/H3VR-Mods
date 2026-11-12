@@ -72,6 +72,13 @@ Do not `Package` or `Deploy` a new local candidate until parity passes. A
 skill-only update does not require a rebuild, but must reach Git and each
 configured global skill before the next deployment.
 
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
+
 ## Serialized native PIP scope guardrail
 
 For every serialized `PIPScopeController`, set both directions before package:
@@ -79,13 +86,6 @@ For every serialized `PIPScopeController`, set both directions before package:
 `PIPScopeController.Attachment = firearmAttachment`. Keep `SubMounts`
 non-null; empty is valid. One-way wiring can fail during pick-up or mounting;
 add editor assertions for both links and VR-test spawn, pick-up, detach, mount.
-
-## Parallel agents
-
-- One branch + macOS worktree per agent. Commit/push only that branch.
-- Integration agent merges/rebases reviewed branches into target.
-- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
-- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
 
 ## Cross-session mod state
 
