@@ -58,7 +58,7 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 
 - Guns receive usable ammunition: magazines first, then clips or speedloaders, then cartridges when needed.
 - An internally fed shotgun receives its compatible shells. A true box-mag shotgun receives its compatible magazine; the generator does not treat every shotgun as shell-fed.
-- Direct/proprietary/exact mount optics win. Modded fallback uses vanilla RMR/red-dot/low-power/LPVO optics, never a Modded magnified scope; it mounts only on a real compatible rail.
+- An optic that matches a gun's own mount is chosen first. A modded gun without one falls back to a vanilla red dot or low-power scope, attached only when the gun has a sight mount that fits it. Magnified scopes from mods are never chosen.
 - Reflex sights and scopes can appear; magnifiers and unrelated attachments are left out.
 - Every run can offer a different compatible choice, keeping familiar weapons from feeling identical.
 
