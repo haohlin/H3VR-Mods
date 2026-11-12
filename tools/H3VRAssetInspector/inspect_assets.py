@@ -467,7 +467,8 @@ def parse_arguments() -> argparse.Namespace:
         type=Path,
         help=(
             'Parent directory for temporary staging. Default: a "scratch" folder next to --output, '
-            "removed after the run when empty. Not used with --stage-bundles-directory."
+            "removed after the run if the run created it and it is empty. "
+            "Not used with --stage-bundles-directory."
         ),
     )
     parser.add_argument(
@@ -507,16 +508,21 @@ def main() -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     scratch: Path | None = None
-    default_scratch_parent: Path | None = None
+    created_scratch_parent: Path | None = None
     if args.stage_bundles_directory:
         # Caller-owned staging: nothing temporary is created or removed here.
         staged_directory = args.stage_bundles_directory.resolve()
     else:
         if args.scratch_root:
             scratch_parent = args.scratch_root.resolve()
+            scratch_parent.mkdir(parents=True, exist_ok=True)
         else:
-            scratch_parent = default_scratch_parent = args.output.parent / "scratch"
-        scratch_parent.mkdir(parents=True, exist_ok=True)
+            scratch_parent = args.output.parent / "scratch"
+            try:
+                scratch_parent.mkdir()
+                created_scratch_parent = scratch_parent
+            except FileExistsError:
+                pass  # already there, so it is not this run's folder to remove
         scratch = Path(tempfile.mkdtemp(prefix="h3vr-asset-inspection-", dir=str(scratch_parent)))
         staged_directory = scratch / "bundles"
 
@@ -544,11 +550,11 @@ def main() -> int:
     finally:
         if scratch is not None:
             shutil.rmtree(scratch, ignore_errors=True)
-        if default_scratch_parent is not None:
+        if created_scratch_parent is not None:
             try:
-                default_scratch_parent.rmdir()
+                created_scratch_parent.rmdir()
             except OSError:
-                pass  # not empty: something else still uses the default folder
+                pass  # not empty: another run is staging in the folder
     return 0
 
 

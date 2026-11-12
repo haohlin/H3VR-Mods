@@ -156,6 +156,34 @@ class InspectAssetsTests(unittest.TestCase):
             self.assertEqual([], manifest["bundles"])
             self.assertEqual({"scope.zip", "manifest.json"}, {item.name for item in root.iterdir()})
 
+    def test_existing_default_scratch_folder_is_left_in_place(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "scope.bundle"
+            bundle.write_bytes(b"UnityFS\x00scope-bundle")
+            output = root / "manifest.json"
+            scratch = root / "scratch"
+            scratch.mkdir()
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOL),
+                    "--input",
+                    str(bundle),
+                    "--output",
+                    str(output),
+                    "--list-candidates",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue(scratch.is_dir(), "the run removed a scratch folder it did not create")
+            self.assertEqual([], list(scratch.iterdir()))
+
     def test_stage_bundles_directory_keeps_copies_without_temporary_staging(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
