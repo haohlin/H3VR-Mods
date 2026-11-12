@@ -21,7 +21,7 @@ The built-in vanilla selection covers **660 firearms** with validated compatible
 | HLin - Vanilla Mixed Enemy | Vanilla firearms | Active vanilla Sosigs | A varied vanilla combat climb. |
 | HLin - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
 
-Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents. Internal Runtime file IDs remain unchanged for saved-profile compatibility.
+Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents. Earlier versions named these profiles "Runtime 01 - Vanilla Rot" through "Runtime 04 - Modded Mixed Enemy"; saved Modded profiles are renamed automatically.
 
 ## Modded Profile Refresh
 
@@ -34,14 +34,14 @@ The packaged Vanilla profiles are available immediately. Runtime generation then
 | When | What happens |
 | --- | --- |
 | H3VR starts | Vanilla metadata and profiles refresh as soon as the object registry is available. |
-| One, five, ten, and thirty minutes after H3VR starts | Background Modded rescans check for content that registered late. Thirty minutes is final refresh. |
-| First GunGame map | Vanilla choices remain available; any saved Modded pair is restored. Entering map does not start scan. |
-| Later GunGame maps | They open normally; reload to show newly saved Modded pair, never to trigger generation. |
-| After thirty-minute refresh | No map entry, reload, or exit starts another background refresh. |
+| One, five, ten, and thirty minutes after H3VR starts | Background Modded rescans check for content that registered late. The thirty-minute rescan is the last one. |
+| First GunGame map | Vanilla choices remain available, and any saved Modded pair is restored. Entering a map does not start a scan. |
+| Later GunGame maps | They open normally. Reload the map to show a newly saved Modded pair; reloading does not start generation. |
+| After the thirty-minute rescan | Nothing starts another background refresh until H3VR restarts. |
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
 | A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
 
-Each scheduled refresh snapshots currently registered Modded content immediately, then builds in background. It never blocks main game thread. If Modded pools are not ready yet, use Vanilla choice, then reload GunGame after later scheduled refresh finishes.
+Each scheduled refresh takes a snapshot of the Modded content registered so far, then builds the profiles in the background while the game keeps running. If the Modded profiles are not ready yet, play a Vanilla profile, then reload the GunGame map after a later refresh finishes.
 
 ## Enemy Pacing
 
