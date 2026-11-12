@@ -11,7 +11,9 @@ State: `active`
 
 Public release is `1.4.1`. This branch carries an unreleased candidate: fixed
 30-minute refresh schedule, `HLin - ` profile labels, and bounded scan
-diagnostics. Source edits made on 2026-11-12 are not built.
+diagnostics. Source edits made on 2026-11-12 passed portable checks at
+`d39c630`. Nothing has run on the Windows host since the candidate recorded in
+`a01ad95`.
 
 ### Verified now
 
@@ -27,14 +29,15 @@ diagnostics. Source edits made on 2026-11-12 are not built.
 | Runtime 05 boundary | Runtime 05 is local Debug-only. Release build and package neither generate nor restore it, and the Release ZIP holds `0` Runtime 05 files; Debug has isolated `-debug` artifacts and cannot publish. Remaining worklist: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Windows `Test` `97/97`, `Verify`, Release and Debug Build/Package, and the Debug publish guard passed. | Verified on Windows; worklist VR test pending |
 | Candidate package | Last Windows-validated source is the profile-label candidate recorded in `a01ad95`. It reports version `1.4.1`, the same as the public release. It was deployed privately from the dedicated Windows worktree; nothing was published. Last recorded package SHA-256 is `94B8F102ADEF4132ACB82006E416A63C854E85BEF958EBD810871857EED309E9` (scan-diagnostics build); the hash of the later profile-label build was not recorded. | Deployed privately; not published |
 | Last live run | Policy `20` build, outside GunGame. Startup generated all four player pools without selector interaction: Vanilla `659` each, Modded `60` each. Early capture `2` entries in `809 ms`; one-minute capture `1,124` entries in `1,033 ms`, then `pools ready`. Modded receipt: policy `20`, `1,124` Modded catalog entries, `60` eligible weapons; no exporter failure. | Verified; predates policy `21` and the candidate |
-| Unbuilt source edits (2026-11-12) | Selector and teardown guard rejects any `RequestModdedRefresh(` call, and every guard named in the policy regression matrix must exist as a test method. Scan `total` time starts after the wait for Vanilla generation, as in released `1.4.1`. Scheduled scans report `trigger=startup +60s`, `+300s`, `+600s`, or `+1800s` instead of the trace sentence. A persisted pool that a selector already lists under its legacy `Runtime 0N` label is not added again. Five unread `RuntimeGenerationReport` members, the unused `PoolHookUnavailable` message, and an always-true Harmony null guard are removed. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. The deployed candidate predates these edits |
+| Portable checks | Remote tip `d39c630`, pushed fast-forward from `a01ad95` on 2026-11-12. Hosted run `43206594414` (`Verify H3VR Portable Checks`) at `d39c630` concluded success; the `[WindowsH3vrFact]` tests are skipped there because `H3VR_METADATA_EXPORTER_TESTS` is not set. Isolated macOS clone, .NET SDK `8.0.428`: `103` passed in full mode with `H3VR_METADATA_EXPORTER_TESTS=1`; `42` passed and `61` skipped in CI mode. Mod builds equal the baseline. Not done: nothing ran on the Windows host; `tools/h3vr.ps1` was parsed, not executed; the `Kodeman-GunGame-1.0.2` plugin version check is still open because the package download did not complete. | Passed; not on the Windows host |
+| Source edits (2026-11-12) | Selector and teardown guard rejects any `RequestModdedRefresh(` call, and every guard named in the policy regression matrix must exist as a test method. Scan `total` time starts after the wait for Vanilla generation, as in released `1.4.1`. Scheduled scans report `trigger=startup +60s`, `+300s`, `+600s`, or `+1800s` instead of the trace sentence. A persisted pool that a selector already lists under its legacy `Runtime 0N` label is not added again. Five unread `RuntimeGenerationReport` members, the unused `PoolHookUnavailable` message, and an always-true Harmony null guard are removed. | Portable checks passed at `d39c630`. Windows `Test`/`Verify`/`Build` pending. The deployed candidate predates these edits |
 | Player guide edits (2026-11-12) | Changelog section points to the package page's Changelog tab; profile table sits under Choose a Pool; refresh timeline and optic rule are full plain sentences checked against source and policy. Three sentences that are also on the released page were corrected after review: Modded profiles build from content registered so far and at each rescan; a policy update can replace a larger saved pair once from the ten-minute rescan on; a gun from a mod disabled later is skipped at spawn and leaves the pool when a refresh replaces the saved pair. The `660` count, icon, and canonical description are unchanged. | Text only; ships with the next release. No version, changelog, or manifest change |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| Unbuilt source edits | Portable test run on the branch tip; hosted `Verify H3VR Portable Checks` run after push; then Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` from the dedicated candidate worktree. | Agent; Windows host |
+| Source edits not validated on Windows | Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` from the dedicated candidate worktree, then rebuild and redeploy the candidate. Portable checks passed at `d39c630`. | Agent; Windows host |
 | Reported performance failure has no confirmed root cause | Hypothesis from the released `1.4.1` source audit: selector reload or session teardown could cause another complete capture/build; the Unity thread snapshots the whole registry before the two-millisecond yield budget, capture allocates per-entry lists, and merge/build runs even when the candidate later loses the persistence check. No allocation profile, OOM, or crash stack confirmed it. Capture bounded scan diagnostics before changing performance code. | Owner runtime log |
 | Candidate shares version `1.4.1` with the public release | Choose the next version before any publish. | Owner |
 | Listing counts differ | Icon artwork says `644`, canonical description `661`, player guide `660`, packaged fallback `659`. This is a product decision; the canonical description must not be reworded without approval. | Owner |
@@ -45,7 +48,7 @@ Keep one item active.
 
 | State | Item | Acceptance condition |
 | --- | --- | --- |
-| `[>]` | Verify unbuilt source edits. | Portable test run passes on the branch tip; hosted `Verify H3VR Portable Checks` run passes after push; Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` pass from the dedicated candidate worktree. |
+| `[>]` | Validate the 2026-11-12 source edits on the Windows host. | Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` pass from the dedicated candidate worktree. Portable checks already passed at `d39c630`. |
 | `[ ]` | Rebuild, redeploy, and observe the fixed startup schedule. | Start H3VR, remain active through thirty minutes, then enter, reload, and exit GunGame. BepInEx shows immediate plus 1/5/10/30-minute scans only; no selector or map event starts a refresh after the final 30-minute callback; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
 | `[ ]` | Check `HLin` profile labels in the GunGame selector. | Vanilla and generated or persisted Modded profiles show `HLin - <profile name>`; Runtime filenames stay unchanged; no duplicate selector choice. |
 | `[ ]` | Capture bounded scan diagnostics. | Two `GunGame Progressions debug: scan #` Info records plus the matching `modded scan` record for each observed scan; compare capture, worker, and total time before changing performance code. |
@@ -68,14 +71,14 @@ Keep one item active.
 | Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
 | Game API | `h3vr.ps1 -Action SourceStatus` | Current on the dedicated Windows worktree at the profile-label candidate. |
-| Source / unit | `h3vr.ps1 -Action Test` | `103/103` at the profile-label candidate recorded in `a01ad95`. Not run since the 2026-11-12 source edits. |
+| Source / unit | `h3vr.ps1 -Action Test` | `103/103` at the profile-label candidate recorded in `a01ad95`. Not run on the Windows host since the 2026-11-12 source edits. |
 | Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Passed at the profile-label candidate; Kodeman targets resolve. |
-| Build / package | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package`; `Deploy` | Release Build/Package/Deploy passed at the profile-label candidate. Not rebuilt since the 2026-11-12 source edits. |
+| Build / package | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package`; `Deploy` | Release Build/Package/Deploy passed at the profile-label candidate. Not rebuilt on the Windows host since the 2026-11-12 source edits. |
 | Runtime 05 release boundary | `Test`; default Release `Build`/`Package`/`Deploy`; `Build`/`Package -GunGameBuildConfiguration Debug`; Debug publish guard | Passed `97/97`: Release ZIP has `0` Runtime 05 files and the installed exporter reports disabled; Debug exporter reports enabled; Debug package is isolated and publish is rejected. |
 | Offline fallback | `OfflineProfileGenerator`, then `--verify` | Passed on Windows for policy `21`; both tracked profiles hold `659` firearms. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
-| Unbuilt source edits | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify -Mod GunGameProgressions`, and Release `Build` from the dedicated candidate worktree. | Pending; not run. Guards cover: no `RequestModdedRefresh(` call in selector or teardown path; each policy-matrix guard is a test method; scan timer starts after the Vanilla wait; legacy-label dedupe; compact trigger labels. |
-| Hosted checks on `codex/**` | Push the branch, then inspect its `Verify H3VR Portable Checks` run. | Pending; the workflow branch filter now lists `codex/**`. No run exists until the branch is pushed. |
+| Portable checks, macOS clone | `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj` in an isolated macOS clone, .NET SDK `8.0.428` | At `d39c630`: `103` passed in full mode with `H3VR_METADATA_EXPORTER_TESTS=1`; `42` passed and `61` skipped in CI mode. Mod builds equal the baseline. Not on the Windows host. |
+| Portable checks, hosted | `Verify H3VR Portable Checks` on push; the workflow branch filter lists `codex/**` | Run `43206594414` at `d39c630` concluded success. `[WindowsH3vrFact]` tests are skipped there because `H3VR_METADATA_EXPORTER_TESTS` is not set. |
 
 ### Manual H3VR acceptance
 
