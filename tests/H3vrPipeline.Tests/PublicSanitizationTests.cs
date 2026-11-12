@@ -10,7 +10,7 @@ public sealed class PublicSanitizationTests
     {
         foreach (var relativePath in new[]
                  {
-                     ".claude/skills/h3vr-mod-development.md",
+                     ".claude/skills/h3vr-mod-development/SKILL.md",
                      ".codex/skills/h3vr-mod-development/SKILL.md",
                      "skills/h3vr-remote-development/SKILL.md",
                      "build/environment.json",

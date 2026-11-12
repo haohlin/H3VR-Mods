@@ -81,7 +81,7 @@ artifacts/
 # Local Claude configuration. The repository workflow guide is intentionally tracked.
 /.claude/*
 !/.claude/skills/
-!/.claude/skills/h3vr-mod-development.md
+!/.claude/skills/h3vr-mod-development/
 
 # Accidental copies of user and Git metadata at the repository root.
 /.bash_profile
