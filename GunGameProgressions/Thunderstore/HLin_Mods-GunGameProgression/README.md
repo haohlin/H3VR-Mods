@@ -29,7 +29,7 @@ Your last complete Modded profiles remain available after restarting H3VR. The m
 
 ## First Start
 
-The packaged Vanilla profiles are available immediately. Runtime generation then refreshes them from the live vanilla registry and builds Modded profiles after content finishes registering.
+The packaged Vanilla profiles are available immediately. Runtime generation then refreshes them from the live vanilla registry and builds Modded profiles from the content registered so far, then again at each scheduled rescan.
 
 | When | What happens |
 | --- | --- |
