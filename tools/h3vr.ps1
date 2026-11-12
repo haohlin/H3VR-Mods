@@ -2564,8 +2564,14 @@ function Invoke-Publish {
     param([object]$ModConfig)
 
     $localOnlyProperty = $ModConfig.PSObject.Properties['localOnly']
-    if ($null -ne $localOnlyProperty -and $localOnlyProperty.Value -eq $true) {
-        throw "$Mod is a local-only package and cannot be published."
+    if ($null -ne $localOnlyProperty) {
+        # A value that is not a JSON boolean is a descriptor mistake; refuse instead of treating it as publishable.
+        if ($localOnlyProperty.Value -isnot [bool]) {
+            throw "$Mod has a localOnly value that is not true or false; refusing to publish."
+        }
+        if ($localOnlyProperty.Value) {
+            throw "$Mod is a local-only package and cannot be published."
+        }
     }
 
     if (-not $Publish -or -not $VrApproved) {

@@ -71,18 +71,28 @@ public sealed class NightForcePipelineTests
     public void Vanilla_rip_scopes_are_local_only_and_cannot_be_published()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "mods.json")));
-        var candidates = document.RootElement
-            .GetProperty("mods")
-            .GetProperty("VanillaRipScopes");
+        var mods = document.RootElement.GetProperty("mods");
 
-        Assert.True(candidates.GetProperty("localOnly").GetBoolean());
+        Assert.True(mods.GetProperty("VanillaRipScopes").GetProperty("localOnly").GetBoolean());
+        Assert.All(mods.EnumerateObject(), mod =>
+        {
+            if (mod.Value.TryGetProperty("localOnly", out var localOnly))
+            {
+                Assert.True(localOnly.ValueKind is JsonValueKind.True or JsonValueKind.False);
+            }
+        });
 
-        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
-        var publish = pipeline.Substring(pipeline.IndexOf("function Invoke-Publish", StringComparison.Ordinal));
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1")).Replace("\r\n", "\n");
+        var start = pipeline.IndexOf("function Invoke-Publish", StringComparison.Ordinal);
+        var end = pipeline.IndexOf("\nfunction ", start + 1, StringComparison.Ordinal);
+        var publish = end < 0 ? pipeline.Substring(start) : pipeline.Substring(start, end - start);
         var guard = publish.IndexOf("$ModConfig.PSObject.Properties['localOnly']", StringComparison.Ordinal);
+        var refusal = publish.IndexOf("is a local-only package and cannot be published.", StringComparison.Ordinal);
+
         Assert.True(guard >= 0);
-        Assert.Contains("is a local-only package and cannot be published.", publish, StringComparison.Ordinal);
-        Assert.True(guard < publish.IndexOf("Assert-RemoteVersionIsNew", StringComparison.Ordinal));
+        Assert.True(refusal > guard);
+        Assert.Contains("-isnot [bool]", publish, StringComparison.Ordinal);
+        Assert.True(refusal < publish.IndexOf("Publishing requires both -Publish and -VrApproved.", StringComparison.Ordinal));
     }
 
     [Fact]
