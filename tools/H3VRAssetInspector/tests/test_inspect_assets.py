@@ -150,6 +150,39 @@ class InspectAssetsTests(unittest.TestCase):
             self.assertEqual("bundle/scope", manifest["candidates"][0]["label"])
             self.assertEqual(hashlib.sha256(bundle).hexdigest(), manifest["candidates"][0]["sha256"])
             self.assertEqual([], manifest["bundles"])
+            self.assertEqual({"scope.zip", "manifest.json"}, {item.name for item in root.iterdir()})
+
+    def test_stage_bundles_directory_keeps_copies_without_temporary_staging(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "scope.bundle"
+            bundle.write_bytes(b"UnityFS\x00scope-bundle")
+            output = root / "manifest.json"
+            staged = root / "staged"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOL),
+                    "--input",
+                    str(bundle),
+                    "--output",
+                    str(output),
+                    "--stage-bundles-directory",
+                    str(staged),
+                    "--list-candidates",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(["000-scope.bundle"], [item.name for item in staged.iterdir()])
+            self.assertEqual(
+                {"scope.bundle", "manifest.json", "staged"},
+                {item.name for item in root.iterdir()},
+            )
 
     def test_expected_hash_rejects_different_input(self):
         with tempfile.TemporaryDirectory() as temporary:

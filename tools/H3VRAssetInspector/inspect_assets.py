@@ -477,10 +477,19 @@ def main() -> int:
         raise ValueError("Input SHA-256 does not match --expected-sha256.")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    scratch_parent = args.scratch_root.resolve() if args.scratch_root else args.output.parent / "scratch"
-    scratch_parent.mkdir(parents=True, exist_ok=True)
-    scratch = Path(tempfile.mkdtemp(prefix="h3vr-asset-inspection-", dir=str(scratch_parent)))
-    staged_directory = args.stage_bundles_directory.resolve() if args.stage_bundles_directory else scratch / "bundles"
+    scratch: Path | None = None
+    default_scratch_parent: Path | None = None
+    if args.stage_bundles_directory:
+        # Caller-owned staging: nothing temporary is created or removed here.
+        staged_directory = args.stage_bundles_directory.resolve()
+    else:
+        if args.scratch_root:
+            scratch_parent = args.scratch_root.resolve()
+        else:
+            scratch_parent = default_scratch_parent = args.output.parent / "scratch"
+        scratch_parent.mkdir(parents=True, exist_ok=True)
+        scratch = Path(tempfile.mkdtemp(prefix="h3vr-asset-inspection-", dir=str(scratch_parent)))
+        staged_directory = scratch / "bundles"
 
     try:
         staged = stage_bundles(input_path, kind, staged_directory)
@@ -504,8 +513,13 @@ def main() -> int:
             encoding="utf-8",
         )
     finally:
-        if not args.stage_bundles_directory:
+        if scratch is not None:
             shutil.rmtree(scratch, ignore_errors=True)
+        if default_scratch_parent is not None:
+            try:
+                default_scratch_parent.rmdir()
+            except OSError:
+                pass  # not empty: something else still uses the default folder
     return 0
 
 
