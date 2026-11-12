@@ -48,6 +48,16 @@ public sealed class PublicSanitizationTests
     }
 
     [Fact]
+    public void Remote_wrapper_echoes_configuration_text_only_when_it_is_a_key_name()
+    {
+        var wrapper = File.ReadAllLines(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var keyEcho = Array.FindIndex(wrapper, line => line.Contains("configuration key: %s", StringComparison.Ordinal));
+
+        Assert.True(keyEcho > 0);
+        Assert.Contains("if [[ \"$key\" =~ ^H3VR_[A-Z0-9_]+$ ]]; then", wrapper[keyEcho - 1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pipeline_supports_an_ignored_local_environment_override()
     {
         var publicConfig = File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json"));

@@ -9,14 +9,22 @@ if [[ ! -r "$config_path" ]]; then
   exit 2
 fi
 
+line_number=0
 while IFS='=' read -r key value || [[ -n "$key" ]]; do
+  line_number=$((line_number + 1))
   [[ -z "$key" || "$key" == \#* ]] && continue
   case "$key" in
     H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY|H3VR_PRIVATE_ASSET_LAB)
       export "$key=$value"
       ;;
     *)
-      printf 'Unsupported private H3VR configuration key: %s\n' "$key" >&2
+      # A line without '=' puts its whole text in $key, which may be a private
+      # value. Echo it only when it is shaped like a key name.
+      if [[ "$key" =~ ^H3VR_[A-Z0-9_]+$ ]]; then
+        printf 'Unsupported private H3VR configuration key: %s\n' "$key" >&2
+      else
+        printf 'Unsupported entry on line %d of private H3VR configuration.\n' "$line_number" >&2
+      fi
       exit 2
       ;;
   esac
