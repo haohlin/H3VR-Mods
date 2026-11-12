@@ -1844,13 +1844,17 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes",
             "Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness",
             "Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path",
-            "Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans",
+            "Runtime_schedules_nonblocking_one_five_ten_and_thirty_minute_startup_modded_rescans",
+            "Runtime_selector_and_GunGame_teardown_never_request_post_startup_modded_refreshes",
             "Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing",
-            "Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready",
+            "Runtime_modded_profiles_create_first_pair_and_replace_only_with_a_larger_complete_pair",
         };
 
         Assert.Contains("## Playtest regression matrix", policy, StringComparison.Ordinal);
         Assert.All(requiredGuards, guard => Assert.Contains(guard, policy, StringComparison.Ordinal));
+        Assert.All(requiredGuards, guard => Assert.True(
+            typeof(GunGameGeneratorTests).GetMethod(guard) is not null,
+            "Policy guard is not a test in this class: " + guard));
     }
 
     [WindowsH3vrFact]
