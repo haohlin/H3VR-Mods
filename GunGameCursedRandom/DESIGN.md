@@ -93,6 +93,8 @@ Native GunGame WeaponBuffer.SpawnAsync
 | Preserve filled Ammo and Extra quickbelt slots. | Player-prepared magazines and scopes stay selected; random spares use empty slots only. | 2026-07-20 |
 | Remove custom Atlas-panel behavior. | New profile is visible through GunGame's existing profile loader; no scene lifecycle/UI clone is needed. | 2026-07-20 |
 | Intercept `WeaponBuffer.SpawnAsync`. | It is GunGame's actual two-argument spawn coroutine. Returning an empty coroutine after random API start prevents visible placeholder G17 spawn while preserving native progression flow. | 2026-07-22 |
+| Treat hook registration as unproven. | One live trace showed the `WeaponBuffer.SpawnAsync` prefix registered but never entered. Only a pending random spawn counts as direct-hook success; otherwise `WeaponChangedEvent` starts post-spawn replacement. | 2026-07-22 |
+| Wait one frame after Cursed cleanup. | Unity defers `Destroy` to end of frame, so the previous managed spare still occupied its quickbelt slot in the same frame and spare placement alternated between slots on promotions. | 2026-07-22 |
 | Track only Cursed-owned gun and slot-bound spares. | Broad object tracking deleted feeds after players moved them. Identity-checking only Cursed's original spare slots preserves all other quickbelt content. | 2026-07-22 |
 | Clone loaded feed from its FVRObject wrapper. | H3VR's random-gun button instantiates `FVRObject.GetGameObject()`; matching that native construction yields one compatible spare without a second weapon roll. | 2026-07-22 |
 | Bind reflection to active GunGame assembly. | BepInEx can load an older GunGame DLL beside active version; global type lookup can patch inactive `WeaponBuffer`. | 2026-07-22 |
@@ -114,3 +116,4 @@ Native GunGame WeaponBuffer.SpawnAsync
 | P0 | Validate generated magazine, cartridge, clip, and speedloader paths. | Loaded gun and spare quickbelt feed work without exceptions. |
 | P0 | Verify HLin-Random Cursed profile load and native event subscription. | Log names profile load, event subscription, and selected transition. |
 | P0 | Verify profile choice appears on supported GunGame maps. | `HLin-Random Cursed` is visible/selectable in normal profile list. |
+| P1 | Demote per-transition trace logging before publish. | `GunGame Cursed Random trace:` lines log at Debug, leaving the one loadout line and real warnings visible. They stay at Info and Warning until VR proof exists, because BepInEx hides Debug by default. |
