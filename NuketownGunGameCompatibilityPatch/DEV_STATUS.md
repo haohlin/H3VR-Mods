@@ -18,6 +18,7 @@ State: `active`
 | Launch / VR | r2modman native Modded launch created `h3vr.exe`. BepInEx loaded patch `1.0.0`; Atlas registered BO1 Nuketown; compatibility registration took 91 ms and logs no per-frame work. | Verified |
 | Runtime warning | Profile BepInEx is `5.4.17`; deployed plugin was compiled against `5.4.20`, producing a non-fatal compatibility warning despite successful load. | Verified |
 | BepInEx reference pin | Project file now references `BepInEx.Core` `5.4.17` instead of `5.*`; a source test requires the pin. Source edited on macOS, not built. Build, package, deploy, and launch rows above describe the package built before the pin. | Pinned in source; portable test run, Windows rebuild, and startup proof pending |
+| Atlas dependency pin | Manifest now pins `nrgill28-Atlas-1.0.1` instead of `1.0.0`, matching the plugin's `BepInDependency` minimum of Atlas `1.0.1`; evidence is in `DESIGN.md` Decisions. Manifest edited on macOS. The Windows package recorded above still carries the `1.0.0` pin. | Repackage pending; portable test run pending |
 | Skip log and player guide | Skip log line now ends with the consequence for the player, and a trailing period in the reason is trimmed. Player guide is reorganized into requirements, steps, unchanged items, and troubleshooting; it quotes the skip log prefix, which a source test keeps identical. Source edited on macOS, not built. | Portable test run and Windows rebuild pending |
 
 ### Open blockers
@@ -25,6 +26,7 @@ State: `active`
 | Blocker | Needed | Owner |
 | --- | --- | --- |
 | BepInEx reference warning | Reference is pinned in source. Rebuild on Windows, redeploy, and repeat startup proof; the BepInEx log must show no version warning for this plugin. | Codex |
+| GunGame dependency pin not checked | Manifest pins `Kodeman-GunGame-1.0.2` and the plugin requires GunGame plugin version `1.0.2` or newer. Read the plugin version inside that release's DLL, as was done for Atlas, before publishing. | Owner |
 | Full map gameplay acceptance | Runtime load and GunGame progression test in H3VR. | Codex + player VR acceptance |
 
 ## Plan

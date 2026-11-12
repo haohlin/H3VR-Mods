@@ -43,6 +43,7 @@ Thunderstore dependencies
 | Ship a compatibility plugin, not a patched replacement DLL. | Keeps owner package intact, updates safe, and payload distributable. | 2026-07-18 |
 | Register only the original scene bundle. | Nuketown scene code owns its GunGame hooks at scene load; global duplicate hooks would widen scope and cost. | 2026-07-18 |
 | Use reflection for Atlas registration. | Avoids bundling or compiling against Atlas binaries; reflection runs once only. | 2026-07-18 |
+| Pin the manifest dependency to `nrgill28-Atlas-1.0.1`, not `1.0.0`. | The plugin declares `[BepInDependency("nrgill28.Atlas", "1.0.1")]`. The plugin metadata in each public Thunderstore release's `Atlas.dll` shows release `1.0.0` ships plugin version `0.1.3` and release `1.0.1` ships plugin version `1.0.1`, so BepInEx would refuse this plugin beside the `1.0.0` release. `1.0.1` is the lowest release that satisfies the plugin; the latest release is `1.0.4`. | 2026-11-12 |
 
 ## Known limits / backlog
 
