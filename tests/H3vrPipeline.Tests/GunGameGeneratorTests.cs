@@ -936,7 +936,9 @@ public sealed class GunGameGeneratorTests
 
         Assert.Contains("private string moddedRefreshTrigger;", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh(\"startup immediate\");", source, StringComparison.Ordinal);
-        Assert.Contains("RequestModdedRefresh(traceMessage);", source, StringComparison.Ordinal);
+        // Trigger values are record fields: no trace sentence with "; " or "." inside.
+        Assert.Contains("RequestModdedRefresh(\"startup +\" + (int)delaySeconds + \"s\");", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequestModdedRefresh(traceMessage);", source, StringComparison.Ordinal);
         Assert.Contains("private void LogModdedRefreshStart(", source, StringComparison.Ordinal);
         Assert.Contains("private void LogModdedRefreshOutcome(", source, StringComparison.Ordinal);
         Assert.Equal(2, source.Split("GunGame Progressions debug: scan #", StringSplitOptions.None).Length - 1);
