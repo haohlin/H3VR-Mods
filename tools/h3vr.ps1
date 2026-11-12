@@ -48,6 +48,24 @@ function Get-InspectionConfig {
     return $property.Value
 }
 
+function Get-InspectionSetting {
+    param([string]$Name)
+
+    # Each inspection key is optional, and strict mode rejects a direct read
+    # of an absent one.
+    $inspectionConfig = Get-InspectionConfig
+    if ($null -eq $inspectionConfig) {
+        return $null
+    }
+
+    $property = $inspectionConfig.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $null
+    }
+
+    return $property.Value
+}
+
 function Expand-EnvironmentConfiguration {
     param([object]$Config)
 
@@ -456,11 +474,10 @@ function Get-AssetInspectorPython {
 }
 
 function Get-AssetInspectorBootstrapPython {
-    $inspectionConfig = Get-InspectionConfig
-    if ($null -ne $inspectionConfig -and
-        -not [string]::IsNullOrWhiteSpace($inspectionConfig.pythonExecutable) -and
-        (Test-Path -LiteralPath $inspectionConfig.pythonExecutable)) {
-        return $inspectionConfig.pythonExecutable
+    $configuredPython = Get-InspectionSetting 'pythonExecutable'
+    if (-not [string]::IsNullOrWhiteSpace($configuredPython) -and
+        (Test-Path -LiteralPath $configuredPython)) {
+        return $configuredPython
     }
 
     $python = Get-Command python -ErrorAction SilentlyContinue
@@ -610,12 +627,11 @@ function Invoke-AssetInspection {
         if (-not [string]::IsNullOrWhiteSpace($ExpectedSha256)) {
             $arguments += @('--expected-sha256', $ExpectedSha256)
         }
-        $inspectionConfig = Get-InspectionConfig
+        $configuredManagedDirectory = Get-InspectionSetting 'managedAssemblyDirectory'
         $managedDirectories = [System.Collections.Generic.List[string]]::new()
-        if ($null -ne $inspectionConfig -and
-            -not [string]::IsNullOrWhiteSpace($inspectionConfig.managedAssemblyDirectory) -and
-            (Test-Path -LiteralPath $inspectionConfig.managedAssemblyDirectory)) {
-            $managedDirectories.Add($inspectionConfig.managedAssemblyDirectory)
+        if (-not [string]::IsNullOrWhiteSpace($configuredManagedDirectory) -and
+            (Test-Path -LiteralPath $configuredManagedDirectory)) {
+            $managedDirectories.Add($configuredManagedDirectory)
         }
         foreach ($directory in $ManagedAssemblyDirectory) {
             if (-not [string]::IsNullOrWhiteSpace($directory) -and (Test-Path -LiteralPath $directory)) {

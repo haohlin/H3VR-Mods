@@ -30,13 +30,17 @@ public sealed class HeadlessAssetInspectionTests
     }
 
     [Fact]
-    public void Inspection_environment_section_is_optional_under_strict_mode()
+    public void Inspection_environment_section_and_keys_are_optional_under_strict_mode()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
 
         Assert.Contains("function Get-InspectionConfig", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$Config.inspection", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Properties['inspection'].Value", pipeline, StringComparison.Ordinal);
+
+        Assert.Contains("function Get-InspectionSetting", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("$inspectionConfig.pythonExecutable", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("$inspectionConfig.managedAssemblyDirectory", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
