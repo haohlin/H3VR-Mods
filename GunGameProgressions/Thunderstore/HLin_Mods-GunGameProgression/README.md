@@ -72,4 +72,4 @@ MIT. See the repository [LICENSE](https://github.com/haohlin/H3VR-Mods/blob/main
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md).
+See the **Changelog** tab on this package page.
