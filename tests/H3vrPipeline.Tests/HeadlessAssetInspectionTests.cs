@@ -35,6 +35,7 @@ public sealed class HeadlessAssetInspectionTests
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
 
         Assert.Contains("function Get-InspectionConfig", pipeline, StringComparison.Ordinal);
+        Assert.Contains("(Get-InspectionConfig -Config $Config)", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("$Config.inspection", pipeline, StringComparison.Ordinal);
         Assert.DoesNotContain("Properties['inspection'].Value", pipeline, StringComparison.Ordinal);
 

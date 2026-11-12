@@ -38,9 +38,11 @@ $EnvironmentConfig = Get-Content -LiteralPath $EnvironmentConfigPath -Raw | Conv
 $ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw | ConvertFrom-Json
 
 function Get-InspectionConfig {
+    param([object]$Config)
+
     # Local environment files written before the asset inspector have no
     # 'inspection' section, and strict mode rejects a direct read of it.
-    $property = $EnvironmentConfig.PSObject.Properties['inspection']
+    $property = $Config.PSObject.Properties['inspection']
     if ($null -eq $property) {
         return $null
     }
@@ -53,7 +55,7 @@ function Get-InspectionSetting {
 
     # Each inspection key is optional, and strict mode rejects a direct read
     # of an absent one.
-    $inspectionConfig = Get-InspectionConfig
+    $inspectionConfig = Get-InspectionConfig -Config $EnvironmentConfig
     if ($null -eq $inspectionConfig) {
         return $null
     }
@@ -69,7 +71,7 @@ function Get-InspectionSetting {
 function Expand-EnvironmentConfiguration {
     param([object]$Config)
 
-    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity, (Get-InspectionConfig))) {
+    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity, (Get-InspectionConfig -Config $Config))) {
         if ($null -eq $section) {
             continue
         }
