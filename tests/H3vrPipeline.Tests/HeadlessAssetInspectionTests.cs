@@ -68,6 +68,16 @@ public sealed class HeadlessAssetInspectionTests
     }
 
     [Fact]
+    public void Remote_wrapper_forwards_the_asset_inspector_actions()
+    {
+        var wrapper = File.ReadAllLines(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var actionWhitelist = Assert.Single(wrapper.Where(line => line.Contains("Preflight|SourceStatus|", StringComparison.Ordinal)));
+
+        Assert.Contains("|SetupAssetInspector|", actionWhitelist, StringComparison.Ordinal);
+        Assert.Contains("|InspectAssets|", actionWhitelist, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Public_workflow_runs_portable_inspector_tests()
     {
         var workflow = File.ReadAllText(Path.Combine(RepositoryRoot, ".github", "workflows", "verify.yml"));

@@ -70,6 +70,13 @@ Use a recorded SHA-256 when source provenance matters:
   -ExpectedSha256 <sha256>
 ```
 
+From macOS, run the same action through the tracked wrapper. `-InputPath` is a
+path on the Windows host:
+
+```sh
+h3vr-remote run InspectAssets -InputPath <bundle-or-release-zip> -ExpectedSha256 <sha256>
+```
+
 The command:
 
 1. validates the immutable input hash;
