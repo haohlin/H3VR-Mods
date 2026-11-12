@@ -425,6 +425,10 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("NormalizePersistedRuntimePoolDisplayName(packagePath, poolFileName);", pluginSource, StringComparison.Ordinal);
         Assert.Contains("Runtime " + "02 - Modded Rot", pluginSource, StringComparison.Ordinal);
         Assert.Contains("HLin - Modded Rot", pluginSource, StringComparison.Ordinal);
+
+        // A selector that already lists the pool under its previous label must not receive it twice.
+        Assert.Contains("var legacyPoolName = LegacyRuntimePoolDisplayName(poolFileName);", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("existingNames.Contains(legacyPoolName)", pluginSource, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
