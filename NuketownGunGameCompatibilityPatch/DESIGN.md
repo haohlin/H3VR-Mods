@@ -27,7 +27,8 @@ Thunderstore dependencies
 
 ## Invariants
 
-- Package payload contains only compatibility DLL, manifest, README, and icon.
+- Package payload contains only compatibility DLL, manifest, README, changelog,
+  and icon.
 - Never modify, copy, or redistribute any Nuketown map file.
 - No `Update`, coroutine polling, scene scan, or allocation after startup.
 - Register only `localpcnerd-NuketownGunGame/nuketown`, once per process.

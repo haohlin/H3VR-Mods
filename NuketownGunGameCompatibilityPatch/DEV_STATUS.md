@@ -9,20 +9,21 @@ State: `active`
 
 | Area | Evidence | State |
 | --- | --- | --- |
-| Source | Compatibility plugin, package metadata, and changelog committed through `3af3a34` on `feat/nuketown-gungame-compat`. | Verified |
+| Source | Compatibility plugin, package metadata, and changelog committed through `30456b0` on `feat/nuketown-gungame-compat`. | Verified |
 | Runtime cause | Default-profile log skips Nuketown's `GunGame 1.0.3` because core `GunGame 1.0.4` owns same plugin ID; package contains `nuketown` while skipped DLL targets `gungame`. | Verified |
 | Package | Owner package files, `nuketown` bundle, descriptor, and pools are present. | Verified |
 | Test / verify | Windows `h3vr.ps1 -Action Test`: 87 passed, 0 failed. `Verify` passed. | Verified |
 | Build / package | Windows Release build: 0 warnings, 0 errors. Package `1.0.0` SHA-256: `86FCFF9632E8722087E71EAE4928498571011C4A02B0A288D434BD0956135009`. | Verified |
 | Deploy | Wrapper deployed package and created a rollback-capable receipt. | Verified |
 | Launch / VR | r2modman native Modded launch created `h3vr.exe`. BepInEx loaded patch `1.0.0`; Atlas registered BO1 Nuketown; compatibility registration took 91 ms and logs no per-frame work. | Verified |
-| Runtime warning | Profile BepInEx is `5.4.17`; plugin compiled against `5.4.20`, producing a non-fatal compatibility warning despite successful load. | Pending release cleanup |
+| Runtime warning | Profile BepInEx is `5.4.17`; deployed plugin was compiled against `5.4.20`, producing a non-fatal compatibility warning despite successful load. | Verified |
+| BepInEx reference pin | Project file now references `BepInEx.Core` `5.4.17` instead of `5.*`; a source test requires the pin. Source edited on macOS, not built. Build, package, deploy, and launch rows above describe the package built before the pin. | Pinned in source; portable test run, Windows rebuild, and startup proof pending |
 
 ### Open blockers
 
 | Blocker | Needed | Owner |
 | --- | --- | --- |
-| BepInEx reference warning | Pin the compile-time BepInEx reference to the active profile version, then rebuild and repeat startup proof. | Codex |
+| BepInEx reference warning | Reference is pinned in source. Rebuild on Windows, redeploy, and repeat startup proof; the BepInEx log must show no version warning for this plugin. | Codex |
 | Full map gameplay acceptance | Runtime load and GunGame progression test in H3VR. | Codex + player VR acceptance |
 
 ## Plan
@@ -34,6 +35,7 @@ Keep one item active.
 | `[x]` | Implement, package, and deploy compatibility plugin. | Package contains only the compatibility DLL and metadata; Windows build, package, and deploy passed. |
 | `[x]` | Launch and inspect BepInEx registration. | r2modman native launch created `h3vr.exe`; log shows one compatibility registration and Atlas scene registration. |
 | `[>]` | Perform manual VR gameplay acceptance. | BO1 Nuketown appears, loads, starts, promotes, demotes, respawns, and exits normally. |
+| `[ ]` | Rebuild with pinned BepInEx reference and repeat startup proof. | Windows `Test`, `Verify`, and Release build pass; redeployed plugin loads without a BepInEx version warning. |
 | `[ ]` | Publish with explicit user approval. | Versioned package passes release checks. |
 
 ### Deferred
@@ -51,6 +53,7 @@ Keep one item active.
 | Source / unit | `h3vr.ps1 -Action Test` | 87 passed, 0 failed on Windows. |
 | Source API | `h3vr.ps1 -Action Verify -Mod NuketownGunGameCompatibilityPatch` | Passed on Windows. |
 | Build / package | `Build`, `Package`, `Deploy` through wrapper | Build 0 warnings / 0 errors; package and deployment succeeded. |
+| BepInEx reference pin | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify`, and `Build`. | Pending; not run since the pin. Evidence in rows above predates it. |
 
 ### Manual H3VR acceptance
 
@@ -67,4 +70,5 @@ Keep one item active.
 - [x] Package payload/version verified.
 - [x] Deployment receipt created.
 - [x] BepInEx log checked.
+- [ ] Rebuild, redeploy, and log recheck after BepInEx reference pin.
 - [ ] Required VR interaction completed.
