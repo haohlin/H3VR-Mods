@@ -56,6 +56,18 @@ public sealed class NuketownGunGameCompatibilityPatchTests
             Path.GetFileName(file).Equals("nuketown", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void Compatibility_plugin_compiles_against_the_profile_BepInEx_version()
+    {
+        var project = File.ReadAllText(Path.Combine(
+            RepositoryRoot,
+            "NuketownGunGameCompatibilityPatch",
+            "NuketownGunGameCompatibilityPatch.csproj"));
+
+        // A floating 5.* reference resolved above the profile's BepInEx and logged a load warning.
+        Assert.Contains("<PackageReference Include=\"BepInEx.Core\" Version=\"5.4.17\" />", project, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot
     {
         get
