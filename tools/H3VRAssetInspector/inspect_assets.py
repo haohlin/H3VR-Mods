@@ -176,7 +176,7 @@ def normalize_value(value: Any) -> Any:
     if isinstance(value, dict):
         pointer_keys = {"m_FileID", "m_PathID"}
         if pointer_keys.intersection(value):
-            return {key: value.get(key) for key in sorted(pointer_keys) if key in value}
+            return {key: normalize_value(value[key]) for key in sorted(pointer_keys) if key in value}
         return {"objectKeys": sorted(str(key) for key in value)[:20]}
     if isinstance(value, (list, tuple)):
         if all(item is None or isinstance(item, (bool, int, float, str)) for item in value[:16]):

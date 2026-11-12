@@ -111,6 +111,10 @@ class InspectAssetsTests(unittest.TestCase):
         )
         json.dumps(curve, allow_nan=False)
 
+        pointer = INSPECTOR.normalize_configuration_value({"m_FileID": 0, "m_PathID": float("nan")})
+        self.assertEqual({"m_FileID": 0, "m_PathID": "nan"}, pointer)
+        json.dumps(pointer, allow_nan=False)
+
     def test_missing_unitypy_error_names_the_setup_action(self):
         with mock.patch.dict(sys.modules, {"UnityPy": None}):
             with self.assertRaises(RuntimeError) as raised:
