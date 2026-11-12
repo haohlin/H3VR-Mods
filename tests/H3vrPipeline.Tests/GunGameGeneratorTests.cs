@@ -952,6 +952,16 @@ public sealed class GunGameGeneratorTests
         var diagnosticBody = source.Substring(diagnosticStart, probeStart - diagnosticStart);
         Assert.Contains("Logger.LogInfo(", diagnosticBody, StringComparison.Ordinal);
         Assert.DoesNotContain("Logger.LogDebug(", diagnosticBody, StringComparison.Ordinal);
+
+        // Scan time must not include the wait for Vanilla generation.
+        var refreshStart = source.IndexOf("private IEnumerator GenerateModdedPoolsForRefresh(", StringComparison.Ordinal);
+        var refreshEnd = source.IndexOf("private IEnumerator GenerateModdedPoolCandidate(", StringComparison.Ordinal);
+        Assert.True(refreshStart >= 0 && refreshEnd > refreshStart);
+        var refreshBody = source.Substring(refreshStart, refreshEnd - refreshStart);
+        var startRecord = refreshBody.IndexOf("LogModdedRefreshStart(scanNumber, trigger);", StringComparison.Ordinal);
+        var vanillaWait = refreshBody.IndexOf("while (!vanillaGenerationFinished)", StringComparison.Ordinal);
+        var scanTimer = refreshBody.IndexOf("var totalTimer = Stopwatch.StartNew();", StringComparison.Ordinal);
+        Assert.True(startRecord >= 0 && vanillaWait > startRecord && scanTimer > vanillaWait);
     }
 
     [WindowsH3vrFact]
