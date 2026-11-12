@@ -1,7 +1,9 @@
 # <ModName> Development Status
 
 `DEV_STATUS.md` is the cross-session handoff file. Keep these three sections
-current with verified evidence; do not duplicate this state in separate files.
+current with verified evidence. Replace a superseded row instead of adding one
+beside it; Git history keeps the old state. Do not duplicate this state in
+separate files.
 
 ## Status
 

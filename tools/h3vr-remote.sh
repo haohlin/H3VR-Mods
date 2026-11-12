@@ -12,7 +12,7 @@ fi
 while IFS='=' read -r key value || [[ -n "$key" ]]; do
   [[ -z "$key" || "$key" == \#* ]] && continue
   case "$key" in
-    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY)
+    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY|H3VR_PRIVATE_ASSET_LAB)
       export "$key=$value"
       ;;
     H3VR_PRIVATE_*)
@@ -30,6 +30,13 @@ for key in H3VR_WINDOWS_HOST H3VR_WINDOWS_REPOSITORY; do
     exit 2
   fi
 done
+
+# This wrapper always targets the canonical checkout. Stop instead of running
+# a requested worktree's action there.
+if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
+  printf 'This wrapper cannot route to a Windows worktree; unset H3VR_WINDOWS_WORKTREE_BRANCH or use a checkout whose wrapper supports it.\n' >&2
+  exit 2
+fi
 
 if [[ $# -lt 1 ]]; then
   printf 'Usage: %s <PipelineAction> [h3vr.ps1 arguments]\n' "$0" >&2
@@ -58,4 +65,11 @@ for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_
   remote_command+="$(windows_quote "$argument") "
 done
 
-exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$remote_command"
+# ssh names the host in its own connection errors; keep them quiet and report
+# the failure without the private value.
+ssh_status=0
+ssh -o BatchMode=yes -o ConnectTimeout=15 -o LogLevel=QUIET "$H3VR_WINDOWS_HOST" "$remote_command" || ssh_status=$?
+if [[ $ssh_status -eq 255 ]]; then
+  printf 'SSH to H3VR_WINDOWS_HOST failed (exit 255). Verify the host in private configuration.\n' >&2
+fi
+exit "$ssh_status"

@@ -56,3 +56,7 @@ Git root is the in-place `Assets/Projects` folder. It tracks project assets and
 matching `.meta` files. Generated bundles, `Library`, and `.vs` stay untracked.
 This repository records pipeline and handoff docs only. Current verified state,
 plan, and test evidence live in `DEV_STATUS.md`.
+
+`BubbleLevel.cs` and `BubbleLevel-legcy.cs` in this folder are snapshots from
+before the move to the Unity repository. They are not build inputs; do not edit
+them.
