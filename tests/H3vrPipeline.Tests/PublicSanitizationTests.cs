@@ -26,6 +26,20 @@ public sealed class PublicSanitizationTests
     }
 
     [Fact]
+    public void Remote_wrapper_keeps_the_private_host_out_of_ssh_diagnostics()
+    {
+        var wrapper = File.ReadAllLines(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var sshCalls = wrapper.Where(line => line.Contains("ssh -o BatchMode=yes", StringComparison.Ordinal)).ToArray();
+
+        Assert.NotEmpty(sshCalls);
+        Assert.All(sshCalls, line =>
+        {
+            Assert.Contains("-o ConnectTimeout=", line, StringComparison.Ordinal);
+            Assert.Contains("-o LogLevel=QUIET", line, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public void Pipeline_supports_an_ignored_local_environment_override()
     {
         var publicConfig = File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json"));

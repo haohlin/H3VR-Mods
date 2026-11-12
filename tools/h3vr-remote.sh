@@ -56,4 +56,11 @@ for argument in powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${H3VR_
   remote_command+="$(windows_quote "$argument") "
 done
 
-exec ssh -o BatchMode=yes "$H3VR_WINDOWS_HOST" "$remote_command"
+# ssh names the host in its own connection errors; keep them quiet and report
+# the failure without the private value.
+ssh_status=0
+ssh -o BatchMode=yes -o ConnectTimeout=15 -o LogLevel=QUIET "$H3VR_WINDOWS_HOST" "$remote_command" || ssh_status=$?
+if [[ $ssh_status -eq 255 ]]; then
+  printf 'SSH to H3VR_WINDOWS_HOST failed (exit 255). Verify the host in private configuration.\n' >&2
+fi
+exit "$ssh_status"
