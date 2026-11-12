@@ -63,6 +63,8 @@ public sealed class HeadlessAssetInspectionTests
         Assert.Contains("Refusing to overwrite existing AssetRipper export", driver, StringComparison.Ordinal);
         Assert.Contains("Move-Item -LiteralPath $stagingPath -Destination $outputPath", driver, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item -LiteralPath $stagingPath", driver, StringComparison.Ordinal);
+        Assert.Contains("'--log-path=\"{0}\"' -f $logPath", driver, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"--log-path=$logPath\"", driver, StringComparison.Ordinal);
     }
 
     [Fact]

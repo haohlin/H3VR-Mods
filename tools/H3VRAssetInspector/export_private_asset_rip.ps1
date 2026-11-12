@@ -76,11 +76,12 @@ $baseUri = "http://127.0.0.1:$Port"
 $process = $null
 
 try {
+    # Start-Process joins arguments with spaces and does not quote them.
     $process = Start-Process -FilePath $resolvedExecutable -ArgumentList @(
         '--headless=true',
         "--port=$Port",
         '--log=true',
-        "--log-path=$logPath"
+        ('--log-path="{0}"' -f $logPath)
     ) -PassThru
 
     Wait-AssetRipperServer -BaseUri $baseUri -TimeoutSeconds $StartupTimeoutSeconds
@@ -100,7 +101,7 @@ try {
         -ContentType 'application/x-www-form-urlencoded' -Body @{ path = $stagingPath } `
         -MaximumRedirection 5 -TimeoutSec $ActionTimeoutSeconds | Out-Null
 
-    $projectVersion = Join-Path $stagingPath 'ExportedProject\\ProjectSettings\\ProjectVersion.txt'
+    $projectVersion = Join-Path $stagingPath 'ExportedProject\ProjectSettings\ProjectVersion.txt'
     if (-not (Test-Path -LiteralPath $projectVersion)) {
         throw 'AssetRipper completed without creating Unity project metadata. Staging is preserved for review.'
     }
