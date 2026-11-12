@@ -85,6 +85,10 @@ for a Unity-content implementation decision. Directory scans remain available
 through `inspect_assets.py` for local analysis; wrapper runs intentionally
 require one ZIP or bundle so the source hash stays unambiguous.
 
+The parser manifest is strict JSON. A serialized number that is infinite or
+not a number, such as the slope of a stepped curve key, is written as the
+string `inf`, `-inf`, or `nan`.
+
 ## AI-in-the-loop review
 
 Give an agent the manifest, source hash, implementation question, and known
