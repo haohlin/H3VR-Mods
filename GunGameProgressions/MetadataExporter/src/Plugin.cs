@@ -626,7 +626,11 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 NormalizePersistedRuntimePoolDisplayName(packagePath, poolFileName);
                 var poolName = RuntimePoolDisplayName(poolFileName);
-                if (!string.IsNullOrEmpty(poolName) && existingNames.Contains(poolName))
+                var legacyPoolName = LegacyRuntimePoolDisplayName(poolFileName);
+                // A selector that loaded this file before its label was
+                // normalized still lists it under the legacy label.
+                if ((!string.IsNullOrEmpty(poolName) && existingNames.Contains(poolName)) ||
+                    (!string.IsNullOrEmpty(legacyPoolName) && existingNames.Contains(legacyPoolName)))
                 {
                     continue;
                 }

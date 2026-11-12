@@ -64,7 +64,7 @@ path. The normal shared resolver already controls its Vanilla eligibility.
 | Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, ten, and thirty real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
-| GunGame selector opens or reloads | Keep Vanilla usable and restore saved Modded choices once. A local Debug build also restores its saved Compatibility Probe choice. It never requests a catalog snapshot. |
+| GunGame selector opens or reloads | Keep Vanilla usable and restore saved Modded choices once. A local Debug build also restores its saved Compatibility Probe choice. A persisted pool that still carries a legacy `Runtime 0N` label is rewritten once to its `HLin` label, and a pool the selector already lists under either label is not added again. It never requests a catalog snapshot. |
 | New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
 | One and five minutes after plugin startup | Request non-blocking rescans for late-loading content. Each complete candidate follows strict count-growth replacement. |
 | Ten minutes after plugin startup | Request another non-blocking rescan and permit one complete candidate from a newer generation-policy version to replace a saved pair even when its count is smaller. |
@@ -74,7 +74,9 @@ path. The normal shared resolver already controls its Vanilla eligibility.
 There is no Modded loading row or live-insertion path. Selector restore clones
 at most one existing GunGame choice per already-persisted runtime pool (02, 04,
 or 05), once per selector instance. It never captures metadata, builds pools,
-or loads an asset prefab. Reloading GunGame is reliable player path after a
+or loads an asset prefab. Its only file write is the one-time atomic label
+rewrite of a legacy persisted pool; a file that cannot be rewritten keeps its
+old label and stays loadable. Reloading GunGame is reliable player path after a
 fresh pair is written.
 
 ## Persistence and replacement
