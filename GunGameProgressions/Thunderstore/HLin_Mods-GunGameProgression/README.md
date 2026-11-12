@@ -14,10 +14,6 @@ GunGame Progressions expands GunGame with compatible gear, distinct difficulty s
 
 The built-in vanilla selection covers **660 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
 
-## Modded profile refresh
-
-Your last complete Modded profiles remain available after restarting H3VR. The mod refreshes them in the background and replaces them only after a complete new pair is ready; a confirmed empty active mod set removes the old pair so disabled items cannot be selected.
-
 | Profile | Weapons | Enemies | Play style |
 | --- | --- | --- | --- |
 | HLin - Vanilla Rot | Vanilla firearms | Rotwieners only | A consistent, lower-pressure progression. |
@@ -26,6 +22,10 @@ Your last complete Modded profiles remain available after restarting H3VR. The m
 | HLin - Modded Mixed Enemy | Currently enabled mod firearms only | Active vanilla and custom Sosigs | A full mixed encounter using the modded weapons you have enabled. |
 
 Rot pools are the most predictable option. Mixed Enemy pools are for a more varied session, with a wide range of weapons and opponents. Internal Runtime file IDs remain unchanged for saved-profile compatibility.
+
+## Modded Profile Refresh
+
+Your last complete Modded profiles remain available after restarting H3VR. The mod refreshes them in the background and replaces them only after a complete new pair is ready; a confirmed empty active mod set removes the old pair so disabled items cannot be selected.
 
 ## First Start
 
