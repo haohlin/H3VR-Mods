@@ -61,11 +61,38 @@ that progression rather than the archived wheel-angle list.
 | External BubbleLevel package boundary | NightForce declares BubbleLevelSet for the Black mount by object ID; it includes no BubbleLevelSet component types or mount content. | 2026-07-17 |
 | Release-to-main rule | A released package must correspond to the final `main` commit; `main` tracks the current public releases, while feature branches remain unreleased. | 2026-07-17 |
 | Release documentation boundary | User authorized a documentation-only archive overlay. It replaced README and added CHANGELOG from source `main`; DLLs, bundles, manifest, and every other archive entry content hash remained unchanged before publish. | 2026-07-18 |
+| Manifest-first PIP research | Default to hash-backed structural manifests and Unity batch audits. An owner-authorized private full rip may validate recovery/reconstruction, but raw payloads never enter repository source, release packages, or Thunderstore. | 2026-07-18 |
+| Native PIP reference basis | Fixed-scope and variable-scope reference manifests, plus current installed PIP API source, establish native camera, material, reticle, controller, and direct-hand interaction relationships before changing the NightForce prefab. | 2026-07-18 |
 | Native PIP optic | Replace the obsolete custom scope runtime with H3VR's PIP scope/controller/interactions while preserving user-adjusted prefab transforms. | 2026-07-20 |
 | Reticle scaling boundary | The archived shader started at `0.846` and multiplied by `M / 7`. `0.846` is mesh/UV-shader-specific, so the native PIP implementation preserves the transferable `M / 7` FFP behavior and uses angular reticle canvases. | 2026-07-20 |
 | Native PIP presentation repair | Remove serialized Canvas/menu legacy presentation, normalize the supported PIP optical axis, retire the redundant Scope_Simplified renderer, and preserve authored controls with native mount lifecycle. Runtime visual acceptance remains required. | 2026-07-22 |
 | Private recovered-prefab boundary | Generic importer may resolve a full GUID-plus-local-ID script pointer into a private candidate. With explicit user authorization, a fully rebound candidate may enter a unique local-only MeatKit test package; raw C# remains excluded. Keep raw assets and package output out of Git, GitHub, Thunderstore, and public distribution. NightForce remains authored native PIP. | 2026-07-21 |
 | VanillaRipScopes registration topology | Match existing OtherLoader mods: profile has one self-loading `OtherLoaderBuildRoot`; its `BuildItemsAny` contains all three concrete scope build items. Direct concrete items in profile build successfully but do not register. | 2026-07-22 |
+| Local-only publish guard | A descriptor flagged `localOnly` in `build/mods.json` cannot be published: `Publish` throws before any authorization or token step. The pipeline now enforces the private recovered-prefab boundary for `VanillaRipScopes` instead of relying on this record. | 2026-11-12 |
+
+## Native PIP migration basis
+
+Two compact Thunderstore reference packages were inspected by source hash through
+the local structural-manifest tool. No raw extraction output is project source.
+
+- `cityrobo-HSProdukt_VHS_2-1.1.2`, SHA-256
+  `56E136A3AC32919538207D156F4ED1F6184A04D21B12D54050514A31B8F7A11A`,
+  verifies fixed-power hierarchy, native `PIPScope`/`PIPScope_Camera`, and
+  PIP material keywords/properties.
+- `Niko666-L115A3_Mustang-1.0.1`, SHA-256
+  `8BC2DA3509FDF849F6E834D8C640FFE2A331B2C430D86395411D84F09FF90F9A`,
+  verifies variable-power hierarchy: `PIPScopeController`,
+  `PIPScopeMagnificationInteraction`, elevation/windage
+  `PIPScopeInteraction`, and PIP material.
+- Current installed game source confirms the API is present:
+  `PIPScope`, `PIPScope_Camera`, `PIPScopeController`,
+  `PIPScopeInteraction`, `PIPScopeMagnificationInteraction`, and
+  `PIPScopeComponent`.
+
+NightForce will use the installed game PIP components and shader/material
+contract. It will retain or create only NightForce-owned meshes, reticle art,
+materials, transforms, and serialized values; it will not copy a game or
+another author's shader, material, texture, mesh, prefab, or code.
 
 ## Known limits / backlog
 
@@ -74,4 +101,5 @@ that progression rather than the archived wheel-angle list.
 | P1 | Versioned package dependency refresh | NightForce release depends on BubbleLevelSet `2.0.4` for the Black mount. |
 | P1 | Profile/README release alignment | Verified versioned release records matching profile, README, changelog, and dependency versions. |
 | P1 | Native PIP VR acceptance | Spawn, grab, rail mount, magnification, zero/elevation/windage, reticle switching, and reticle centering pass in H3VR. |
+| P1 | Public Item Spawner identity for the native-PIP release | Owner decides before release whether the optic ships under the released object ID `NightForcePlus` and display name, or keeps the side-by-side candidate identity `NightForcePlusPIP` / `NightForcePlus PIP`. Saved content that refers to `NightForcePlus` may stop resolving if the public item is renamed. |
 | P2 | Generic ATACR reticle source data | Its artwork has no verified manufacturer subtension; replace it or measure it before treating it as MOA/MRAD-accurate. |

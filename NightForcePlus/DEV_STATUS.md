@@ -5,7 +5,9 @@
 ## Status
 
 Last verified: `2026-07-22`
-State: `VanillaRipScopes 0.0.1 is installed but rejected: its profile bypasses OtherLoader build-root registration, so no Item Spawner entries can appear. Corrected 0.0.2 passed Windows preparation/build/package proof and awaits manual import plus runtime registration/VR test. NightForce native-PIP runtime acceptance remains unresolved and needs a fresh post-cleanup H3VR log plus VR test.`
+State: `active`
+
+Public release is `1.0.5`. The native-PIP candidate and the private, local-only `VanillaRipScopes` 0.0.2 reference package both await H3VR acceptance.
 
 ### Verified now
 
@@ -50,6 +52,7 @@ State: `VanillaRipScopes 0.0.1 is installed but rejected: its profile bypasses O
 | Mod-content Item Spawner metadata | User rule: every authored item must set `FVRObject.IsModContent: 1` and matching `SpawnerEntry.IsModded: 1`. NightForce source assets and generic local-candidate generator now enforce both; Windows Unity runtime tests and local preparation verifier enforce them too. | Fresh runtime registration proof pending. |
 | VanillaRipScopes local package | `VanillaRipScopes-0.0.1.zip` installed and enabled with all six required bundles, but user observed no Item Spawner entries. Source inspection proved profile `BuildItems` directly contained three concrete build items. Existing NightForce root has `SelfLoading: 1` and one `BuildItemsAny` concrete item; OtherLoader requires that root topology. | 0.0.1 rejected. Do not retest. |
 | VanillaRipScopes corrected candidate | `87b90db` uses copied known-good OtherLoader build-root template, asserts root type, self-loading flag, exact three-item `BuildItemsAny` order, and exact one-root profile. Windows batch preparation emitted its success marker with no failure marker. Build emitted package success marker. `VanillaRipScopes-0.0.2.zip` SHA-256 `582F49CC7BB3AA7713C6C0AD79DD7B73AACCDB29DD31950DA97DD205A1C41D38`; manifest declares OtherLoader `1.3.0`; archive contains DLL plus all six required early/late bundles. | Candidate packaged; not deployed. Manual import/runtime proof pending. |
+| Local-only publish guard | `VanillaRipScopes` carries `localOnly` in `build/mods.json`. `Publish` refuses a descriptor with that flag before any authorization, version, or token step; `NightForcePipelineTests` pins the flag and the guard. | Source contract added `2026-11-12`; Windows suite run pending. |
 
 ### Open blockers
 
@@ -84,6 +87,7 @@ The vanilla-reference task uses only the authoritative raw export. Do not import
 | `[x]` | Rebuild three recovered scopes through OtherLoader root. | Windows preparation verified one self-loading root with all three concrete items in `BuildItemsAny`, profile references only root, dedicated preview scene exists, and 0.0.2 build/package inspection passed. |
 | `[x]` | Deploy corrected native-PIP candidate locally. | H3VR was closed; exact validated package replaced Default-profile candidate. Fresh startup/VR test remains required. |
 | `[ ]` | Verify corrected Item Spawner registration. | After manual `VanillaRipScopes` 0.0.2 import, BepInEx/OtherLoader log confirms root/item registration and Item Spawner exposes all three new entries. |
+| `[ ]` | Compact this file to present state. | A Windows session confirms which native-PIP candidate is deployed; superseded `Verified now` rows are replaced and completed plan rows removed per `docs/mod-development/README.md`, with one item marked `[>]`. |
 
 ### Deferred
 
