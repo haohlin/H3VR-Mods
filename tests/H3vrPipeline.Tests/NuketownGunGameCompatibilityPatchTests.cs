@@ -50,7 +50,8 @@ public sealed class NuketownGunGameCompatibilityPatchTests
 
         Assert.Contains("localpcnerd-NuketownGunGame-2.1.6", dependencies);
         Assert.Contains("Kodeman-GunGame-1.0.2", dependencies);
-        Assert.Contains("nrgill28-Atlas-1.0.0", dependencies);
+        // Atlas release 1.0.0 ships plugin version 0.1.3, below the 1.0.1 the plugin requires.
+        Assert.Contains("nrgill28-Atlas-1.0.1", dependencies);
         Assert.Equal(3, dependencies.Length);
         Assert.DoesNotContain(Directory.EnumerateFiles(packageRoot, "*", SearchOption.AllDirectories), file =>
             Path.GetFileName(file).Equals("nuketown", StringComparison.OrdinalIgnoreCase));
