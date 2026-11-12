@@ -1058,7 +1058,7 @@ public sealed class GunGameGeneratorTests
         Assert.True(selectorHandler >= 0 && selectorLocator > selectorHandler);
         var selectorBody = source.Substring(selectorHandler, selectorLocator - selectorHandler);
         Assert.Contains("RestorePersistedRuntimeProfilesForSelector", selectorBody, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequestModdedRefresh();", selectorBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequestModdedRefresh(", selectorBody, StringComparison.Ordinal);
         Assert.DoesNotContain("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
         Assert.DoesNotContain("InstallGunGameRefreshHooks", source, StringComparison.Ordinal);
         Assert.DoesNotContain("GunGame.Scripts.GameManager", source, StringComparison.Ordinal);
