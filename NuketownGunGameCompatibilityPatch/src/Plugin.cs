@@ -48,7 +48,9 @@ namespace HLin_Mods.NuketownGunGameCompatibilityPatch
             }
             catch (Exception exception)
             {
-                Logger.LogError("Nuketown compatibility registration skipped: " + Describe(exception));
+                Logger.LogError(
+                    "Nuketown compatibility registration skipped: " + Describe(exception) +
+                    ". BO1 Nuketown will not appear in the Atlas map list.");
             }
         }
 
@@ -135,9 +137,11 @@ namespace HLin_Mods.NuketownGunGameCompatibilityPatch
         private static string Describe(Exception exception)
         {
             var invocation = exception as TargetInvocationException;
-            return invocation != null && invocation.InnerException != null
+            var message = invocation != null && invocation.InnerException != null
                 ? invocation.InnerException.Message
                 : exception.Message;
+            // The caller appends a sentence, so the reason must not end with its own period.
+            return (message ?? string.Empty).TrimEnd('.', ' ');
         }
     }
 }
