@@ -39,7 +39,7 @@ The packaged Vanilla profiles are available immediately. Runtime generation then
 | Later GunGame maps | They open normally. Reload the map to show a newly saved Modded pair; reloading does not start generation. |
 | After the thirty-minute rescan | Nothing starts another background refresh until H3VR restarts. |
 | A refresh finds more compatible mod guns | It replaces the Modded profiles for the next GunGame load. |
-| A refresh finds the same or fewer guns | It keeps the larger existing profiles. |
+| A refresh finds the same or fewer guns | It keeps the larger existing profiles. Exception: after a GunGame Progressions update changes its loadout rules, a rescan at ten minutes or later can replace them once. |
 
 Each scheduled refresh takes a snapshot of the Modded content registered so far, then builds the profiles in the background while the game keeps running. If the Modded profiles are not ready yet, play a Vanilla profile, then reload the GunGame map after a later refresh finishes.
 
