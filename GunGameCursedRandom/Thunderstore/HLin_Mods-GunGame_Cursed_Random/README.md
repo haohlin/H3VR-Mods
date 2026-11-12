@@ -28,7 +28,7 @@ Adds one profile, **HLin-Random Cursed**, to GunGame's normal profile list. Ever
 
 The map has no Item Spawner, so there is no random-gun button for the mod to use. GunGame then runs the profile's built-in placeholder, a Glock 17 on every tier. Choose another profile on this map, or use a GunGame map that has an Item Spawner.
 
-A single Glock 17 tier can also appear when three random rolls in a row produce a gun that cannot be loaded.
+A single Glock 17 tier can also appear when the Item Spawner's random-gun routine does not start or does not finish in time, or when three random rolls in a row produce a gun that cannot be loaded.
 
 The BepInEx log records each random loadout (firearm, feeds, attachments) and one warning when no Item Spawner is found.
 
