@@ -455,13 +455,42 @@ def inspect_bundle(path: Path, source: dict[str, str], managed_directories: Iter
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Emit a read-only structural manifest for Unity bundles.")
-    parser.add_argument("--input", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--scratch-root", type=Path)
-    parser.add_argument("--stage-bundles-directory", type=Path)
-    parser.add_argument("--managed-directory", action="append", type=Path, default=[])
-    parser.add_argument("--expected-sha256")
-    parser.add_argument("--list-candidates", action="store_true")
+    parser.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+        help="Unity bundle, release ZIP, or directory to inspect. It is never modified.",
+    )
+    parser.add_argument("--output", required=True, type=Path, help="Path of the JSON manifest to write.")
+    parser.add_argument(
+        "--scratch-root",
+        type=Path,
+        help=(
+            'Parent directory for temporary staging. Default: a "scratch" folder next to --output, '
+            "removed after the run when empty. Not used with --stage-bundles-directory."
+        ),
+    )
+    parser.add_argument(
+        "--stage-bundles-directory",
+        type=Path,
+        help=(
+            "Stage bundles in this directory and keep them after the run, "
+            "instead of using and deleting temporary staging."
+        ),
+    )
+    parser.add_argument(
+        "--managed-directory",
+        action="append",
+        type=Path,
+        default=[],
+        help="Directory of managed assemblies passed to bundle inspection. Repeat the flag for more than one.",
+    )
+    parser.add_argument("--expected-sha256", help="Fail unless the SHA-256 of --input equals this value.")
+    parser.add_argument(
+        "--list-candidates",
+        action="store_true",
+        help="Write the list of bundles found in --input without inspecting them.",
+    )
     parser.add_argument("--version", action="version", version="H3VRAssetInspector 1")
     return parser.parse_args()
 
