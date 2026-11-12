@@ -29,6 +29,13 @@ for key in H3VR_WINDOWS_HOST H3VR_WINDOWS_REPOSITORY; do
   fi
 done
 
+# This wrapper always targets the canonical checkout. Stop instead of running
+# a requested worktree's action there.
+if [[ -n "${H3VR_WINDOWS_WORKTREE_BRANCH:-}" ]]; then
+  printf 'This wrapper cannot route to a Windows worktree; unset H3VR_WINDOWS_WORKTREE_BRANCH or use a checkout whose wrapper supports it.\n' >&2
+  exit 2
+fi
+
 if [[ $# -lt 1 ]]; then
   printf 'Usage: %s <PipelineAction> [h3vr.ps1 arguments]\n' "$0" >&2
   exit 2

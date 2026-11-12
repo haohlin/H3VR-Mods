@@ -40,6 +40,14 @@ public sealed class PublicSanitizationTests
     }
 
     [Fact]
+    public void Remote_wrapper_does_not_ignore_a_requested_windows_worktree()
+    {
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+
+        Assert.Contains("H3VR_WINDOWS_WORKTREE_BRANCH", wrapper, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pipeline_supports_an_ignored_local_environment_override()
     {
         var publicConfig = File.ReadAllText(Path.Combine(RepositoryRoot, "build", "environment.json"));
