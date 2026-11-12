@@ -82,7 +82,7 @@ public sealed class NuketownGunGameCompatibilityPatchTests
     }
 
     [Fact]
-    public void Compatibility_plugin_compiles_against_the_profile_BepInEx_version()
+    public void Compatibility_project_pins_the_BepInEx_package_reference_to_the_profile_version()
     {
         var project = File.ReadAllText(Path.Combine(
             RepositoryRoot,
