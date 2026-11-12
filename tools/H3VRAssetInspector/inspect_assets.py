@@ -307,7 +307,7 @@ def load_unitypy() -> Any:
     try:
         import UnityPy  # type: ignore[import-not-found]
     except ModuleNotFoundError as error:
-        raise RuntimeError("UnityPy is missing. Run the SetupInspector action before inspection.") from error
+        raise RuntimeError("UnityPy is missing. Run the SetupAssetInspector action before inspection.") from error
     return UnityPy
 
 

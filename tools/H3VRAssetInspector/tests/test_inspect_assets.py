@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 
 TOOL = Path(__file__).resolve().parents[1] / "inspect_assets.py"
@@ -109,6 +110,12 @@ class InspectAssetsTests(unittest.TestCase):
             INSPECTOR.collect_signals({"m_Magnification": float("inf")}),
         )
         json.dumps(curve, allow_nan=False)
+
+    def test_missing_unitypy_error_names_the_setup_action(self):
+        with mock.patch.dict(sys.modules, {"UnityPy": None}):
+            with self.assertRaises(RuntimeError) as raised:
+                INSPECTOR.load_unitypy()
+        self.assertIn("SetupAssetInspector", str(raised.exception))
 
     def test_list_candidates_records_hashes_without_unitypy(self):
         with tempfile.TemporaryDirectory() as temporary:
