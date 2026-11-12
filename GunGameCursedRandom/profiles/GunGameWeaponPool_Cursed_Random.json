@@ -1,7 +1,7 @@
 {
   "WeaponPoolType": "Advanced",
   "Name": "HLin-Random Cursed",
-  "Description": "Every tier replaces its placeholder with H3VR Item Spawner random gun.",
+  "Description": "A Rot-only progression. Every tier is a random gun from H3VR's Item Spawner.",
   "OrderType": 0,
   "EnemyProgressionType": 0,
   "Enemies": [

@@ -54,12 +54,12 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (!randomGunRoutineHookInstalled)
         {
-            Logger.LogError("GunGame Cursed Random could not install Item Spawner completion hook; using GunGame profile equipment.");
+            Logger.LogError("Could not hook H3VR's random-gun routine, so random guns are off and " + CursedProfileName + " will use its placeholder Glock 17. H3VR may have updated; check for a newer GunGame Cursed Random.");
         }
 
         if (SubscribeWeaponChangedEvents() == 0)
         {
-            Logger.LogError("GunGame Cursed Random could not subscribe to GunGame Progression.WeaponChangedEvent.");
+            Logger.LogError("Could not subscribe to GunGame's weapon-change event, so random guns may not replace profile weapons. GunGame may have updated; check for a newer GunGame Cursed Random.");
         }
 
         Logger.LogInfo("GunGame Cursed Random ready. Select " + CursedProfileName + " in GunGame progression choices to enable random weapons.");
@@ -492,7 +492,7 @@ public sealed class Plugin : BaseUnityPlugin
             if (!missingSpawnerLogged)
             {
                 missingSpawnerLogged = true;
-                Logger.LogWarning("Random Gun mode needs an active vanilla Item Spawner V2; using GunGame profile weapon until one is available.");
+                Logger.LogWarning(CursedProfileName + ": no Item Spawner in this scene, so random guns are off. GunGame will hand out the profile's placeholder Glock 17 until the scene has an Item Spawner.");
             }
 
             return false;
