@@ -630,7 +630,8 @@ function Invoke-AssetInspection {
             if ($candidatePaths.Count -eq 0) {
                 throw 'Asset inspector produced no Unity bundle candidates for Unity verification.'
             }
-            $unityAudits = Invoke-UnityAssetInspectionAudit -CandidatePaths $candidatePaths -ScratchDirectory $scratchDirectory
+            # A function return unrolls a one-element array; keep the manifest field an array.
+            $unityAudits = @(Invoke-UnityAssetInspectionAudit -CandidatePaths $candidatePaths -ScratchDirectory $scratchDirectory)
             $manifest = Get-Content -LiteralPath $OutputPath -Raw | ConvertFrom-Json
             $manifest | Add-Member -NotePropertyName unityBatchAudits -NotePropertyValue $unityAudits
             Write-JsonFile -Path $OutputPath -Value $manifest

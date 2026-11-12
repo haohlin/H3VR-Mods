@@ -40,6 +40,14 @@ public sealed class HeadlessAssetInspectionTests
     }
 
     [Fact]
+    public void Unity_batch_audits_are_recorded_as_an_array_for_any_bundle_count()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("$unityAudits = @(Invoke-UnityAssetInspectionAudit", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Private_asset_rip_driver_is_headless_atomic_and_non_destructive()
     {
         var driver = File.ReadAllText(Path.Combine(
