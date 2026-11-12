@@ -12,7 +12,7 @@ fi
 while IFS='=' read -r key value || [[ -n "$key" ]]; do
   [[ -z "$key" || "$key" == \#* ]] && continue
   case "$key" in
-    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY)
+    H3VR_WINDOWS_HOST|H3VR_WINDOWS_REPOSITORY|H3VR_PRIVATE_ASSET_LAB)
       export "$key=$value"
       ;;
     *)
