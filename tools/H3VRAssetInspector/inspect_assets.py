@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import shutil
 import sys
 import tempfile
@@ -165,6 +166,9 @@ def is_interesting_key(value: str) -> bool:
 
 
 def normalize_value(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        # JSON has no literal for inf or nan; a string keeps the manifest strict.
+        return str(value)
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, str):
@@ -498,7 +502,10 @@ def main() -> int:
             for staged_candidate in staged:
                 candidate_path = staged_directory / staged_candidate["stagedName"]
                 manifest["bundles"].append(inspect_bundle(candidate_path, staged_candidate, args.managed_directory))
-        args.output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        args.output.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
     finally:
         if not args.stage_bundles_directory:
             shutil.rmtree(scratch, ignore_errors=True)

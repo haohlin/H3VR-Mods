@@ -95,6 +95,21 @@ class InspectAssetsTests(unittest.TestCase):
             ),
         )
 
+    def test_non_finite_floats_become_strings_for_strict_json(self):
+        curve = INSPECTOR.normalize_configuration_value(
+            {"m_Curve": [{"time": 0.0, "value": 1.0, "inSlope": float("inf"), "outSlope": float("nan")}]}
+        )
+        self.assertEqual(
+            {"m_Curve": [{"time": 0.0, "value": 1.0, "inSlope": "inf", "outSlope": "nan"}]},
+            curve,
+        )
+        self.assertEqual([1.5, "-inf"], INSPECTOR.normalize_value([1.5, float("-inf")]))
+        self.assertEqual(
+            [{"path": "m_Magnification", "value": "inf"}],
+            INSPECTOR.collect_signals({"m_Magnification": float("inf")}),
+        )
+        json.dumps(curve, allow_nan=False)
+
     def test_list_candidates_records_hashes_without_unitypy(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
