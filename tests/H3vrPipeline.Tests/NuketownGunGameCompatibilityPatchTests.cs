@@ -57,6 +57,30 @@ public sealed class NuketownGunGameCompatibilityPatchTests
     }
 
     [Fact]
+    public void Compatibility_plugin_logs_the_consequence_of_a_skipped_registration()
+    {
+        var plugin = File.ReadAllText(Path.Combine(
+            RepositoryRoot,
+            "NuketownGunGameCompatibilityPatch",
+            "src",
+            "Plugin.cs"));
+        var readme = File.ReadAllText(Path.Combine(
+            RepositoryRoot,
+            "NuketownGunGameCompatibilityPatch",
+            "Thunderstore",
+            "HLin_Mods-Nuketown_GunGame_Compatibility_Patch",
+            "README.md"));
+
+        // The player guide quotes this prefix, so both must stay identical.
+        Assert.Contains("\"Nuketown compatibility registration skipped: \"", plugin, StringComparison.Ordinal);
+        Assert.Contains("`Nuketown compatibility registration skipped:`", readme, StringComparison.Ordinal);
+
+        Assert.Contains("\". BO1 Nuketown will not appear in the Atlas map list.\"", plugin, StringComparison.Ordinal);
+        // A reason that already ends with a period must not print two.
+        Assert.Contains(".TrimEnd('.', ' ')", plugin, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Compatibility_plugin_compiles_against_the_profile_BepInEx_version()
     {
         var project = File.ReadAllText(Path.Combine(
