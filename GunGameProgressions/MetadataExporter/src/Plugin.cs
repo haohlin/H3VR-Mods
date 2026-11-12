@@ -229,7 +229,9 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         Trace(traceMessage);
-        RequestModdedRefresh(traceMessage);
+        // The trigger is one field of the scan records, so it must not
+        // contain their "; " separator or a trailing period.
+        RequestModdedRefresh("startup +" + (int)delaySeconds + "s");
     }
 
     private IEnumerator GenerateVanillaPoolsAtStartup()
