@@ -8,10 +8,14 @@ cross-session handoff source of truth.
 
 Last verified: `2026-07-22`
 
-State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore publish passed.`
+State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore publish passed. This branch holds an unreleased local candidate; its review follow-up edits are not built.`
 
 | Area | Verified fact | Evidence |
 | --- | --- | --- |
+| Review follow-up: test guards | Selector and teardown guard rejects any `RequestModdedRefresh(` call, not one exact spelling. Every guard named in the policy regression matrix must exist as a test method; two stale guard names in the matrix were corrected. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. |
+| Review follow-up: scan diagnostics | Scan `total` time starts after the wait for Vanilla generation, as in released `1.4.1`; the start record is still written first. Scheduled scans report `trigger=startup +60s`, `+300s`, `+600s`, or `+1800s` instead of the trace sentence. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. The deployed candidate package predates these edits. |
+| Review follow-up: selector restore | A persisted pool that a selector already lists under its legacy `Runtime 0N` label is not added again under its `HLin` label. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. Selector check in H3VR pending. |
+| Review follow-up: unread code | Five unread `RuntimeGenerationReport` members, the unused `PoolHookUnavailable` message, and an always-true Harmony null guard are removed. No behavior change is intended. | Source edited on macOS, not built. Text search finds no remaining reference in source or tests; a compiler has not confirmed it. |
 | HLin profile display labels | Generated Vanilla, Modded, and local Debug profiles display `HLin - <profile name>`; Runtime file IDs remain unchanged. Writable legacy persisted Modded/Debug JSON is atomically normalized once when selector restore reads it. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `103/103`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; not published. Player selector visual check pending. |
 | Fixed refresh candidate | Candidate branch requests Modded refresh only at immediate startup and real-time 1/5/10/30-minute callbacks. Thirty-minute callback is final; selector-ready reloads and GunGame teardown never request capture/build work. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `101/101`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; not published. |
 | Bounded scan diagnostics | Each actual Modded scan emits one Info-level diagnostic start and one outcome record. Outcome includes trigger, aggregate registry/Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count; no per-entry or item-ID logging. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `101/101`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; runtime user log report pending. |
@@ -98,7 +102,9 @@ State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore pub
 | Pending | User VR-test fixed 30-minute refresh candidate. | Windows SourceStatus, Test, Verify, Build, Package, and Deploy passed from dedicated candidate worktree; VR log must show no selector/map-triggered refresh after final 30-minute callback. |
 | Pending | User check HLin profile labels in GunGame selector. | Vanilla and generated/persisted Modded profiles show `HLin - <profile name>`; Runtime filenames stay unchanged; no duplicate selector choice. |
 | Pending | User capture bounded scan diagnostics. | Send two `GunGame Progressions debug: scan #` Info records plus matching `modded scan` record for each observed scan; compare capture, worker, and total time before changing performance code. |
-| In progress | Measure post-ten-minute refreshes during GunGame map enter, selector reload, and exit. | A long-duration live trace identifies each refresh reason, catalog count, main-thread capture time, worker time, and managed-memory trend; it distinguishes GunGame lifecycle events from ordinary non-GunGame map transitions. |
+| Superseded | Measure post-ten-minute refreshes during GunGame map enter, selector reload, and exit. | Applies to released `1.4.1` only. The candidate requests no refresh from selector or teardown events; its measurement is the bounded scan diagnostics capture above. |
+| Pending | Verify review follow-up edits. | Portable test run passes on the branch tip; hosted `Verify H3VR Portable Checks` run passes after push; Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` pass from the dedicated candidate worktree. |
+| Pending | Converge remote wrapper routing. | The wrapper mechanism to converge on is the one on `codex/nightforce-runtime`: the `-EnvironmentConfigPath` parameter and its asset-lab prefix. When that wrapper reaches `main`, forward-revert `3dae011`, `37dbb22`, and `1cc6d55` here and keep only the HLin names in `Test-GunGamePools`. |
 
 ## Testing
 
@@ -124,6 +130,8 @@ State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore pub
 | Live Modded profile | Start H3VR and wait through a background rescan. | Runtime 02 and 04 files plus `runtime-generation-modded-receipt.json` appear; log reports pools ready, not `using packaged fallback pools.` |
 | Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Passed: both tracked Vanilla pools match policy version `20`; count is `659`. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
+| Review follow-up guards | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify -Mod GunGameProgressions`, and Release `Build` from the dedicated candidate worktree. | Pending; not run. Guards cover: no `RequestModdedRefresh(` call in selector or teardown path; each policy-matrix guard is a test method; scan timer starts after the Vanilla wait; legacy-label dedupe; compact trigger labels. |
+| Hosted checks on `codex/**` | Push the branch, then inspect its `Verify H3VR Portable Checks` run. | Pending; the workflow branch filter now lists `codex/**`. No run exists until the branch is pushed. |
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
 `DEV_STATUS.md`, or `GENERATION_POLICY.md`.
