@@ -145,6 +145,7 @@
       "namespace": "HLin_Mods",
       "community": "h3vr",
       "deploymentFolder": "HLin_Mods-VanillaRipScopes",
+      "localOnly": true,
       "layout": "legacy-flat",
       "versionProfileRelativePath": "Assets\\Projects\\VanillaRipScopes\\Profile-VanillaRipScopes.asset",
       "packageRelativePath": "AssetBundles\\VanillaRipScopes\\{version}\\HLin_Mods-VanillaRipScopes-{version}.zip",

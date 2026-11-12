@@ -68,6 +68,23 @@ public sealed class NightForcePipelineTests
     }
 
     [Fact]
+    public void Vanilla_rip_scopes_are_local_only_and_cannot_be_published()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "build", "mods.json")));
+        var candidates = document.RootElement
+            .GetProperty("mods")
+            .GetProperty("VanillaRipScopes");
+        Assert.True(candidates.GetProperty("localOnly").GetBoolean());
+
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+        var publish = pipeline.Substring(pipeline.IndexOf("function Invoke-Publish", StringComparison.Ordinal));
+        var guard = publish.IndexOf("$ModConfig.PSObject.Properties['localOnly']", StringComparison.Ordinal);
+        Assert.True(guard >= 0);
+        Assert.Contains("is a local-only package and cannot be published.", publish, StringComparison.Ordinal);
+        Assert.True(guard < publish.IndexOf("Assert-RemoteVersionIsNew", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Unity_deployment_audit_is_read_only_and_available_through_the_remote_wrapper()
     {
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));

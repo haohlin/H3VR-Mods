@@ -2563,6 +2563,11 @@ function Move-PrivateVanillaScopeImportsToQuarantine {
 function Invoke-Publish {
     param([object]$ModConfig)
 
+    $localOnlyProperty = $ModConfig.PSObject.Properties['localOnly']
+    if ($null -ne $localOnlyProperty -and $localOnlyProperty.Value -eq $true) {
+        throw "$Mod is a local-only package and cannot be published."
+    }
+
     if (-not $Publish -or -not $VrApproved) {
         throw 'Publishing requires both -Publish and -VrApproved.'
     }
