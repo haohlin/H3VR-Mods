@@ -1,26 +1,32 @@
 # Nuketown GunGame Compatibility Patch
 
-Makes the original **BO1 Nuketown GunGame** map appear beside current GunGame
-maps without replacing its DLL, bundle, pools, or any owner asset.
+Makes the original **BO1 Nuketown GunGame** map show up again next to current GunGame maps.
 
-## What it does
+The patch registers the map that the original Nuketown package already installed. It contains no map files and does not replace or edit anything in that package.
 
-- Validates exact Nuketown GunGame `2.1.6` package layout at startup.
-- Registers only its existing `nuketown` Atlas bundle once.
-- Runs no `Update`, coroutine, polling loop, Harmony patch, or scene scan.
+## Requirement
 
-## What it does not do
+- [BO1 Nuketown GunGame](https://thunderstore.io/c/h3vr/p/localpcnerd/NuketownGunGame/) `2.1.6`
+- [GunGame](https://thunderstore.io/c/h3vr/p/Kodeman/GunGame/)
+- [Atlas](https://thunderstore.io/c/h3vr/p/nrgill28/Atlas/)
 
-- Does not modify r2modman profile files.
-- Does not replace `NuketownGunGame.dll`.
-- Does not include Nuketown map files, models, sounds, textures, or pools.
-- Does not change GunGame rules, progression, balance, or performance outside
-  one startup registration call.
+## Use
 
-## Compatibility
+1. Install through Thunderstore or r2modman so the three requirements come with it.
+2. Start H3VR.
+3. Select **BO1 Nuketown** from the Atlas map list.
 
-Supports `localpcnerd-NuketownGunGame` `2.1.6` with `Kodeman-GunGame` and
-Atlas installed through Thunderstore. Unsupported layouts fail closed with a
-clear BepInEx log message.
+## What It Does Not Change
 
-After installation, start H3VR and select **BO1 Nuketown** from Atlas maps.
+- GunGame rules, progression, and balance.
+- `NuketownGunGame.dll`, the map, and its models, sounds, textures, and weapon pools.
+- Your r2modman profile files.
+- Frame rate: the patch runs once at startup and does nothing afterwards.
+
+## If the Map Does Not Appear
+
+The patch supports Nuketown GunGame `2.1.6` only. With any other version, or a missing file, it skips registration and writes one line that contains `Nuketown compatibility registration skipped:` to the BepInEx log. Install version `2.1.6`, then restart H3VR.
+
+## License
+
+MIT. See the repository [LICENSE](https://github.com/haohlin/H3VR-Mods/blob/main/LICENSE).
