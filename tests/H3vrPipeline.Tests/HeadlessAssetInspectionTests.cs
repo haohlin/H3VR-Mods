@@ -30,6 +30,16 @@ public sealed class HeadlessAssetInspectionTests
     }
 
     [Fact]
+    public void Inspection_environment_section_is_optional_under_strict_mode()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
+
+        Assert.Contains("function Get-InspectionConfig", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("$Config.inspection", pipeline, StringComparison.Ordinal);
+        Assert.DoesNotContain("Properties['inspection'].Value", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Private_asset_rip_driver_is_headless_atomic_and_non_destructive()
     {
         var driver = File.ReadAllText(Path.Combine(

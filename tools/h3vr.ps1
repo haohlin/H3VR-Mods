@@ -35,10 +35,21 @@ else {
 $EnvironmentConfig = Get-Content -LiteralPath $EnvironmentConfigPath -Raw | ConvertFrom-Json
 $ModsConfig = Get-Content -LiteralPath (Join-Path $BuildRoot 'mods.json') -Raw | ConvertFrom-Json
 
+function Get-InspectionConfig {
+    # Local environment files written before the asset inspector have no
+    # 'inspection' section, and strict mode rejects a direct read of it.
+    $property = $EnvironmentConfig.PSObject.Properties['inspection']
+    if ($null -eq $property) {
+        return $null
+    }
+
+    return $property.Value
+}
+
 function Expand-EnvironmentConfiguration {
     param([object]$Config)
 
-    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity, $Config.inspection)) {
+    foreach ($section in @($Config.h3vr, $Config.r2modman, $Config.unity, (Get-InspectionConfig))) {
         if ($null -eq $section) {
             continue
         }
@@ -443,7 +454,7 @@ function Get-AssetInspectorPython {
 }
 
 function Get-AssetInspectorBootstrapPython {
-    $inspectionConfig = $EnvironmentConfig.PSObject.Properties['inspection'].Value
+    $inspectionConfig = Get-InspectionConfig
     if ($null -ne $inspectionConfig -and
         -not [string]::IsNullOrWhiteSpace($inspectionConfig.pythonExecutable) -and
         (Test-Path -LiteralPath $inspectionConfig.pythonExecutable)) {
@@ -597,7 +608,7 @@ function Invoke-AssetInspection {
         if (-not [string]::IsNullOrWhiteSpace($ExpectedSha256)) {
             $arguments += @('--expected-sha256', $ExpectedSha256)
         }
-        $inspectionConfig = $EnvironmentConfig.PSObject.Properties['inspection'].Value
+        $inspectionConfig = Get-InspectionConfig
         $managedDirectories = [System.Collections.Generic.List[string]]::new()
         if ($null -ne $inspectionConfig -and
             -not [string]::IsNullOrWhiteSpace($inspectionConfig.managedAssemblyDirectory) -and
