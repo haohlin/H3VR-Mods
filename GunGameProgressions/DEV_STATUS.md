@@ -1,137 +1,106 @@
 # GunGame Progressions — Development Status
 
-Read [DESIGN.md](DESIGN.md) for lifecycle. Read
+Read [DESIGN.md](DESIGN.md) for lifecycle and dated decisions. Read
 [GENERATION_POLICY.md](GENERATION_POLICY.md) for loadout rules. This file is
-cross-session handoff source of truth.
+cross-session handoff source of truth and records present state only.
 
 ## Status
 
 Last verified: `2026-07-22`
+State: `active`
 
-State: `Released 1.4.1. Windows Release validation, deploy, and Thunderstore publish passed. This branch holds an unreleased local candidate; its review follow-up edits are not built.`
+Public release is `1.4.1`. This branch carries an unreleased candidate: fixed
+30-minute refresh schedule, `HLin - ` profile labels, and bounded scan
+diagnostics. Source edits made on 2026-11-12 are not built.
 
-| Area | Verified fact | Evidence |
+### Verified now
+
+| Area | Evidence | State |
 | --- | --- | --- |
-| Review follow-up: test guards | Selector and teardown guard rejects any `RequestModdedRefresh(` call, not one exact spelling. Every guard named in the policy regression matrix must exist as a test method; two stale guard names in the matrix were corrected. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. |
-| Review follow-up: scan diagnostics | Scan `total` time starts after the wait for Vanilla generation, as in released `1.4.1`; the start record is still written first. Scheduled scans report `trigger=startup +60s`, `+300s`, `+600s`, or `+1800s` instead of the trace sentence. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. The deployed candidate package predates these edits. |
-| Review follow-up: selector restore | A persisted pool that a selector already lists under its legacy `Runtime 0N` label is not added again under its `HLin` label. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. Selector check in H3VR pending. |
-| Review follow-up: unread code | Five unread `RuntimeGenerationReport` members, the unused `PoolHookUnavailable` message, and an always-true Harmony null guard are removed. No behavior change is intended. | Source edited on macOS, not built. Text search finds no remaining reference in source or tests; a compiler has not confirmed it. |
-| HLin profile display labels | Generated Vanilla, Modded, and local Debug profiles display `HLin - <profile name>`; Runtime file IDs remain unchanged. Writable legacy persisted Modded/Debug JSON is atomically normalized once when selector restore reads it. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `103/103`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; not published. Player selector visual check pending. |
-| Fixed refresh candidate | Candidate branch requests Modded refresh only at immediate startup and real-time 1/5/10/30-minute callbacks. Thirty-minute callback is final; selector-ready reloads and GunGame teardown never request capture/build work. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `101/101`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; not published. |
-| Bounded scan diagnostics | Each actual Modded scan emits one Info-level diagnostic start and one outcome record. Outcome includes trigger, aggregate registry/Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count; no per-entry or item-ID logging. | Dedicated Windows worktree: SourceStatus current, Verify passed, Test `101/101`, Release Build/Package/Deploy passed. Local `1.4.1` candidate only; runtime user log report pending. |
-| Released 1.4.1 post-ten-minute lifecycle | Released source one/five/ten-minute callbacks were one-shot, but selector-ready reloads and GunGame teardown remained subscribed and requested fresh Modded snapshots. | Release-source audit; superseded by fixed-refresh candidate. |
-| Released 1.4.1 performance hypothesis | Selector reload or session teardown could cause another complete capture/build. Unity thread snapshots whole registry before two-millisecond yield budget, capture allocates per-entry lists, and merge/build runs even when candidate later loses persistence check. | Release-source audit. No allocation profile, OOM, or crash stack confirmed reported failure root cause. |
-| Public release | `1.4.1` is published. | Exact Thunderstore download URL returned HTTP `200` after publish. |
-| Golden Vanilla | Policy 19 tracked offline Rot and Mixed files contain `660` unique firearms. BrownBess is removed by the new global blacklist. | Windows generator, `--verify`, and focused baseline test. |
-| Installed runtime before candidate | Vanilla profiles contain `657`; Modded profiles contain `47`. | Windows installed profile inspection. |
-| Vanilla count root cause | Five golden weapons were rejected by catalog identity gate; one newer valid firearm was present, yielding net `657`. | Installed-vs-golden diff. |
-| Modded count root cause | Valid G28 variants declare direct magazines and Picatinny but omit optional identity tags, so same gate rejects them. | Installed runtime catalog inspection. |
-| Memory boundary | Capture reads `FVRObject` catalog only. No `GetGameObject*` call is allowed. | Source test; previous Windows A/B eliminated large prefab residency path. |
-| Candidate generator | Catalog proof now accepts identity tags, direct compatible feed, exact nonzero magazine/clip interface, or `GravitonBeamer`; Modded cartridge fallback needs direct compatibility. | Windows test suite: `83/83` passed. |
-| Candidate persistence | First Modded pair writes; later pair replaces only when strictly larger; confirmed loader-complete empty snapshot removes stale files. A newer generation-policy version may replace a smaller complete pair only after the ten-minute startup gate. | Focused regression; Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed. |
-| Candidate package | `1.4.0` built and deployed. | Windows `Verify`, `Build`, `Package`, and `Deploy` passed. |
-| One-minute implementation | Startup schedules one-, five-, and ten-minute one-shot Modded snapshots and logs each completed scan's total duration plus captured entry count. | Focused regression test; Windows pipeline `83/83` passed. |
-| Real Modded-profile run | H3VR loaded the intended profile and this plugin with its dependencies; no exporter exception occurred. | BepInEx live log. |
-| Live profile result | Runtime Vanilla contains `662` firearms: every golden `661` plus one newer valid firearm. Runtime Modded contains `54`; G28 variants use direct magazines and catalog scopes. | Generated-pool and catalog inspection. |
-| Live memory result | No runaway growth during the catalog-only candidate run; loader memory settled after loading. | Windows process observation. |
-| Launch transport | A direct `Steam.exe -applaunch` Task Scheduler action can return success without creating `h3vr.exe`. Steam game URI with the same r2modman Doorstop profile arguments launches the interactive game process reliably. | Windows interactive-session launch comparison. |
-| One-minute runtime result | Initial Modded scan: `867 ms`, `2` entries while loaders registered. Scheduled one-minute scan: `1,053 ms`, `1,435` entries and saved pools. | Real Modded-profile BepInEx log. |
-| External preloader messages | Deli/MonoMod messages appeared in both successful and incomplete attempts; they are not evidence that GunGame Progressions failed. | Successful historical and current log comparison. |
-| Release boundary | `1.4.0` release source, skill guidance, and handoff record are on `main`; its package was rebuilt from `main` before publish. | Historical Windows Git, Test, Verify, Build, Package, and Thunderstore publish evidence. |
-| Policy 19 | Global blacklist now excludes Slingshot, BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, and Stinger from every generated profile. Runtime-only curation still removes known unsafe/duplicate candidates. | Windows `Test` `95/95`; policy-19 fallback regeneration. |
-| Spawn safety | Invalid pre-buffer data, immediate spawn errors, and iterator-time buffer errors now clear the loadout, log gun/feed/optic IDs, and promote next frame. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`; H3VR VR runtime validation pending. |
-| Policy 19 package | Version `1.4.0` package built from `8c88569`. | Windows `Verify`, `Build`, `Package`; SHA-256 `942A97C7C553B6EDDD53704EA3EE7BE9CB3F480B27E6923B43B131A42D24403B`. |
-| Runtime 05 promotion | GravitonBeamer, Jackhammer, M320GrenadeLauncher, M72A7, MF_Signaler, MF_Syringegun, OTS38, P11, P6Twelve, PocketHammer1903, and Whizzbanger passed human testing and already occur in both standard Vanilla profiles through the shared resolver. They need no blacklist or allowlist change. | Generated Vanilla pool audit. |
-| Runtime 05 worklist | Remaining test candidates: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Probe-list fingerprinting refreshes this profile only; Vanilla/Modded cache keys stay unchanged. | Windows `Test` `95/95`; post-deploy source and installed-package audit. |
-| Live Modded generation | Runtime 02 and 04 are absent in current session. Startup captured `2` Modded entries; one-, five-, and ten-minute rescans each captured `1,124` entries but wrote no Modded pair. | Live Windows file audit: only Runtime 01, 03, and 05 exist; no Modded receipt exists. |
-| Failure boundary | Each `1,124`-entry Modded capture enters background generation then logs `using packaged fallback pools.` Runtime 05 still writes its five-gun probe. This message is reached only when Modded `RuntimeGenerationJob.Error` is non-null. | Live BepInEx log plus `GenerateModdedPoolCandidate` source path. Exact exception is Debug-level only and was not emitted by current BepInEx logging configuration. |
-| Root cause | Post-1.4.0 `BuildModdedWithDiagnostics` skipped Vanilla work and set `rot` to `null`; Runtime 02 then dereferenced `enemies[0].EnemyNameString`, throwing inside background job. | Source trace: Modded-only builder sets `rot = null`; `CreateScenarioPool` dereferences `enemies[0]`; exception is caught by `RuntimeGenerationJob`. |
-| Candidate repair | Global blacklist includes PlungerLauncher. Modded capture pre-merges plain catalog metadata and uses 1.4.0 shared `BuildWithDiagnostics`; specialized Modded-only builder removed. | Windows `SourceStatus`, `Test` `95/95`, `Verify`, `Build`, `Package`, and private `Deploy` passed. |
-| Policy 20 fallback | Both tracked Vanilla fallback pools contain `659` firearms and omit PlungerLauncher. | Windows `OfflineProfileGenerator`, `--verify`, and focused fallback test. |
-| Candidate deployment | Private `1.4.0` package deployed with policy 20 fallback. No Thunderstore upload occurred. | Windows `Deploy`; package SHA-256 `DA97AE536346F5FE9B7B7F88CF33AEDDA71A05A89769BCB51832BB2D1A339950`. |
-| Current deployment | `1.4.0` package built and deployed with five Runtime 05 candidates. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, `Deploy`; post-deploy installed `profile-rules.json` and generated-pool audit. |
-| Offline fallback | Both tracked Vanilla pools remain byte-equivalent after shared policy version `18`; known-good Vanilla content did not change. | Windows `Verify`, `Test` `95/95`, `Build`, and `Package`. |
-| Runtime log limitation | Configured Default profile has no BepInEx log file yet. | `Preflight` fails only its log-path check; package deployment succeeded. Launch profile once before log monitoring. |
-| Prior live Compatibility Probe | Before runtime exclusions, Runtime 05 generated `46` test firearms from a `1,148`-entry Modded capture. | Historical BepInEx receipt and trace. |
-| Live GunGame failure | `GrappleGun` with direct `MagazineGrappleGun` fails GunGame chamber loading, then throws from `WeaponBuffer.SpawnImmediate` before optic mounting. | Live BepInEx: `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)` plus `NullReferenceException` / `KeyNotFoundException` stack traces. |
-| Safety boundary | Spawn safety rejects unavailable IDs and wrong categories, but cannot prove GunGame-specific chamber/load semantics from catalog metadata alone. | `GrappleGun` passes catalog feed/category validation yet fails upstream GunGame spawn. |
-| Unrelated loader noise | Failed pool-file loads belong to a separate installed map package, not GunGame Progressions. | Live log paths identify that package's `GunGameWeaponPool_*.json` files. |
-| Prior Runtime 05 overlap | Before exclusions, `44/46` Runtime 05 firearms also existed in released `1.4.0` Vanilla fallback. | Historical Runtime 05 JSON audit. |
-| MP5 metadata gap | MP5/SP5 entries expose a compatible adapter but no firearm mount tag or adapter output tag. Candidate resolver reads explicit adapter `PhysicalMountTypes` and selects exact vanilla `Scope_G3SG1` for `MP5RailMount`; it never reads the adapter prefab. | Live `ObjectData.json`: `MP5PicatinnyAdapter` is `Adapter` on `MP5RailMount`, with empty `ProvidedMountTypes`; `Scope_G3SG1` is the verified scope-class entry for that mount. |
-| MP5 duplication | Offline Vanilla keeps its known-good variants; all 19 requested MP5/SP5 variants are excluded from Runtime 02/04/05. | Exact runtime blacklist regression; metadata-only Runtime 05 audit. |
-| Modded optic gap | Existing fallback selected any catalog `Scope`, including Modded/high-power scopes, and ignored reflex/RMR role fallback. Some Modded VAL entries still omit all mount metadata. | Source plus live catalog audit. Metadata-empty guns cannot be identified as Russian without unsafe name/prefab inference. |
-| Safe Modded optic candidate | Modded magnified scopes are rejected. Exact Russian routes select vanilla PSO-1 `MagnifierPSO1`; this one legacy object ID is normalized to `Scope`. Unresolved handgun, CQC, and rifle routes select curated vanilla RMR, red-dot/low-power, and LPVO/low-power candidates. Explicit MP5 adapter metadata resolves `MP5RailMount` to `Scope_G3SG1`. | H3VR scope reference confirms PSO-1 is a 4x side-rail scope; classifier keeps every other magnifier excluded. Windows suite `90/90`, Verify, Build, Package, and Deploy passed on `8b73ff1`. |
-| No runtime prefab materialization | Spawn safety now mounts only `Extra` objects spawned by GunGame. It no longer creates adapters or replacement optics. | Source regression rejects `GetGameObject*` and `UnityEngine.Object.Instantiate` in `GunGameSpawnSafety.cs`; Windows test `90/90` passed. |
-| Runtime-cost boundary | Modded capture remains two-millisecond metadata slices. One cached OtherLoader probe is read per request; delayed selector-event reflection retries every ten seconds; metadata merge/build/write run below-normal. Modded refresh indexes Vanilla metadata for compatibility but does not rebuild Vanilla weapon lists. | Source guard plus Windows `93/93` test suite. |
-| Local scope audit | Both tracked 660-gun Vanilla pools have `0` empty `Extra` entries. Metadata-only Runtime 05 test confirms Airgun is emitted with a nonempty optic. | Windows `Test` `95/95`. |
-| Runtime 05 release baseline | Release policy 18 configured `54` candidate IDs, including five diagnostic overrides. Policy 19 removes bypasses and applies global exclusions. | Historical local metadata report; policy-19 Windows audit pending. |
-| Policy replacement | A newer policy version keeps strict count growth through immediate/one-/five-minute scans. The ten-minute startup scan may replace once with a smaller complete pair; partial/empty safeguards remain. | Focused persistence and scheduler regressions; Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed. |
-| Current build candidate | Feature-branch package remains version `1.4.0`; deployed for private VR validation, not a public release. | Windows `Verify`, `Test` `95/95`, `Build`, `Package`, and `Deploy` passed; SHA-256 `EDAF4ACE56C297422A27B2980DF2CD08CDFB0D6B5AA90FD49749B921536BBD56`. |
-| Global startup warmup | Candidate has immediate and 1/5/10/30-minute Modded refreshes under one idempotent owner in plugin `Awake()`; `Start()` is only a no-op fallback. It does not depend on a GunGame scene. Thirty minutes is final; only ten minutes opens policy-version replacement eligibility. | Source-level lifecycle regression; Windows `Test` `100/100`, `SourceStatus`, and `Verify` passed. Runtime 30-minute observation remains pending. |
-| Runtime 05 boundary | Runtime 05 is local Debug-only. Release build/package neither generates nor restores it; Release package contains no Runtime 05 pool. Debug has isolated `-debug` artifacts and cannot publish. | Windows `Test` `97/97`; `Verify`; Release build/package/deploy; Release ZIP audit `0` Runtime 05 entries; installed exporter reports `CompatibilityProbeEnabled=False`; Debug build/package passed; Debug publish guard passed. |
-| Live background generation | Outside GunGame, startup generated all four player pools without selector interaction: Vanilla `659` each; Modded `60` each. | Live BepInEx: early capture `2` in `809 ms`; one-minute capture `1,124` in `1,033 ms`, then `pools ready`. Modded receipt: policy `20`, `1,124` modded catalog entries, `60` eligible weapons; no exporter failures or Runtime 05 trace. |
-| Lifecycle baseline | Candidate lifecycle is immediate startup plus one/five/ten/thirty-minute rescans, selector restore-only path, and persistence replacement. GunGame-close refresh was removed. | `DESIGN.md` Golden lifecycle boundary; scope/feed/blacklist work must not change lifecycle source. |
-| Policy 21 fallback refresh | Scope diversity changed the deterministic shared-builder output. Windows regenerated both tracked Vanilla fallback profiles from `4,331` Vanilla metadata entries; shared-builder verification then passed. | Windows `OfflineProfileGenerator`; full `Test` `98/98`. |
-| 1.4.1 release validation | Source cache current; Harmony targets resolved; Release build and package passed after fallback refresh. | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test` `98/98`; Release package SHA-256 `21DBD53CCD6ED6F253716B2E4485247674429DE15DA1DCB21AA0BC6A6E8A8E75`. |
-| 1.4.1 release | Release source was fast-forwarded to `main`; Windows fast-forwarded to the same `main`, then rebuilt, packaged, and deployed Release payload. Thunderstore upload finalized. | Windows `SourceStatus`, `Verify`, `Test` `98/98`, Build, Package, Deploy; exact `1.4.1` download returned HTTP `200`. |
+| Public release | `1.4.1` published from `main`. Windows `SourceStatus`, `Verify`, `Test` `98/98`, Release Build/Package/Deploy passed; package SHA-256 `21DBD53CCD6ED6F253716B2E4485247674429DE15DA1DCB21AA0BC6A6E8A8E75`; exact Thunderstore download returned HTTP `200`. | Verified |
+| Packaged fallback | Policy `21`. Both tracked Vanilla fallback profiles hold `659` unique firearms and no empty `Extra`. Windows regenerated them from `4,331` Vanilla metadata entries and shared-builder verification passed. On this branch only their `Name` line changed, to the `HLin - ` label. | Verified |
+| Lifecycle | Candidate requests a Modded refresh only at immediate startup and at 1, 5, 10, and 30 real-time minutes, under one idempotent owner in plugin `Awake()`. Thirty minutes is final; only ten minutes opens policy-version replacement. Selector-ready and GunGame teardown events restore saved choices and never request capture or build work. Dedicated Windows worktree: `SourceStatus` current, `Verify` passed, `Test` `101/101`, Release Build/Package/Deploy passed. | Verified on Windows; 30-minute runtime observation pending |
+| Profile labels | Generated Vanilla, Modded, and local Debug profiles display `HLin - <profile name>`; Runtime file IDs are unchanged. A writable legacy persisted Modded or Debug profile is renamed once, atomically, when selector restore reads it. Dedicated Windows worktree: `SourceStatus` current, `Verify` passed, `Test` `103/103`, Release Build/Package/Deploy passed. | Verified on Windows; selector visual check pending |
+| Scan diagnostics | Each actual Modded scan writes one Info-level start record and one outcome record with trigger, aggregate registry and Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count; no per-entry or item-ID logging. Dedicated Windows worktree: `SourceStatus` current, `Verify` passed, `Test` `101/101`, Release Build/Package/Deploy passed. | Verified on Windows; runtime log capture pending |
+| Memory, prefab, and runtime-cost boundary | Capture reads the `FVRObject` catalog only, in two-millisecond slices; no `GetGameObject*` call is allowed. Spawn safety mounts only `Extra` objects that GunGame spawned and never instantiates an adapter or replacement optic. Merge, build, and write run on a below-normal worker. Source tests guard each point. A Windows A/B run eliminated the large prefab residency path, and the catalog-only run showed no runaway memory growth. | Verified |
+| Spawn safety | Invalid pre-buffer data, immediate spawn errors, and iterator-time buffer errors clear the loadout, log gun/feed/optic IDs, and promote on the next frame. Windows `Test` `95/95`, `Verify`, `Build`, and `Package` passed. | Verified on Windows; VR validation pending |
+| Runtime 05 boundary | Runtime 05 is local Debug-only. Release build and package neither generate nor restore it, and the Release ZIP holds `0` Runtime 05 files; Debug has isolated `-debug` artifacts and cannot publish. Remaining worklist: Airgun, Flaregun, MF_Medical180, Pocket1906, Quackenbush1886. Windows `Test` `97/97`, `Verify`, Release and Debug Build/Package, and the Debug publish guard passed. | Verified on Windows; worklist VR test pending |
+| Candidate package | Last Windows-validated source is the profile-label candidate recorded in `a01ad95`. It reports version `1.4.1`, the same as the public release. It was deployed privately from the dedicated Windows worktree; nothing was published. Last recorded package SHA-256 is `94B8F102ADEF4132ACB82006E416A63C854E85BEF958EBD810871857EED309E9` (scan-diagnostics build); the hash of the later profile-label build was not recorded. | Deployed privately; not published |
+| Last live run | Policy `20` build, outside GunGame. Startup generated all four player pools without selector interaction: Vanilla `659` each, Modded `60` each. Early capture `2` entries in `809 ms`; one-minute capture `1,124` entries in `1,033 ms`, then `pools ready`. Modded receipt: policy `20`, `1,124` Modded catalog entries, `60` eligible weapons; no exporter failure. | Verified; predates policy `21` and the candidate |
+| Unbuilt source edits (2026-11-12) | Selector and teardown guard rejects any `RequestModdedRefresh(` call, and every guard named in the policy regression matrix must exist as a test method. Scan `total` time starts after the wait for Vanilla generation, as in released `1.4.1`. Scheduled scans report `trigger=startup +60s`, `+300s`, `+600s`, or `+1800s` instead of the trace sentence. A persisted pool that a selector already lists under its legacy `Runtime 0N` label is not added again. Five unread `RuntimeGenerationReport` members, the unused `PoolHookUnavailable` message, and an always-true Harmony null guard are removed. | Source edited on macOS, not built. Portable test run and Windows `Test`/`Verify`/`Build` pending. The deployed candidate predates these edits |
+| Player guide edits (2026-11-12) | Changelog section points to the package page's Changelog tab; profile table sits under Choose a Pool; refresh timeline and optic rule are full plain sentences checked against source and policy. The `660` count, icon, and canonical description are unchanged. | Text only; ships with the next release. No version, changelog, or manifest change |
+
+### Open blockers
+
+| Blocker | Needed | Owner |
+| --- | --- | --- |
+| Unbuilt source edits | Portable test run on the branch tip; hosted `Verify H3VR Portable Checks` run after push; then Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` from the dedicated candidate worktree. | Agent; Windows host |
+| Reported performance failure has no confirmed root cause | Hypothesis from the released `1.4.1` source audit: selector reload or session teardown could cause another complete capture/build; the Unity thread snapshots the whole registry before the two-millisecond yield budget, capture allocates per-entry lists, and merge/build runs even when the candidate later loses the persistence check. No allocation profile, OOM, or crash stack confirmed it. Capture bounded scan diagnostics before changing performance code. | Owner runtime log |
+| Candidate shares version `1.4.1` with the public release | Choose the next version before any publish. | Owner |
+| Listing counts differ | Icon artwork says `644`, canonical description `661`, player guide `660`, packaged fallback `659`. This is a product decision; the canonical description must not be reworded without approval. | Owner |
 
 ## Plan
 
-| State | Next item | Acceptance |
+Keep one item active.
+
+| State | Item | Acceptance condition |
 | --- | --- | --- |
-| Complete | Split Runtime 05 by Debug/Release build configuration. | Windows `Test` `97/97`; Release DLL reports probe disabled; Release ZIP has no Runtime 05 files; Debug DLL reports probe enabled; Debug package cannot publish. |
-| Complete | Validate ten-minute policy-version promotion gate. | Windows `Test` `95/95`, `Verify`, `Build`, `Package`, and `Deploy` passed; focused tests prove early retention and complete ten-minute eligibility. |
-| Complete | Sync candidate to Windows; run `SourceStatus`, `Test`, `Verify`, `Build`, `Package`, and `Deploy`. | All checks passed; Windows test suite `83/83`. |
-| Complete | Validate one-minute rescan and timing log in the real Modded profile. | Initial and one-minute scan logs recorded; capture remains frame-budgeted and profiles are valid. |
-| Pending | VR smoke test G28/direct-magazine + Picatinny scope, non-box shotgun shells, and invalid-mod skip. | No wrong loose cartridge, wrong magazine, mount mismatch, exception, or progression crash. |
-| Complete | Merge release source to `main`; publish Thunderstore `1.4.0`. | Main updated; package upload finalized; exact download resolves. |
-| Pending | Optional VR handling smoke test. | Human checks G28/direct magazine, scope, shotguns, and progression feel. |
-| Pending | Human VR-test narrowed Runtime 05. | Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 each spawn, load, fire, and advance without error. |
-| In progress | Capture H3VR runtime proof for stable Modded builder restoration. | H3VR writes Runtime 02/04 plus Modded receipt after a Modded capture, logs `pools ready`, and no longer logs packaged fallback for that job. |
-| Pending decision | Classify remaining Runtime 05 failures from spawn-safety log. | Add only confirmed broken IDs to shared global blacklist with focused regression. |
-| Pending design | Cap near-identical firearm variants, beginning with MP5/SP5. | Approve generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
-| Complete | Build/deploy metadata-only Modded optic route. | Windows SourceStatus, Test `90/90`, Verify, Build, Package, Deploy passed. |
-| Complete | Keep runtime generation metadata-only and remove avoidable hot-path work. | Windows Test `93/93`, Verify, Build, Package passed. No pool policy or release version changed. |
-| Complete | Audit packaged local metadata scope coverage, including Runtime 05. | Two Vanilla pools: 661/661 scopes; current Runtime 05 audit: 22/22 scopes. |
-| Complete | Apply release-policy Runtime 02/04/05 exclusions and Runtime 05 forced tests. | Windows `95/95`, Verify, Build, Package, Deploy; historical policy 18 evidence only. |
-| Pending | Human VR-test policy 20 Runtime 05 and Modded refresh. | Airgun appears; PlungerLauncher is absent from every profile; Runtime 02/04 write after Modded capture; a bad loadout advances instead of stalling/crashing. |
-| Pending | VR-test metadata-only Modded optic route. | Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; no duplicate optic, loose replacement, or spawn exception. |
-| In progress | Diversify equal-rank compatible optic choices. | Policy `21` balances only equal-rank candidates; Windows generator/test/verify/build/package must prove retained mount/role routes, regenerated fallback pools, and no lifecycle diff. |
-| Complete | Release 1.4.1. | Fallback refresh, SourceStatus, Verify, Test `98/98`, main Release rebuild/package/deploy, Thunderstore publish, and exact-download HTTP `200` passed. |
-| Pending | Human/runtime-observe fixed startup warmup. | Start H3VR, remain active through thirty minutes, then enter/reload/exit GunGame. BepInEx shows immediate plus 1/5/10/30-minute scans only; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
-| Pending | User VR-test fixed 30-minute refresh candidate. | Windows SourceStatus, Test, Verify, Build, Package, and Deploy passed from dedicated candidate worktree; VR log must show no selector/map-triggered refresh after final 30-minute callback. |
-| Pending | User check HLin profile labels in GunGame selector. | Vanilla and generated/persisted Modded profiles show `HLin - <profile name>`; Runtime filenames stay unchanged; no duplicate selector choice. |
-| Pending | User capture bounded scan diagnostics. | Send two `GunGame Progressions debug: scan #` Info records plus matching `modded scan` record for each observed scan; compare capture, worker, and total time before changing performance code. |
-| Superseded | Measure post-ten-minute refreshes during GunGame map enter, selector reload, and exit. | Applies to released `1.4.1` only. The candidate requests no refresh from selector or teardown events; its measurement is the bounded scan diagnostics capture above. |
-| Pending | Verify review follow-up edits. | Portable test run passes on the branch tip; hosted `Verify H3VR Portable Checks` run passes after push; Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` pass from the dedicated candidate worktree. |
-| Pending | Converge remote wrapper routing. | The wrapper mechanism to converge on is the one on `codex/nightforce-runtime`: the `-EnvironmentConfigPath` parameter and its asset-lab prefix. When that wrapper reaches `main`, forward-revert `3dae011`, `37dbb22`, and `1cc6d55` here and keep only the HLin names in `Test-GunGamePools`. |
+| `[>]` | Verify unbuilt source edits. | Portable test run passes on the branch tip; hosted `Verify H3VR Portable Checks` run passes after push; Windows `SourceStatus`, `Test`, `Verify`, and Release `Build` pass from the dedicated candidate worktree. |
+| `[ ]` | Rebuild, redeploy, and observe the fixed startup schedule. | Start H3VR, remain active through thirty minutes, then enter, reload, and exit GunGame. BepInEx shows immediate plus 1/5/10/30-minute scans only; no selector or map event starts a refresh after the final 30-minute callback; saved Modded pair is selectable; policy-version replacement is absent before ten minutes and eligible at ten minutes. |
+| `[ ]` | Check `HLin` profile labels in the GunGame selector. | Vanilla and generated or persisted Modded profiles show `HLin - <profile name>`; Runtime filenames stay unchanged; no duplicate selector choice. |
+| `[ ]` | Capture bounded scan diagnostics. | Two `GunGame Progressions debug: scan #` Info records plus the matching `modded scan` record for each observed scan; compare capture, worker, and total time before changing performance code. |
+| `[ ]` | VR-test loadout rules. | G28/direct magazine with Picatinny scope; non-box shotgun shells; Modded handgun gets RMR; Picatinny rifle gets vanilla low-power/LPVO; Russian rail gets PSO-1 `MagnifierPSO1`; MP5 adapter route gets `Scope_G3SG1`; invalid mod is skipped. No wrong loose cartridge, wrong magazine, mount mismatch, duplicate optic, loose replacement, exception, or progression crash; progression feel is acceptable. |
+| `[ ]` | VR-test the Runtime 05 worklist in a local Debug build. | Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 each spawn, load, fire, and advance without error; PlungerLauncher is absent from every profile; a bad loadout advances instead of stalling or crashing. |
+| `[ ]` | Converge remote wrapper routing. | The wrapper mechanism to converge on is the one on `codex/nightforce-runtime`: the `-EnvironmentConfigPath` parameter and its asset-lab prefix. When that wrapper reaches `main`, forward-revert `3dae011`, `37dbb22`, and `1cc6d55` here and keep only the HLin names in `Test-GunGamePools`. |
+
+### Deferred
+
+| Priority | Item | Reason |
+| --- | --- | --- |
+| P1 | Classify remaining Runtime 05 failures from the spawn-safety log. | Needs the worklist VR log. Add only confirmed broken IDs to the shared global blacklist, each with a focused regression. |
+| P2 | Cap near-identical firearm variants, beginning with MP5/SP5. | Needs design approval: generic catalog-signature grouping or an explicit family rule; preserve two representative variants if requested. |
 
 ## Testing
 
-| Check | Command / action | Expected |
+### Automated
+
+| Check | Command / entry point | Pass evidence |
 | --- | --- | --- |
-| Game API | `h3vr.ps1 -Action SourceStatus` | Current. |
-| Focused/full pipeline | `h3vr.ps1 -Action Test` | Passed `95/95`: global/runtime blacklist, no Runtime 05 bypass, Airgun audit, iterator skip, and existing regressions. |
-| Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Kodeman targets resolve. |
-| Release artifact | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package` | Passed: `1.4.0` package with no player Modded pool. |
-| 1.4.1 release | Windows `SourceStatus`; `Verify -Mod GunGameProgressions`; `Test`; shared-generator fallback refresh; `Build`; `Package`; `Deploy`; `Publish`; exact download. | Passed from `main`: cache current; Harmony targets resolve; `98/98`; both fallback profiles match policy 21 shared resolver; Release package deployed and published; exact download returned HTTP `200`. |
-| One-minute runtime generation | Deploy, launch the Modded profile through an interactive Steam URI task, inspect BepInEx log. | Passed: `startup 1-minute rescan requested`; initial `867 ms`/`2` entries; one-minute `1,053 ms`/`1,435` entries. |
-| Game-wide warmup regression | `h3vr.ps1 -Action Test`, then start H3VR in any non-GunGame mode and wait at least one minute before opening GunGame. | Live partial pass: initial and one-minute scans ran without selector interaction and wrote Runtime 02/04. Five-/ten-minute runtime observations and selector restore remain pending. |
-| Released 1.4.1 lifecycle baseline | Historical release behavior after ten minutes: enter, reload, and exit GunGame maps; separately transition through non-GunGame map. Capture BepInEx trace, profiler/managed-memory data, and any crash stack. | Selector-ready and GunGame teardown were correlated with full captures; superseded by fixed candidate. |
-| Fixed 30-minute lifecycle | Launch candidate, keep H3VR active through 30-minute callback, then enter, reload, and exit GunGame maps. Inspect BepInEx trace and memory/profiler data. | Only immediate and 1/5/10/30-minute traces request Modded scans. Selector-ready events restore persisted choices only; no map transition or teardown starts scan after 30 minutes. |
-| Local candidate deployment | Dedicated-worktree Release `Build`, `Package`, then `Deploy` for GunGame Progressions. | Passed: package hash `E94249E0E287F9B50BE33852690FA4483DEDE1DC404E32CEB293EDA6BE999140`; deployment created pending VR receipt. No Thunderstore publish. |
-| Bounded scan diagnostics | Run deployed candidate through one scheduled refresh; collect matching Info-level diagnostic start/outcome and completion lines. | Exactly two aggregate diagnostic lines per scan; no per-item diagnostic output. Current deployment package hash `94B8F102ADEF4132ACB82006E416A63C854E85BEF958EBD810871857EED309E9`; no Thunderstore publish. |
-| HLin profile labels | Start H3VR, open a GunGame selector after deployment, and inspect packaged Vanilla plus any saved Modded choices. | Passed static/build coverage: all generated display names use `HLin - <profile name>`; legacy persisted Modded/Debug JSON is migrated during selector restore; no Runtime file-ID rename. Human selector visual check remains required. |
-| Policy-version replacement gate | `h3vr.ps1 -Action Test`; then retain a saved Modded receipt from an older policy and observe early plus ten-minute scans. | Passed static/worker guard: early snapshots keep equal/smaller pair; runtime observation remains required for ten-minute timing. |
-| Runtime 05 release boundary | `h3vr.ps1 -Action Test`, then `Build`/`Package`/`Deploy` default Release; `Build`/`Package -GunGameBuildConfiguration Debug`; Debug publish guard. | Passed: `97/97`; Release ZIP has `0` Runtime 05 files and installed exporter reports disabled; Debug exporter reports enabled; Debug package is isolated and publish is rejected. |
-| Published artifact | Request exact version download URL. | Passed: redirected download resolves HTTP `200`. |
-| Manual VR | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. | Direct/exact gear only; unsafe object skipped; saved Modded pair persists. |
-| Compatibility candidate | Select Runtime 05, then inspect log. | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; rejected loadout logs IDs and promotes without crash/stall. |
-| Live Modded profile | Start H3VR and wait through a background rescan. | Runtime 02 and 04 files plus `runtime-generation-modded-receipt.json` appear; log reports pools ready, not `using packaged fallback pools.` |
-| Offline fallback refresh | `OfflineProfileGenerator`, then `--verify`. | Passed: both tracked Vanilla pools match policy version `20`; count is `659`. |
+| Game API | `h3vr.ps1 -Action SourceStatus` | Current on the dedicated Windows worktree at the profile-label candidate. |
+| Source / unit | `h3vr.ps1 -Action Test` | `103/103` at the profile-label candidate recorded in `a01ad95`. Not run since the 2026-11-12 source edits. |
+| Harmony targets | `h3vr.ps1 -Action Verify -Mod GunGameProgressions` | Passed at the profile-label candidate; Kodeman targets resolve. |
+| Build / package | `h3vr.ps1 -Action Build -Mod GunGameProgressions`; `Package`; `Deploy` | Release Build/Package/Deploy passed at the profile-label candidate. Not rebuilt since the 2026-11-12 source edits. |
+| Runtime 05 release boundary | `Test`; default Release `Build`/`Package`/`Deploy`; `Build`/`Package -GunGameBuildConfiguration Debug`; Debug publish guard | Passed `97/97`: Release ZIP has `0` Runtime 05 files and the installed exporter reports disabled; Debug exporter reports enabled; Debug package is isolated and publish is rejected. |
+| Offline fallback | `OfflineProfileGenerator`, then `--verify` | Passed on Windows for policy `21`; both tracked profiles hold `659` firearms. |
 | Local Runtime 05 audit | `dotnet run --project GunGameProgressions\OfflineProfileGenerator\OfflineProfileGenerator.csproj -c Release -- --input GunGameProgressions\ObjectData.json --probe-output build\staging\runtime05-local-metadata-audit.json` | Passed via Windows test: Airgun present, global/runtime-blacklisted IDs absent, no empty `Extra`; never package this file. |
-| Review follow-up guards | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify -Mod GunGameProgressions`, and Release `Build` from the dedicated candidate worktree. | Pending; not run. Guards cover: no `RequestModdedRefresh(` call in selector or teardown path; each policy-matrix guard is a test method; scan timer starts after the Vanilla wait; legacy-label dedupe; compact trigger labels. |
+| Unbuilt source edits | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify -Mod GunGameProgressions`, and Release `Build` from the dedicated candidate worktree. | Pending; not run. Guards cover: no `RequestModdedRefresh(` call in selector or teardown path; each policy-matrix guard is a test method; scan timer starts after the Vanilla wait; legacy-label dedupe; compact trigger labels. |
 | Hosted checks on `codex/**` | Push the branch, then inspect its `Verify H3VR Portable Checks` run. | Pending; the workflow branch filter now lists `codex/**`. No run exists until the branch is pushed. |
+
+### Manual H3VR acceptance
+
+Launch the profile once before log monitoring: `Preflight` fails its log-path
+check until a BepInEx log exists.
+
+| Case | Expected result | Evidence |
+| --- | --- | --- |
+| Background generation outside GunGame | Runtime 02 and 04 files plus `runtime-generation-modded-receipt.json` appear; log reports `pools ready`, not `using packaged fallback pools.` | Passed on the policy `20` build; see Last live run. Not repeated for the candidate. |
+| Fixed 30-minute lifecycle | Only immediate and 1/5/10/30-minute traces request Modded scans. Selector-ready events restore persisted choices only; no map transition or teardown starts a scan after 30 minutes. | Pending. Initial and one-minute scans were observed on the policy `20` build only. |
+| Policy-version replacement gate | With a saved Modded receipt from an older policy, early snapshots keep an equal or smaller pair; the ten-minute scan may replace it once. | Pending runtime observation. Static and worker guards pass in `Test`. |
+| Scan diagnostics | Exactly two aggregate diagnostic lines per scan plus the matching `modded scan` line; no per-item diagnostic output. | Pending. |
+| Profile labels | Packaged Vanilla and saved Modded choices show `HLin - <profile name>`; no duplicate selector choice. | Pending. |
+| Loadouts | G28; mod rifle with no direct feed; Russian/proprietary mount; pump/break shotgun; GunGame reload. Direct or exact gear only; unsafe object skipped; saved Modded pair persists. | Pending. |
+| Runtime 05, Debug build | Exactly Airgun, Flaregun, MF_Medical180, Pocket1906, and Quackenbush1886 appear; each has nonempty `Extra`; a rejected loadout logs IDs and promotes without crash or stall. | Pending. |
+
+### Release gate
+
+The gate applies to the commit that ships, so nothing is checked for the
+current branch tip.
+
+- [ ] Current Windows source and managed DLL status checked.
+- [ ] Automated checks pass.
+- [ ] Package payload/version verified.
+- [ ] Deployment receipt and BepInEx log checked.
+- [ ] Required VR interaction completed.
 
 Do not run H3VR tests/builds on macOS. Do not package `DESIGN.md`,
 `DEV_STATUS.md`, or `GENERATION_POLICY.md`.

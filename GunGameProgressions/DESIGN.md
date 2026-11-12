@@ -160,6 +160,7 @@ then clears and promotes past any rejected or throwing loadout on next frame.
 | `preparing pools` | A Modded background attempt is waiting/capturing. |
 | `pools ready` | A Modded candidate was written. |
 | `no modded pools available` | No compatible active Modded firearms were found. |
+| `using packaged fallback pools` | Warning: Vanilla capture failed, or a Vanilla or Modded generation job ended with an error; existing pools stay in use. The exception text is written at Debug level only. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
 | `GunGame Progressions debug: scan #` | Exactly two Info-level diagnostic records per actual scan: start trigger, then aggregate outcome with registry/Modded counts, capture/enemy/worker/total times, persistence result, pool count, and weapon count. No item IDs or per-entry records. |
@@ -238,6 +239,16 @@ playtest report
    -> Windows Verify / Test / Build / Package
    -> deploy + inspect BepInEx log + VR test
 ```
+
+## Decisions
+
+| Decision | Reason | Date |
+| --- | --- | --- |
+| Launch H3VR for runtime checks through the Steam game URI, as the remote development skill describes. | A direct `Steam.exe -applaunch` Task Scheduler action can return success without creating `h3vr.exe`; the Steam game URI with the same r2modman Doorstop profile arguments starts the interactive game process reliably. | 2026-07-17 |
+| Treat Deli/MonoMod preloader messages, and failed `GunGameWeaponPool_*.json` loads from another installed map package, as unrelated to this mod. | The preloader messages appeared in both successful and incomplete runs. The failed pool paths in the log belong to a separate map package. | 2026-07-18 |
+| Keep `GrappleGun` in `runtimeFirearmBlacklist`. | `GrappleGun` with its direct `MagazineGrappleGun` passes catalog feed and category validation. In a live run GunGame logged `Error while trying to load gun chambers manually for a gun: GrappleGun(Clone)`, then the spawn threw from `WeaponBuffer.SpawnImmediate` before optic mounting, with `NullReferenceException` / `KeyNotFoundException` stack traces. Spawn safety rejects unavailable IDs and wrong categories but cannot prove GunGame-specific chamber-loading behavior from catalog metadata alone. | 2026-07-18 |
+| Remove GravitonBeamer, Jackhammer, M320GrenadeLauncher, M72A7, MF_Signaler, MF_Syringegun, OTS38, P11, P6Twelve, PocketHammer1903, and Whizzbanger from the Runtime 05 worklist without a blacklist or allowlist entry. | Each passed human VR testing and already occurs in both standard Vanilla profiles through the shared resolver. | 2026-07-19 |
+| Only the immediate startup request and the four scheduled rescans may request a Modded refresh. | In released `1.4.1` the one-, five-, and ten-minute callbacks were one-shot, but selector-ready reloads and GunGame teardown stayed subscribed, so each map reload or exit could start another complete capture and build. | 2026-07-22 |
 
 ## Backlog and known limits
 
