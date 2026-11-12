@@ -13,7 +13,7 @@ State: `active`
 | Live API | Windows `SourceStatus` current; `ItemSpawnerV2.BTN_TryToSpawnRandomGun`, GunGame `Progression.WeaponChangedEvent`, profile loader, and GunGame Ammo/Extra quickbelt slots inspected. | Source API verified; current runtime behavior pending. |
 | Automated checks | Windows `Verify GunGameCursedRandom` passed; Windows `Test` passed `107/107` for `6b9f63c`. | Passed. |
 | Build / package | Windows release build passed `0` warnings and `0` errors for `6b9f63c`. Package SHA-256 `393D5AEA4E42340328DFE51C28274B556F78E19781113D8D19E0431440324F4F`. | Passed. |
-| Deploy | Guarded deploy of `6b9f63c` to the Default profile after the H3VR-stop check; logs cleared. The Cursed local-package entry in the profile was repaired atomically and its written YAML validated. | VR proof and r2modman reopen proof pending. |
+| Deploy | Guarded deploy of `6b9f63c` to the Default profile after the H3VR-stop check; logs cleared. The malformed Cursed local-package entry in the profile was replaced atomically by `d7f5c74`, its written YAML validated, and a same-directory backup created. | VR proof and r2modman reopen proof pending. |
 | Deploy safety | `105b3f5` adds `Assert-H3vrStopped` before packaging and target replacement. | Future deploys fail instead of overwriting profile files while H3VR runs. |
 
 ### Open blockers
