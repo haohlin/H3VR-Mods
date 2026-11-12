@@ -22,6 +22,21 @@ public static class RuntimeProfileFamily
         return IsPoolFileFor(fileName, IsModded);
     }
 
+    public static bool IsCompatibilityProbe(string family)
+    {
+        return family == "05_Compatibility_Probe";
+    }
+
+    public static bool IsCompatibilityProbePoolName(string name)
+    {
+        return name == "Runtime 05 - Compatibility Probe";
+    }
+
+    public static bool IsCompatibilityProbePoolFile(string fileName)
+    {
+        return IsPoolFileFor(fileName, IsCompatibilityProbe);
+    }
+
     private static bool IsPoolFileFor(string fileName, System.Func<string, bool> familyMatch)
     {
         const string prefix = "GunGameWeaponPool_Runtime_";
@@ -38,6 +53,7 @@ public static class RuntimeProfileFamily
                 "02_Modded_Rot",
                 "03_Vanilla_Mixed_Enemy",
                 "04_Modded_Mixed_Enemy",
+                "05_Compatibility_Probe",
             })
         {
             if (familyMatch(family) && poolName.StartsWith(family + "_"))

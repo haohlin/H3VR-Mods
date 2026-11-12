@@ -48,7 +48,7 @@
           "to": "ObjectData.json"
         },
         {
-          "from": "GunGameProgressions\\MetadataExporter\\bin\\Release\\net35\\GunGameProgressionsMetadataExporter.dll",
+          "from": "GunGameProgressions\\MetadataExporter\\bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll",
           "to": "GunGameProgressionsMetadataExporter.dll"
         }
       ],

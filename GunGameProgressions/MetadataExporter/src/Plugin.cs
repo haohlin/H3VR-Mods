@@ -14,19 +14,23 @@ using UnityEngine;
 
 namespace HLin.GunGameProgressions;
 
-[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.4.0")]
+[BepInPlugin("HLin.GunGameProgressionsMetadataExporter", "GunGame Progressions Metadata Exporter", "1.4.1")]
 [BepInDependency("Kodeman.GunGame", BepInDependency.DependencyFlags.HardDependency)]
 [BepInProcess("h3vr.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
     private const long CaptureFrameBudgetMilliseconds = 2;
+    private const float SelectorSubscriptionRetrySeconds = 10f;
     private const string HarmonyId = "HLin.GunGameProgressionsMetadataExporter.KodemanRefresh";
     private static Plugin instance;
     private readonly GunGameSelectorInstanceTracker selectorTracker = new GunGameSelectorInstanceTracker();
+    private readonly OtherLoaderStatusProbe otherLoaderStatusProbe = new OtherLoaderStatusProbe();
     private List<RuntimeMetadataEntry> vanillaMetadata;
     private bool vanillaGenerationFinished;
     private bool moddedRefreshRunning;
     private bool moddedRefreshRequested;
+    private bool policyReplacementEligible;
+    private bool startupWarmupScheduled;
     private Harmony harmony;
     private GunGameSpawnSafety spawnSafety;
     private Type weaponPoolLoaderType;
@@ -41,19 +45,35 @@ public sealed class Plugin : BaseUnityPlugin
         instance = this;
         InstallGunGameRefreshHooks();
         InstallGunGameSpawnSafety();
+        ScheduleStartupProfileWarmup();
         StartCoroutine(WaitForWeaponPoolLoaderReadyEvent());
         Trace("plugin awake.");
+        if (RuntimeBuildFeatures.CompatibilityProbeEnabled)
+        {
+            Trace("local Debug build: Runtime 05 compatibility probe enabled.");
+        }
         Logger.LogInfo(RuntimeStatusMessages.Ready);
     }
 
     private void Start()
     {
+        ScheduleStartupProfileWarmup();
+    }
+
+    private void ScheduleStartupProfileWarmup()
+    {
+        if (startupWarmupScheduled)
+        {
+            return;
+        }
+
+        startupWarmupScheduled = true;
         Trace("starting vanilla and modded profile warmup.");
         StartCoroutine(GenerateVanillaPoolsAtStartup());
         RequestModdedRefresh();
-        StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested."));
-        StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested."));
-        StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested."));
+        StartCoroutine(RequestStartupModdedRescan(60f, "startup 1-minute rescan requested.", false));
+        StartCoroutine(RequestStartupModdedRescan(300f, "startup 5-minute rescan requested.", false));
+        StartCoroutine(RequestStartupModdedRescan(600f, "startup 10-minute rescan requested; policy replacement eligible.", true));
     }
 
     private void OnDestroy()
@@ -140,7 +160,10 @@ public sealed class Plugin : BaseUnityPlugin
                 Trace("waiting for GunGame selector event.");
             }
 
-            yield return new WaitForSeconds(0.5f);
+            // GunGame is a hard dependency, so this normally succeeds during
+            // Awake. If an unusual loader order delays its type, retry slowly.
+            // This never captures metadata or touches a prefab.
+            yield return new WaitForSecondsRealtime(SelectorSubscriptionRetrySeconds);
         }
     }
 
@@ -183,7 +206,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (instance.selectorTracker.Observe(loader))
         {
             instance.Trace("live selector ready event received.");
-            instance.RestorePersistedModdedProfilesForSelector(loader);
+            instance.RestorePersistedRuntimeProfilesForSelector(loader);
         }
 
         // A loader can fire more than once for the same selector when its map
@@ -206,12 +229,12 @@ public sealed class Plugin : BaseUnityPlugin
         return GunGameSelectorLocator.Resolve(weaponPoolLoaderType);
     }
 
-    private void RestorePersistedModdedProfilesForSelector(object weaponPoolLoader)
+    private void RestorePersistedRuntimeProfilesForSelector(object weaponPoolLoader)
     {
-        var persistedChoicesAdded = AddPersistedModdedPoolChoices(weaponPoolLoader);
+        var persistedChoicesAdded = AddPersistedRuntimePoolChoices(weaponPoolLoader);
         if (persistedChoicesAdded > 0)
         {
-            Trace("selector restored " + persistedChoicesAdded + " persisted modded profiles.");
+            Trace("selector restored " + persistedChoicesAdded + " persisted runtime profiles.");
         }
     }
 
@@ -229,9 +252,17 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
-    private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)
+    private IEnumerator RequestStartupModdedRescan(
+        float delaySeconds,
+        string traceMessage,
+        bool enablePolicyReplacement)
     {
         yield return new WaitForSecondsRealtime(delaySeconds);
+        if (enablePolicyReplacement)
+        {
+            policyReplacementEligible = true;
+        }
+
         Trace(traceMessage);
         RequestModdedRefresh();
     }
@@ -266,6 +297,7 @@ public sealed class Plugin : BaseUnityPlugin
             vanillaMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.Vanilla,
+            false,
             false);
         job.Start();
         while (!job.IsCompleted)
@@ -294,13 +326,14 @@ public sealed class Plugin : BaseUnityPlugin
         while (moddedRefreshRequested)
         {
             moddedRefreshRequested = false;
-            yield return StartCoroutine(GenerateModdedPoolsForRefresh());
+            var allowPolicyReplacement = policyReplacementEligible;
+            yield return StartCoroutine(GenerateModdedPoolsForRefresh(allowPolicyReplacement));
         }
 
         moddedRefreshRunning = false;
     }
 
-    private IEnumerator GenerateModdedPoolsForRefresh()
+    private IEnumerator GenerateModdedPoolsForRefresh(bool allowPolicyReplacement)
     {
         while (!vanillaGenerationFinished)
         {
@@ -319,7 +352,7 @@ public sealed class Plugin : BaseUnityPlugin
         // Loader state is only evidence for safe empty-pool cleanup. It never
         // vetoes a usable current snapshot: available mod weapons can be
         // generated now, then a later trigger can promote a larger pair.
-        var externalLoadState = new OtherLoaderStatusProbe().Read(Logger.LogDebug);
+        var externalLoadState = otherLoaderStatusProbe.Read(Logger.LogDebug);
         RuntimeMetadataCapture metadataCapture = null;
         Trace("modded capture started.");
         yield return StartCoroutine(CaptureRuntimeMetadata(
@@ -336,31 +369,31 @@ public sealed class Plugin : BaseUnityPlugin
         yield return StartCoroutine(GenerateModdedPoolCandidate(
             metadataCapture,
             totalTimer,
-            externalLoadState == ExternalContentLoadState.Complete));
+            externalLoadState == ExternalContentLoadState.Complete,
+            allowPolicyReplacement));
     }
 
     private IEnumerator GenerateModdedPoolCandidate(
         RuntimeMetadataCapture metadataCapture,
         Stopwatch totalTimer,
         bool confirmedEmptySnapshot,
+        bool allowPolicyReplacement,
         Action<RuntimeGenerationReport> complete = null)
     {
         RuntimeEnemyCapture enemyCapture = null;
         yield return StartCoroutine(CaptureEnemyEntries(capture => enemyCapture = capture));
 
         var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var combinedMetadata = (vanillaMetadata ?? new List<RuntimeMetadataEntry>())
-            .Concat(metadataCapture.Entries)
-            .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .OrderBy(entry => entry.ObjectID, StringComparer.Ordinal)
-            .ToList();
+        var combinedMetadata = MergeRuntimeMetadata(
+            vanillaMetadata ?? new List<RuntimeMetadataEntry>(),
+            metadataCapture.Entries);
         var job = new RuntimeGenerationJob(
             packagePath,
             combinedMetadata,
             enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries,
             RuntimeGenerationPhase.Modded,
-            confirmedEmptySnapshot);
+            confirmedEmptySnapshot,
+            allowPolicyReplacement);
         job.Start();
         while (!job.IsCompleted)
         {
@@ -379,6 +412,12 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var report = job.Report;
+#if GUNGAME_COMPATIBILITY_PROBE
+        yield return StartCoroutine(GenerateCompatibilityProbe(
+            packagePath,
+            combinedMetadata,
+            enemyCapture == null ? new List<RuntimeEnemyEntry>() : enemyCapture.Entries));
+#endif
         if (report.PoolCount == 0 && report.WasWritten)
         {
             Logger.LogInfo(RuntimeStatusMessages.NoModdedPools);
@@ -409,6 +448,36 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
+#if GUNGAME_COMPATIBILITY_PROBE
+    private IEnumerator GenerateCompatibilityProbe(
+        string packagePath,
+        List<RuntimeMetadataEntry> metadata,
+        List<RuntimeEnemyEntry> enemyEntries)
+    {
+        var probeJob = new RuntimeGenerationJob(
+            packagePath,
+            metadata,
+            enemyEntries,
+            RuntimeGenerationPhase.CompatibilityProbe,
+            false,
+            false);
+        probeJob.Start();
+        while (!probeJob.IsCompleted)
+        {
+            yield return null;
+        }
+
+        if (probeJob.Error != null)
+        {
+            Logger.LogDebug("GunGame compatibility probe generation failed: " + probeJob.Error);
+        }
+        else if (probeJob.Report.WasWritten)
+        {
+            Trace("compatibility probe updated: " + probeJob.Report.EligibleWeaponsPerPool + " test firearms.");
+        }
+    }
+#endif
+
     private static string RuntimePoolDisplayName(string poolFileName)
     {
         if (poolFileName != null && poolFileName.IndexOf("_02_Modded_Rot_", StringComparison.Ordinal) >= 0)
@@ -416,12 +485,21 @@ public sealed class Plugin : BaseUnityPlugin
             return "Runtime 02 - Modded Rot";
         }
 
-        return poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0
-            ? "Runtime 04 - Modded Mixed Enemy"
+        if (poolFileName != null && poolFileName.IndexOf("_04_Modded_Mixed_Enemy_", StringComparison.Ordinal) >= 0)
+        {
+            return "Runtime 04 - Modded Mixed Enemy";
+        }
+
+#if GUNGAME_COMPATIBILITY_PROBE
+        return poolFileName != null && poolFileName.IndexOf("_05_Compatibility_Probe_", StringComparison.Ordinal) >= 0
+            ? "Runtime 05 - Compatibility Probe"
             : string.Empty;
+#else
+        return string.Empty;
+#endif
     }
 
-    private int AddPersistedModdedPoolChoices(object loader)
+    private int AddPersistedRuntimePoolChoices(object loader)
     {
         var packagePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         if (string.IsNullOrEmpty(packagePath) || !Directory.Exists(packagePath))
@@ -431,7 +509,11 @@ public sealed class Plugin : BaseUnityPlugin
 
         var poolFileNames = Directory.GetFiles(packagePath, "GunGameWeaponPool_Runtime_*.json")
             .Select(Path.GetFileName)
-            .Where(RuntimeProfileFamily.IsModdedPoolFile)
+            .Where(fileName => RuntimeProfileFamily.IsModdedPoolFile(fileName)
+#if GUNGAME_COMPATIBILITY_PROBE
+                || RuntimeProfileFamily.IsCompatibilityProbePoolFile(fileName)
+#endif
+            )
             .OrderBy(fileName => fileName, StringComparer.Ordinal)
             .ToList();
         return AddPoolChoices(loader, poolFileNames);
@@ -1067,6 +1149,9 @@ public sealed class Plugin : BaseUnityPlugin
         json.Append(",\n  \"contentFingerprint\": \"");
         AppendJsonString(json, contentFingerprint);
         json.Append('"');
+        json.Append(",\n  \"generationPolicyVersion\": \"");
+        AppendJsonString(json, RuntimePoolPersistence.CurrentGenerationPolicyVersion);
+        json.Append('"');
         json.Append(",\n  \"activeItems\": ");
         json.Append(entries.Count);
         json.Append(",\n  \"activeModdedItems\": ");
@@ -1191,20 +1276,37 @@ public sealed class Plugin : BaseUnityPlugin
         List<RuntimeMetadataEntry> entries,
         List<RuntimeEnemyEntry> enemyEntries,
         RuntimeGenerationPhase phase,
-        bool confirmedEmptySnapshot)
+        bool confirmedEmptySnapshot,
+        bool allowPolicyReplacement)
     {
         var rules = ProfileRules.Load(packagePath);
         var profileEntries = phase == RuntimeGenerationPhase.Vanilla
-            ? entries
-            : entries.Where(entry => !entry.IsModContent || !rules.IsBlacklisted(entry)).ToList();
+            ? entries.Where(entry => !rules.IsGloballyBlacklisted(entry)).ToList()
+            : entries.Where(entry => !rules.IsBlacklisted(entry)).ToList();
         var phaseName = phase.ToString().ToLowerInvariant();
-        var contentFingerprint = RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
+        var contentFingerprint = phase == RuntimeGenerationPhase.CompatibilityProbe
+            ? RuntimePoolPersistence.CreateFingerprint(
+                profileEntries,
+                enemyEntries,
+                rules.CompatibilityProbeFirearms)
+            : RuntimePoolPersistence.CreateFingerprint(profileEntries, enemyEntries);
         var randomSeed = RuntimePoolPersistence.CreateStableSeed(contentFingerprint);
-        var result = RuntimeProfileBuilder.BuildWithDiagnostics(profileEntries, enemyEntries, new System.Random(randomSeed));
+        var result = phase == RuntimeGenerationPhase.CompatibilityProbe
+            ? RuntimeProfileBuilder.BuildCompatibilityProbe(
+                profileEntries,
+                enemyEntries,
+                rules.CompatibilityProbeFirearms,
+                new System.Random(randomSeed))
+            : RuntimeProfileBuilder.BuildWithDiagnostics(
+                profileEntries,
+                enemyEntries,
+                new System.Random(randomSeed));
         var phasePools = result.Pools
             .Where(pool => phase == RuntimeGenerationPhase.Vanilla
                 ? RuntimeProfileFamily.IsVanilla(pool.Family)
-                : RuntimeProfileFamily.IsModded(pool.Family))
+                : phase == RuntimeGenerationPhase.Modded
+                    ? RuntimeProfileFamily.IsModded(pool.Family)
+                    : RuntimeProfileFamily.IsCompatibilityProbe(pool.Family))
             .ToList();
         var phaseResult = new RuntimeGenerationResult
         {
@@ -1221,11 +1323,16 @@ public sealed class Plugin : BaseUnityPlugin
                 eligibleWeaponsPerPool,
                 RuntimePoolPersistence.ReadEligibleWeaponsPerPool(receiptPath),
                 RuntimePoolPersistence.HasCompleteModdedPoolFiles(packagePath),
-                confirmedEmptySnapshot))
+                confirmedEmptySnapshot,
+                !string.Equals(
+                    RuntimePoolPersistence.ReadGenerationPolicyVersion(receiptPath),
+                    RuntimePoolPersistence.CurrentGenerationPolicyVersion,
+                    StringComparison.Ordinal),
+                allowPolicyReplacement))
         {
-            // Preserve a complete saved pair until a larger current snapshot
-            // arrives. An empty snapshot can clear it only after a loader
-            // explicitly confirms that content loading is complete.
+            // Preserve a complete saved pair until a larger current snapshot,
+            // or the scheduled ten-minute policy-upgrade window. An empty
+            // snapshot can clear it only after loader completion is explicit.
             return new RuntimeGenerationReport(
                 profileEntries.Count,
                 profileEntries.Count(entry => entry.IsModContent),
@@ -1246,7 +1353,9 @@ public sealed class Plugin : BaseUnityPlugin
 
         Func<string, bool> isOwnedByPhase = phase == RuntimeGenerationPhase.Vanilla
             ? RuntimeProfileFamily.IsVanillaPoolFile
-            : RuntimeProfileFamily.IsModdedPoolFile;
+            : phase == RuntimeGenerationPhase.Modded
+                ? RuntimeProfileFamily.IsModdedPoolFile
+                : RuntimeProfileFamily.IsCompatibilityProbePoolFile;
         var storedFingerprint = RuntimePoolPersistence.ReadFingerprint(receiptPath);
         var poolFilesMatch = RuntimePoolPersistence.HasExpectedPoolFiles(packagePath, expectedPoolFiles, isOwnedByPhase);
         var shouldWrite = RuntimePoolPersistence.ShouldWrite(storedFingerprint, contentFingerprint, poolFilesMatch);
@@ -1263,8 +1372,11 @@ public sealed class Plugin : BaseUnityPlugin
                 false);
         }
 
-        var metadataPath = Path.Combine(packagePath, "ObjectData.json");
-        WriteTextAtomically(metadataPath, SerializeMetadata(profileEntries));
+        if (phase != RuntimeGenerationPhase.CompatibilityProbe)
+        {
+            var metadataPath = Path.Combine(packagePath, "ObjectData.json");
+            WriteTextAtomically(metadataPath, SerializeMetadata(profileEntries));
+        }
         Directory.CreateDirectory(runtimePoolsPath);
         foreach (var runtimePool in phasePools)
         {
@@ -1295,6 +1407,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Vanilla,
         Modded,
+        CompatibilityProbe,
     }
 
     private sealed class RuntimeGenerationJob
@@ -1305,6 +1418,7 @@ public sealed class Plugin : BaseUnityPlugin
         private readonly List<RuntimeEnemyEntry> enemyEntries;
         private readonly RuntimeGenerationPhase phase;
         private readonly bool confirmedEmptySnapshot;
+        private readonly bool allowPolicyReplacement;
         private bool isCompleted;
         private Exception error;
         private RuntimeGenerationReport report;
@@ -1314,13 +1428,15 @@ public sealed class Plugin : BaseUnityPlugin
             List<RuntimeMetadataEntry> entries,
             List<RuntimeEnemyEntry> enemyEntries,
             RuntimeGenerationPhase phase,
-            bool confirmedEmptySnapshot)
+            bool confirmedEmptySnapshot,
+            bool allowPolicyReplacement)
         {
             this.packagePath = packagePath;
             this.entries = entries;
             this.enemyEntries = enemyEntries;
             this.phase = phase;
             this.confirmedEmptySnapshot = confirmedEmptySnapshot;
+            this.allowPolicyReplacement = allowPolicyReplacement;
         }
 
         public bool IsCompleted
@@ -1373,7 +1489,13 @@ public sealed class Plugin : BaseUnityPlugin
             Exception failure = null;
             try
             {
-                generated = GenerateRuntimeFiles(packagePath, entries, enemyEntries, phase, confirmedEmptySnapshot);
+                generated = GenerateRuntimeFiles(
+                    packagePath,
+                    entries,
+                    enemyEntries,
+                    phase,
+                    confirmedEmptySnapshot,
+                    allowPolicyReplacement);
                 generated.ElapsedMilliseconds = timer.ElapsedMilliseconds;
             }
             catch (Exception exception)
@@ -1388,6 +1510,22 @@ public sealed class Plugin : BaseUnityPlugin
                 isCompleted = true;
             }
         }
+    }
+
+    private static List<RuntimeMetadataEntry> MergeRuntimeMetadata(
+        IEnumerable<RuntimeMetadataEntry> first,
+        IEnumerable<RuntimeMetadataEntry> second)
+    {
+        // This is a small plain-metadata merge performed once per completed
+        // Modded capture. It restores the 1.4.0 input route for the shared
+        // builder without materializing any prefab.
+        return (first ?? Enumerable.Empty<RuntimeMetadataEntry>())
+            .Concat(second ?? Enumerable.Empty<RuntimeMetadataEntry>())
+            .Where(entry => entry != null && !string.IsNullOrEmpty(entry.ObjectID))
+            .GroupBy(entry => entry.ObjectID, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(entry => entry.ObjectID, StringComparer.Ordinal)
+            .ToList();
     }
 
     private sealed class RuntimeMetadataCapture

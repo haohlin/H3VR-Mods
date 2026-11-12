@@ -10,7 +10,7 @@ public sealed class PublicSanitizationTests
     {
         foreach (var relativePath in new[]
                  {
-                     ".claude/skills/h3vr-mod-development.md",
+                     ".claude/skills/h3vr-mod-development/SKILL.md",
                      ".codex/skills/h3vr-mod-development/SKILL.md",
                      "skills/h3vr-remote-development/SKILL.md",
                      "skills/h3vr-remote-development/references/headless-unity-asset-inspection.md",
@@ -28,6 +28,28 @@ public sealed class PublicSanitizationTests
             Assert.DoesNotMatch(new Regex(@"(?im)^\s*ssh\s+(?!""?\$H3VR_WINDOWS_HOST\b)[^\s`]+"), content);
             Assert.DoesNotMatch(new Regex(@"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(local|ts\.net)\b"), content);
         }
+    }
+
+    [Fact]
+    public void Remote_wrapper_keeps_the_private_host_out_of_ssh_diagnostics()
+    {
+        var wrapper = File.ReadAllLines(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+        var sshCalls = wrapper.Where(line => line.Contains("ssh -o BatchMode=yes", StringComparison.Ordinal)).ToArray();
+
+        Assert.NotEmpty(sshCalls);
+        Assert.All(sshCalls, line =>
+        {
+            Assert.Contains("-o ConnectTimeout=", line, StringComparison.Ordinal);
+            Assert.Contains("-o LogLevel=QUIET", line, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void Remote_wrapper_does_not_ignore_a_requested_windows_worktree()
+    {
+        var wrapper = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr-remote.sh"));
+
+        Assert.Contains("H3VR_WINDOWS_WORKTREE_BRANCH", wrapper, StringComparison.Ordinal);
     }
 
     [Fact]

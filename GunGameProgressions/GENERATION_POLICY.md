@@ -16,8 +16,11 @@ vanilla-only safe starting point, not a substitute for runtime Modded capture.
 The versioned `ObjectData.json` vanilla snapshot is required generator input and
 is packaged beside those two profiles for repeatable offline validation.
 
-> **Compatibility rule:** when metadata cannot prove a safe loadout, omit that
-> item or attachment. Never guess an object ID from a name or shared caliber.
+> **Compatibility rule:** when metadata cannot prove a safe firearm or feed,
+> omit it. Never guess firearm/feed IDs from a name or shared caliber. Modded
+> magnified scopes are never selected. When no exact optic route exists, use
+> only curated vanilla RMR/reflex/low-power/LPVO fallback optics; runtime still
+> requires a real compatible top sight mount.
 
 > **Catalog-only capture rule:** runtime profile capture reads `FVRObject`
 > fields and never materializes a prefab. A firearm needs valid GunGame
@@ -26,6 +29,12 @@ is packaged beside those two profiles for repeatable offline validation.
 > feedless `GravitonBeamer` exception. Missing/conflicting metadata is skipped,
 > never repaired by scanning prefabs.
 
+> **Runtime-cost rule:** capture reads plain catalog metadata in two-millisecond
+> frame slices. One deterministic merge of captured plain metadata restores the
+> stable 1.4.0 shared-builder input route; resolver work, serialization, and
+> file writes run on a below-normal worker. No `Update`/`FixedUpdate` loop may
+> scan registry or instantiate weapon assets during a Modded refresh.
+
 ## Safety gate
 
 | Metadata state | Result |
@@ -33,7 +42,9 @@ is packaged beside those two profiles for repeatable offline validation.
 | Not a supported firearm | Skip |
 | Firearm lacks catalog proof or GunGame round-display data | Skip |
 | No verified compatible feed | Skip |
-| No compatible optic | Spawn the firearm without an optic |
+| Modded exact route | Prefer compatible proprietary/Russian/RMR/Picatinny optic; permit Modded reflex/RMR, never Modded magnified scope |
+| No Modded exact optic route | Handgun: vanilla RMR reflex; CQC: vanilla Picatinny reflex/low-power; rifle/carbine/unknown: vanilla LPVO/low-power/reflex |
+| Curated fallback missing | Spawn firearm without optic |
 | Actual GunGame spawn rejects or throws for a generated loadout | Clear it, skip it, and advance safely |
 
 Skipping an ambiguous weapon is intentional. A missing progression entry is safer than a wrong object ID, a malformed loadout, or a game crash.
@@ -64,7 +75,7 @@ Rules:
 | A compatible-object list is authoritative. | It is the game’s explicit relationship. |
 | Magazine/clip type is an exact fallback. | Those types encode their matching interface. |
 | Modded loose cartridges require a direct compatible-object entry. | Shared `RoundType` does not prove a mod firearm accepts that cartridge. |
-| Vanilla may use its versioned exact-`RoundType` cartridge fallback. | Preserves validated 661-gun offline baseline. |
+| Vanilla may use its versioned exact-`RoundType` cartridge fallback. | Preserves the versioned offline baseline. |
 | A speedloader is never inferred from round type. | Equal caliber does not prove compatible geometry. |
 | A non-box shotgun gets shells, not a generic magazine or rotary loader. | Prevents P6-12/Jackhammer-style cross-assignment. |
 | A revolver shotgun keeps only its direct loader. | Preserves real compatible rotary/revolver feeds. |
@@ -84,30 +95,89 @@ firearm
 |   +-- Picatinny / M-Lok rail -> matching scope or reflex sight
 |   `-- verified adapter       -> supported mount exposed by adapter
 |
-`-- no verified route -> no optic
++-- explicit compatible adapter with a declared optic-capable mount
+|   `-- matching vanilla scope/reflex (for example `MP5RailMount` -> `Scope_G3SG1`)
+|
+`-- no verified route -> deterministic random catalog Picatinny scope fallback
+                           from curated vanilla-safe candidates
+                           (or no optic if unavailable)
 
 compatible optics
 |
 +-- CQC / pistol / SMG / shotgun -> reflex -> low-power scope
-+-- bolt-action full-power / anti-materiel -> high-power scope
-+-- rifle-caliber carbine with Picatinny as its only valid optic route
-|   -> variable scope -> other scope -> reflex
-`-- rifle / battle rifle -> variable scope -> other scope -> reflex
++-- handgun without metadata route -> vanilla RMR reflex
++-- rifle / carbine / unknown route -> vanilla LPVO -> low-power -> reflex
+`-- proprietary Russian route -> matching vanilla Russian scope first
 ```
 
-Candidate gate: the object must be an `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded.
+Candidate gate: object must be `Attachment` classified as `Scope` or `Reflex`; magnifiers and every other attachment type are excluded. For Modded profiles, a Modded candidate may only be `Reflex`; every magnified candidate must be a curated vanilla low-power/LPVO scope.
 
 Mount matching uses lightweight catalog metadata (`TagFirearmMounts`,
-`TagAttachmentMount`, and direct compatibility), not firearm or scope name
-lists. Adapter-provided mounts require prefab inspection and are omitted from
-runtime generation. The small hard-coded list in `OpticMountPolicy` is only the
-H3VR **mount-type taxonomy** needed to identify sight-capable interfaces; it
-contains no individual weapon or attachment IDs. Runtime mounting reuses that
-same taxonomy, checks the exact mount type, and permits rail mounts only when
-oriented as a top sighting rail. Muzzle, stock, grip, and side/bottom rail
-positions are rejected.
+`TagAttachmentMount`, `BespokeAttachments`, `AttachmentFeature`, and
+`PhysicalMountTypes`), not firearm or scope name lists. A direct compatible
+adapter may supply an explicit optic-capable mount type; this covers the stock
+MP5 adapter route without reading its prefab. `ProvidedMountTypes` is used only
+when the catalog already declares it. The small hard-coded list in
+`OpticMountPolicy` is only the H3VR **mount-type taxonomy** needed to identify
+sight-capable interfaces; it contains no individual weapon or attachment IDs.
+Runtime mounting reuses that same taxonomy, checks the exact mount type, and
+permits rail mounts only when oriented as a top sighting rail. Muzzle, stock,
+grip, and side/bottom rail positions are rejected.
 
 An M4-style carbine is selected by metadata, never by Object ID: it must be `Carbine` size, use a rifle-caliber round class, and have Picatinny as its only recognized optic route. A direct/bespoke or proprietary route wins before role ranking. Pistol-caliber carbines remain CQC and prefer a reflex sight.
+
+### Fallback optic rule
+
+Fallback is last, deterministic, and Modded-only. It uses a small maintained
+vanilla ID set because lightweight `FVRObject` metadata does not expose
+magnification values: RMR reflexes, Picatinny reflexes, fixed low-power scopes,
+LPVOs, `Scope_G3SG1` for catalog-declared MP5 rails, and `MagnifierPSO1` for a
+catalog-declared Russian rail. `MagnifierPSO1` is a legacy object ID for H3VR's
+real PSO-1 4x scope; classifier normalizes only that exact stock ID before
+excluding every other magnifier. `Scope_M76` remains secondary Russian fallback.
+These are mount-class fallbacks, not Modded-firearm exceptions. Sniper scopes
+and all Modded magnified scopes are excluded.
+
+Direct bespoke optics, proprietary mounts, RMR, and exact Picatinny matches
+always win before fallback. If a Modded entry omits mount tags, profile capture
+does not inspect its prefab and runtime does not materialize/instantiate an
+adapter or replacement optic. The normal GunGame loadout objects are the only
+objects materialized during play. Fallback never changes feed selection.
+
+### Equal-rank optic diversity
+
+After mount route and firearm-role rank select valid candidates, one per-family
+ledger chooses a least-used optic with deterministic seeded tie-breaking. This
+prevents one otherwise-valid optic, such as `ScopeLion2-5x` or `ScopeG36`, from
+dominating generated profiles.
+
+- Never replace a direct/bespoke or proprietary result with another mount.
+- Never cross role rank or allow a Modded magnified scope.
+- A unique compatible candidate may repeat; that is correct compatibility
+  behavior, not a diversity failure.
+- Curated vanilla Picatinny reflex and low-power fallback sets contain multiple
+  verified choices; unsafe/high-power fallback scopes stay excluded.
+
+### Compatibility Probe
+
+`firearmBlacklist` excludes known broken content from every generated profile:
+offline Vanilla, Runtime 01/03, Runtime 02/04, and Runtime 05. It currently
+contains `Slingshot`, `BrownBess`, `Degle`, `JunkyardFlameThrower`,
+`LaserPistol`, `MF_Flamethrower`, `Stinger`, and `PlungerLauncher`.
+`Slingshot` can freeze a run; `PlungerLauncher` and the others either fail
+GunGame spawn safety or have a live damage failure.
+
+`runtimeFirearmBlacklist` is additional Runtime 02/04/05-only curation:
+`GrappleGun`, `M224Mortar`, `LadiesPepperbox`, `M6Survival`, `MF_LongShot`,
+`PotatoGun`, `SustenanceCrossbow`, and the 19 listed
+MP5/SP5 variants. It does not change the versioned offline fallback.
+
+`compatibilityProbeFirearms` is a Debug-only test-candidate list, not a bypass.
+It builds **Runtime 05 - Compatibility Probe** only in a local Debug build and
+only from entries that pass the same firearm, feed, blacklist, and optic gates
+as Modded profiles. Release builds neither generate nor restore Runtime 05;
+their package check rejects Runtime 05 pool files. No force-include mechanism
+exists.
 
 ## Runtime availability and recovery
 
@@ -160,27 +230,43 @@ with coverage for the same condition.
 
 | Never reintroduce | Required outcome | Regression test |
 | --- | --- | --- |
-| `Slingshot` | Explicitly blacklist it; it can freeze GunGame when fired. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot` |
+| `Slingshot` | Explicitly blacklist it; firing it can freeze GunGame. It must never enter a progression. | `Runtime_profile_builder_skips_explicitly_blacklisted_slingshot`; `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Known broken content | Exclude BrownBess, Degle, JunkyardFlameThrower, LaserPistol, MF_Flamethrower, Stinger, and PlungerLauncher from every generated profile. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Requested Runtime 05 removals | In local Debug only, exclude GrappleGun, M224Mortar, LadiesPepperbox, M6Survival, MF_LongShot, PotatoGun, SustenanceCrossbow, and 19 MP5/SP5 variants from Runtime 02/04 and 05. Keep tracked Vanilla unchanged. | `Production_profile_rules_keep_requested_runtime_and_global_exclusions` |
+| Unsafe test candidate | Debug-only Runtime 05 never bypasses firearm/feed safety gates. | `Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates` |
+| Airgun | Its direct pellet cartridge is catalog-proven, so it stays eligible for Debug-only Runtime 05. | `Offline_generator_emits_a_metadata_only_runtime_05_scope_audit` |
+| Confirmed Runtime 05 firearm | Remove it from `compatibilityProbeFirearms`; retain normal shared Vanilla eligibility. Never add a firearm-specific allowlist or second generator path. | `Offline_generator_emits_a_metadata_only_runtime_05_scope_audit` |
+| Runtime 05 candidate-list change | Fingerprint only Debug Runtime 05 candidate rules so installed probe replaces without rebuilding unchanged Vanilla/Modded pools. | `Runtime_pool_persistence_fingerprint_is_stable_and_changes_with_runtime_metadata` |
 | Firearm without catalog proof or verified feed | Skip it; never guess magazine, round, or arrow from name/model. This covers malformed `CompoundBow`, MCX rail objects, and incomplete G28 variants. Sole feedless exception: `GravitonBeamer`. | `Runtime_profile_builder_skips_unproven_modded_cartridge_guesses_and_bad_feedless_objects` |
 | Mod firearm or feed has incomplete catalog metadata | Skip it; profile capture must not materialize prefabs to repair it. Actual spawn failures also skip and advance safely. | `Runtime_catalog_capture_never_materializes_the_prefab_registry`; `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
 | Firearm lacking GunGame round-display data | Skip it. | `Runtime_profile_builder_skips_firearms_without_gungame_round_display_data` |
-| G28-style magazine-fed firearm is skipped because optional identity tags are absent | Accept direct/exact catalog feed proof, keep its magazine, then use only exact mount-compatible scope. | `Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes` |
+| G28-style magazine-fed firearm is skipped because optional identity tags are absent | Accept direct/exact catalog feed proof, keep its magazine, then use exact mount route or safe Modded fallback. | `Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes` |
 | Mod firearm receives loose cartridge from `RoundType` alone | Skip it unless it declares direct cartridge compatibility. | `Runtime_profile_builder_skips_unproven_modded_cartridge_guesses_and_bad_feedless_objects` |
 | Same-caliber but unrelated speedloader | Never infer a speedloader from `RoundType`. | `Runtime_profile_builder_does_not_infer_a_speedloader_from_round_type` |
 | Tube, internal, or break-action shotgun receives P6-12/Jackhammer-style rotary feed | Use a verified shell; never a generic magazine or rotary loader. | `Runtime_profile_builder_uses_shells_for_non_box_shotguns_in_both_profile_families` |
 | Real revolver shotgun loses its direct loader | Retain only its explicitly compatible speedloader. | `Runtime_profile_builder_keeps_a_revolver_shotguns_direct_speedloader` |
 | Box-fed shotgun has no verified box loader | Skip it; do not fall back to shells or generic loaders. | `Runtime_profile_builder_skips_a_box_fed_shotgun_without_a_compatible_loader` |
-| Missing ID, wrong ID category, or spawn exception | Skip and promote; no crash or stuck progression. | `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
+| Missing ID, wrong ID category, pre-buffer error, or spawn iterator exception | Clear it, log gun/feed/optic IDs, skip, then promote next frame; no crash or stuck progression. | `GunGame_spawn_safety_skips_unavailable_or_mismatched_objects_without_leaking_exceptions` |
 | Verified RMR or Picatinny sight mount receives no optic | Use a verified compatible reflex or scope when one exists. | `Runtime_profile_builder_selects_only_exact_mount_verified_optics` |
 | Proprietary mount is replaced by a generic Picatinny optic | Direct/proprietary verified scope wins. | `Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny` |
 | Russian side rail receives a generic/pistol optic | Use its compatible Russian scope. | `Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts` |
-| CQC, rifle, and sniper receive indiscriminate optic power | Rank verified compatible optics by firearm role. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| CQC, rifle, and sniper receive indiscriminate optic power | Modded profiles permit vanilla red-dot/low-power/LPVO choices only; sniper scopes are excluded. | `Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role` |
+| One valid scope dominates equal-rank compatible choices | Balance only equal-rank compatible candidates within each generated family; preserve direct/proprietary/mount/role priority. | `Runtime_profile_builder_balances_equal_rank_compatible_optics` |
 | M4-style Picatinny-only rifle carbine receives a reflex sight | Prefer a compatible variable scope; retain reflex priority for pistol-caliber carbines. | `Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines` |
-| Scope is assigned to muzzle, stock, grip, or a generic side mount | Emit no optic for a non-sighting mount. | `Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts` |
-| Firearm has no verified sight-capable mount but receives an optic | Emit no optic; do not guess a mount. | `Runtime_profile_builder_ignores_unrecognized_non_optic_mounts` |
-| Magnifier is treated as a scope | Exclude it from optic candidates. | `Optic_classifier_excludes_magnifier_object_ids_case_insensitively` |
+| Modded magnified scope is offered as a universal fallback | Never select it. Exact Modded reflex/RMR remains valid; magnified fallback comes from curated vanilla low-power/LPVO IDs. | `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Otherwise-valid Modded firearm has no direct/proprietary/exact-mount optic | Handgun gets vanilla RMR reflex. CQC gets vanilla Picatinny reflex/low-power. Rifle/carbine/unknown gets vanilla LPVO/low-power/reflex. | `Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists`; `Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms`; `Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms` |
+| Catalog omits physical mount tags | Capture and runtime remain prefab-free. Use only direct/declared adapter metadata or normal fallback; never instantiate a repair adapter/optic. | `Runtime_catalog_capture_never_materializes_the_prefab_registry`; `GunGame_spawn_safety_wraps_the_single_upstream_spawn_boundary` |
+| MP5 exposes only a declared compatible adapter | Read adapter `PhysicalMountTypes`; select its exact vanilla mount-matched scope without loading any prefab. | `Runtime_profile_builder_uses_a_declared_mp5_adapter_mount_without_prefab_materialization` |
+| Russian mount has no Modded scope | Use vanilla PSO-1 `MagnifierPSO1`; normalize only this legacy ID to `Scope`, and exclude every other magnifier. `Scope_M76` is secondary fallback. | `Runtime_profile_builder_uses_the_default_pso1_scope_when_no_modded_scope_is_available`; `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
+| Compatibility test candidate | Debug-only Runtime 05 uses same feed and safe Modded optic resolver; global/runtime exclusions remain absent and no candidate bypasses proof. | `Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback`; `Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates` |
+| Generic magnifier is treated as a scope | Exclude it; only legacy `MagnifierPSO1` normalizes to H3VR's real PSO-1 scope. | `Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope` |
 | Vanilla and Modded pool rules diverge | Use the same feed and optic resolver. | `Runtime_profile_builder_applies_one_magazine_first_policy_to_vanilla_and_modded_profiles`; `Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles` |
 | Mods are still loading or loader state unavailable | Vanilla remains usable; each request captures current catalog once, generates in background, and keeps larger saved pair. Further rescans start one, five, and ten real-time minutes after plugin start. | `Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness`; `Runtime_keeps_vanilla_profiles_playable_while_modded_profiles_refresh_off_selector_path`; `Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans` |
+| New generation-policy version has fewer safe Modded firearms | Keep saved pair through immediate/one-/five-minute scans. Ten-minute callback may replace once only with a complete nonempty pair. | `Runtime_modded_profiles_defer_smaller_policy_replacement_until_the_ten_minute_window` |
+| Modded-only fast path drops Rot enemy | Use stable shared builder for Runtime 02/04; it always resolves the Rot enemy before creating Runtime 02. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread`; `Runtime_profile_families_partition_vanilla_and_modded_outputs` |
+| Runtime scan regresses into a hot loop or prefab work | Retry selector-event reflection at most every ten seconds until subscribed; one post-capture metadata merge is allowed; keep resolver/write on below-normal worker; no registry scan in `Update`/`FixedUpdate`. | `Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread` |
+| Debug Runtime 05 emits a scope-less firearm | Both tracked Vanilla pools and every generated local Runtime 05 candidate must have nonempty `Extra`. | `Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm` |
+| Release package includes Runtime 05 | Reject it. Release builds never generate or restore the probe. | `GunGame_runtime_05_is_debug_only_and_release_packages_reject_it`; `GunGame_release_exporter_disables_runtime_05_and_debug_exporter_compiles` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
 | H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_keep_the_last_complete_set_until_a_complete_replacement_is_ready` |
 
@@ -196,4 +282,7 @@ When changing this algorithm:
 6. Run the Windows pipeline: `Verify`, `Test`, `Build`, `Package`.
 7. Audit generated pools for invalid IDs and feed-category mismatches before deployment.
 
-The policy version is included in the persistence fingerprint. A rule change therefore regenerates existing runtime pools instead of preserving old compatibility decisions.
+The policy version is recorded in the persistence receipt and fingerprint. A
+complete candidate from a newer version replaces existing Modded pools once,
+even when a safety rule makes it smaller, only after the startup ten-minute
+gate opens; partial/empty candidates still cannot replace a usable pair.

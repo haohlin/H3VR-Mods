@@ -1,7 +1,7 @@
 {
     "name": "GunGame_Progressions",
     "author": "HLin_Mods",
-    "version_number": "1.4.0",
+    "version_number": "1.4.1",
     "dependencies": ["Kodeman-GunGame-1.0.0"
     ],
     "description": "*** Modded profiles generate in background; depends on mod count. Reload GunGame to show them. *** GunGame, supercharged: 661 vanilla firearms with scopes, plus modded guns and custom Sosigs.",

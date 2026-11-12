@@ -1,6 +1,6 @@
 # The Ping
 
-REALISTIC VOLUME CURVE! Receive sound feedback out to 2500m. Now go ring some steel across the map!
+REALISTIC VOLUME CURVE! Receive sound feedback out to 4500m. Now go ring some steel across the map!
 
 ## Recommend
 [Teleport](https://h3vr.thunderstore.io/package/HLin_Mods/Teleport/), which saves you from spamming the teleport key when setting up targets.

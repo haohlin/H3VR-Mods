@@ -41,7 +41,36 @@ export H3VR_WINDOWS_HOST='<private-ssh-host-or-alias>'
 export H3VR_WINDOWS_REPOSITORY='<private-windows-checkout-path>'
 ```
 
+### Required private-config resolver
+
+On macOS, do not depend on an interactive shell profile or rediscover a
+machine. From an H3VR-Mods checkout, use short global command
+`h3vr-remote run <Action> [Mod]`; it delegates to
+`tools/h3vr-remote.sh <Action> [arguments]`. It reads only the user-owned,
+mode-`600` private file
+`${XDG_CONFIG_HOME:-~/.config}/h3vr-mods/remote.env` (or
+`H3VR_PRIVATE_CONFIG`) for `H3VR_WINDOWS_HOST` and
+`H3VR_WINDOWS_REPOSITORY`. Bootstrap it from the tracked
+`tools/h3vr-remote.env.example`; never copy real values into the repository.
+
+On Windows, keep game, r2modman, Unity, and source-cache values in the
+ignored `build/environment.local.json`. The wrapper must fail with a missing
+variable/configuration name when either private layer is absent; do not scan
+for an alternate host or checkout and do not print private values.
+
+Use `h3vr-remote status` for remote Git inspection and
+`h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+Use `h3vr-remote git <arguments>` only for scoped remote Git work. Do not use
+raw SSH in normal H3VR workflow.
+
 Do not treat a macOS build as an H3VR compatibility check.
+
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
 
 ## Cross-session mod state
 
@@ -136,7 +165,11 @@ Register Harmony targets in `build/mods.json` so `Verify` catches API drift.
 
 ## Implement and Test
 
-1. Keep changes narrow; add focused tests for changed shared behavior.
+1. Keep changes narrow. Prefer extending one shared policy/resolver/framework
+   over new per-item branches, duplicate generators, or large rewrites. Add a
+   focused positive and negative test for changed shared behavior. Keep new
+   runtime work bounded: no hot polling, prefab materialization, or repeated
+   allocation on the play path unless the live API requires it.
 2. Run the repository suite on Windows:
 
    ```bash

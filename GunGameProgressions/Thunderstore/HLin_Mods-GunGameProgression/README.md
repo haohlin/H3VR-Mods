@@ -12,7 +12,7 @@ GunGame Progressions expands GunGame with compatible gear, distinct difficulty s
 
 ## Choose a Pool
 
-The built-in vanilla selection covers **661 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
+The built-in vanilla selection covers **660 firearms** with validated compatible feeds, ready for a dependable Rot-focused game. Its versioned vanilla metadata snapshot and both fallback profiles are included in every package.
 
 ## Modded profile refresh
 
@@ -58,7 +58,7 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 
 - Guns receive usable ammunition: magazines first, then clips or speedloaders, then cartridges when needed.
 - An internally fed shotgun receives its compatible shells. A true box-mag shotgun receives its compatible magazine; the generator does not treat every shotgun as shell-fed.
-- Optics appear only when they fit the firearm's own mounting point.
+- Direct/proprietary/exact mount optics win. Modded fallback uses vanilla RMR/red-dot/low-power/LPVO optics, never a Modded magnified scope; it mounts only on a real compatible rail.
 - Reflex sights and scopes can appear; magnifiers and unrelated attachments are left out.
 - Every run can offer a different compatible choice, keeping familiar weapons from feeling identical.
 

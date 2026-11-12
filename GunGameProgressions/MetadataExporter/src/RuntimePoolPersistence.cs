@@ -12,16 +12,36 @@ public static class RuntimePoolPersistence
 {
     // Bump when a generation rule changes so persisted runtime pools cannot
     // retain an obsolete compatibility decision after a plugin update.
-    private const string GenerationPolicyVersion = "13";
+    public const string CurrentGenerationPolicyVersion = "21";
     private const int ExpectedModdedPoolCount = 2;
 
     public static string CreateFingerprint(
         IEnumerable<RuntimeMetadataEntry> entries,
         IEnumerable<RuntimeEnemyEntry> enemies)
     {
+        return CreateFingerprint(entries, enemies, Enumerable.Empty<string>());
+    }
+
+    // Optional phase-local rules belong in the fingerprint only for the
+    // profile family they affect. This lets Runtime 05 refresh after its
+    // candidate list changes without rebuilding otherwise unchanged pools.
+    public static string CreateFingerprint(
+        IEnumerable<RuntimeMetadataEntry> entries,
+        IEnumerable<RuntimeEnemyEntry> enemies,
+        IEnumerable<string> phaseRules)
+    {
         var content = new StringBuilder();
         content.Append("generationPolicy|");
-        AppendValue(content, GenerationPolicyVersion);
+        AppendValue(content, CurrentGenerationPolicyVersion);
+        foreach (var rule in (phaseRules ?? Enumerable.Empty<string>())
+                     .Where(rule => !string.IsNullOrEmpty(rule))
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(rule => rule, StringComparer.Ordinal))
+        {
+            content.Append("phaseRule|");
+            AppendValue(content, rule);
+        }
+
         foreach (var entry in (entries ?? Enumerable.Empty<RuntimeMetadataEntry>())
                      .Where(entry => entry != null)
                      .OrderBy(entry => entry.ObjectID ?? string.Empty, StringComparer.Ordinal))
@@ -90,6 +110,44 @@ public static class RuntimePoolPersistence
         bool hasPersistedPair,
         bool confirmedEmptySnapshot)
     {
+        return ShouldPromoteModdedCandidate(
+            candidatePoolCount,
+            eligibleWeaponsPerPool,
+            persistedEligibleWeaponsPerPool,
+            hasPersistedPair,
+            confirmedEmptySnapshot,
+            false);
+    }
+
+    // Count growth governs all normal scans. A complete policy upgrade may
+    // replace a smaller saved pair only after Plugin's ten-minute gate opens.
+    public static bool ShouldPromoteModdedCandidate(
+        int candidatePoolCount,
+        int eligibleWeaponsPerPool,
+        int? persistedEligibleWeaponsPerPool,
+        bool hasPersistedPair,
+        bool confirmedEmptySnapshot,
+        bool generationPolicyChanged)
+    {
+        return ShouldPromoteModdedCandidate(
+            candidatePoolCount,
+            eligibleWeaponsPerPool,
+            persistedEligibleWeaponsPerPool,
+            hasPersistedPair,
+            confirmedEmptySnapshot,
+            generationPolicyChanged,
+            false);
+    }
+
+    public static bool ShouldPromoteModdedCandidate(
+        int candidatePoolCount,
+        int eligibleWeaponsPerPool,
+        int? persistedEligibleWeaponsPerPool,
+        bool hasPersistedPair,
+        bool confirmedEmptySnapshot,
+        bool generationPolicyChanged,
+        bool policyReplacementEligible)
+    {
         if (candidatePoolCount == 0)
         {
             return hasPersistedPair && confirmedEmptySnapshot;
@@ -101,6 +159,11 @@ public static class RuntimePoolPersistence
         }
 
         if (!hasPersistedPair)
+        {
+            return true;
+        }
+
+        if (generationPolicyChanged && policyReplacementEligible)
         {
             return true;
         }
@@ -123,13 +186,23 @@ public static class RuntimePoolPersistence
 
     public static string ReadFingerprint(string receiptPath)
     {
+        return ReadReceiptString(receiptPath, "contentFingerprint");
+    }
+
+    public static string ReadGenerationPolicyVersion(string receiptPath)
+    {
+        return ReadReceiptString(receiptPath, "generationPolicyVersion");
+    }
+
+    private static string ReadReceiptString(string receiptPath, string propertyName)
+    {
         if (string.IsNullOrEmpty(receiptPath) || !File.Exists(receiptPath))
         {
             return null;
         }
 
         var receipt = File.ReadAllText(receiptPath);
-        const string marker = "\"contentFingerprint\"";
+        var marker = "\"" + propertyName + "\"";
         var markerIndex = receipt.IndexOf(marker, StringComparison.Ordinal);
         if (markerIndex < 0)
         {

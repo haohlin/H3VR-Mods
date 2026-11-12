@@ -23,9 +23,32 @@ For explicit paths, copy `build/environment.local.example.json` to the ignored
 `build/environment.local.json` and fill it in privately. `tools/h3vr.ps1`
 prefers that file and otherwise expands the environment variables.
 
+On macOS, invoke Windows pipeline actions from an H3VR-Mods checkout through
+`h3vr-remote run <Action> [Mod]`; it delegates to
+`tools/h3vr-remote.sh <Action> [arguments]`, never an assumed interactive
+shell variable. It loads the user-only, mode-`600`
+`${XDG_CONFIG_HOME:-~/.config}/h3vr-mods/remote.env` (or
+`H3VR_PRIVATE_CONFIG`) containing `H3VR_WINDOWS_HOST` and
+`H3VR_WINDOWS_REPOSITORY`. Bootstrap from
+`tools/h3vr-remote.env.example`; only variable names are tracked. If either
+private configuration layer is absent, report its missing key and stop. Never
+scan, print, commit, package, or publish local paths, hostnames, account IDs,
+or credentials.
+
+Use `h3vr-remote status` for remote Git inspection and
+`h3vr-remote sync <branch>` for guarded fetch/fast-forward synchronization.
+Use `h3vr-remote git <arguments>` only for scoped remote Git work.
+
 Windows is the source of truth. Do not create an authoritative checkout or store Steam, r2modman, or Thunderstore secrets on macOS. A temporary macOS scratch directory is acceptable only for review or SHA-verified remote transfer.
 
 The managed DLLs are always the current game API. Decompiled source is a disposable, read-only cache: refresh it only when `SourceStatus` reports that it no longer matches the live DLLs, normally after an H3VR update. Never edit, commit, or treat the cache as authoritative.
+
+## Parallel agents
+
+- One branch + macOS worktree per agent. Commit/push only that branch.
+- Integration agent merges/rebases reviewed branches into target.
+- Windows: one worktree per branch, or one locked executor. Never switch an owned checkout.
+- Before/after each Windows `sync` or pipeline action: verify clean status, branch, and HEAD. Mismatch: stop.
 
 ## Cross-session mod state
 
@@ -58,12 +81,31 @@ never rebuild, version-bump, deploy, or publish solely for a handoff-doc change.
 
 ## Unity Reference — Only When Needed
 
+### Restricted scope-support reference
+
+If a locally configured, access-controlled scope-support repository exists, use
+its `h3vr-supported-scope-development` skill for private PIP scopes, reflex
+sights, reticles, lasers, or thermal UI. That skill and its source material are
+restricted: never copy their archives, assets, screenshots, paths, guide text,
+or implementation details into public repositories, public documentation, or
+Thunderstore payloads. Keep any private experiment separate from release source.
+For private Unity-base scope delivery, a built ZIP or loaded plugin is only a
+candidate. Follow that private skill's build-root, exact-install, log, and
+human Item Spawner proof gates before calling an item registered or working.
+
 Consult `references/h3vr-modding-wiki-map.md`, its pinned wiki snapshot, and
 `references/unity-content-source-roots.md` **only** when a task creates or
 changes Unity content: a scene, `GameObject`, prefab, component, `MonoBehaviour`,
 material, mesh, texture, audio, shader, ID, or AssetBundle. They are reference
 guidance for Unity/MeatKit, Atlas, and asset-replacement work; the current
 Windows repository, live assemblies, and wrapper remain authoritative.
+
+For private vanilla-game or mod-package asset extraction and reconstruction,
+also read `references/private-asset-rip-reconstruction.md` before running an
+extractor or importing recovered content. It defines the local-only archive,
+the boundary between recovered visuals and new behavior, and the required
+Unity/MeatKit/VR proof. AssetRipper output is an inspection input, never a
+claim that the full game can be rebuilt or distributed.
 
 For read-only Unity package research, use the lightweight manifest workflow in
 `skills/h3vr-remote-development/references/headless-unity-asset-inspection.md`.
@@ -83,6 +125,17 @@ Requested change
 └─ Prefab, scene, item, weapon, material, mesh, audio, or AssetBundle
    └─ Unity/MeatKit route — human in the loop
 ```
+
+## Design guardrail — minimal, reusable changes
+
+For every H3VR mod, prefer the smallest change that fixes the root cause and
+fits the existing architecture. Extend one shared policy, resolver, lifecycle,
+or framework before adding a second path. Do not add per-item exceptions,
+duplicate generators, speculative features, or large rewrites when metadata or
+an existing general mechanism can express the rule. Every new rule needs a
+focused positive and negative regression test plus its owning design/policy
+record. Keep runtime work bounded; no new hot polling, prefab materialization,
+or repeated allocation on the play path unless the live API requires it.
 
 ### Code/data route
 

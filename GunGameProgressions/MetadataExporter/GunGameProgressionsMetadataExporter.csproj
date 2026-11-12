@@ -2,13 +2,17 @@
   <PropertyGroup>
     <TargetFramework>net35</TargetFramework>
     <AssemblyName>GunGameProgressionsMetadataExporter</AssemblyName>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net35'">
     <TargetFrameworkRootPath>$(NuGetPackageRoot)microsoft.netframework.referenceassemblies.net35\1.0.3\build\</TargetFrameworkRootPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);GUNGAME_COMPATIBILITY_PROBE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

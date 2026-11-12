@@ -71,6 +71,7 @@ artifacts/
 /build/inspection/
 /build/tooling/
 /build/environment.local.json
+/tools/h3vr-remote.env
 
 # Owner-private AssetRipper labs. Preserve outside every Git worktree; these
 # guards prevent an accidental local copy from entering source or releases.
@@ -87,7 +88,7 @@ artifacts/
 # Local Claude configuration. The repository workflow guide is intentionally tracked.
 /.claude/*
 !/.claude/skills/
-!/.claude/skills/h3vr-mod-development.md
+!/.claude/skills/h3vr-mod-development/
 
 # Accidental copies of user and Git metadata at the repository root.
 /.bash_profile
@@ -106,6 +107,7 @@ artifacts/
 /hooks
 /objects
 /refs
+/~/
 
 # StyleCop
 StyleCopReport.xml

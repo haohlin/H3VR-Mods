@@ -12,7 +12,7 @@ The approved store wording lives in [BRANDING.md](BRANDING.md).
 | Must do | Must not do |
 | --- | --- |
 | Vanilla pools are usable as soon as the registry is ready. | Freeze startup or a GunGame map while mods load. |
-| Keep the last complete Modded pair through an H3VR restart. | Guess an ID, feed, scope, or mount from an item name. |
+| Keep the last complete Modded pair through an H3VR restart. | Guess an ID, feed, or mount from an item name. |
 | Generate Modded pools off the play path and add them when safe. | Edit individual GunGame maps or require their authors to change code. |
 | Skip a broken loadout and continue the progression. | Let a missing/wrong object crash or stall a run. |
 
@@ -23,8 +23,10 @@ H3VR registry ──> catalog capture ──> shared builder ──> Runtime 01 
       │
       └─> Modded refresh request ──> immediate catalog snapshot ──> shared builder ──> Runtime 02 + 04
                                              │                                  │
-                                             │                                  └─> atomic persisted pair
+                                             │                                  └─> atomic persisted files
                                              └─> no registry-wide prefab loading
+
+Local Debug build only ──> Compatibility Probe builder ──> Runtime 05
 
 GunGame WeaponPoolLoader event ──> restore saved Modded choices
                                 └─> request background refresh if needed
@@ -44,27 +46,36 @@ same integration; no map-specific patch is the normal design.
 | 02 | Modded Rot | Active mod firearms | Rotwieners |
 | 03 | Vanilla Mixed Enemy | Live vanilla firearms | Vanilla Sosigs |
 | 04 | Modded Mixed Enemy | Active mod firearms | Vanilla + custom Sosigs |
+| 05 | Compatibility Probe — Debug only | Configured candidates passing ordinary firearm/feed/optic safety gates | Rotwieners |
 
 The names and order are compatibility contracts. The two tracked offline
 Vanilla files are the safe packaged fallback; user-specific Modded files are
 created only at runtime and are never published in a package.
 
+Runtime 05 is an unconfirmed-worklist available only in a local Debug build.
+Release builds neither generate nor restore it, and release packaging rejects
+its pool files. After a firearm passes human VR testing, remove it from
+`compatibilityProbeFirearms`; do not add a firearm allowlist or special Vanilla
+path. The normal shared resolver already controls its Vanilla eligibility.
+
 ## Lifecycle
 
 | Moment | Required behavior |
 | --- | --- |
-| Plugin start | Start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. |
+| Plugin `Awake()` | Schedule once: start Vanilla capture, request a Modded refresh, and schedule non-blocking Modded rescans at one, five, and ten real-time minutes. `Start()` repeats only the idempotent scheduling guard. This is game-wide, not GunGame-scene-owned. |
 | Modded refresh request | Capture current catalog once, then build/write on a background worker. Never wait or poll on selector path. |
 | Loader status | Only authorizes deletion after a confirmed-empty snapshot. Never vetoes a non-empty current snapshot. |
-| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded pair once, request fresh background snapshot. |
-| New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. |
-| One, five, and ten minutes after plugin start | Request additional background rescans for late-loading content. Each complete candidate follows ordinary persistence replacement rules. |
+| GunGame selector opens or reloads | Keep Vanilla usable, restore saved Modded choices once, request fresh background snapshot. A local Debug build also restores its saved Compatibility Probe choice. |
+| New larger Modded pair | Persist it atomically for next selector load. Reloading GunGame shows it. Probe refresh is independent. |
+| One and five minutes after plugin startup | Request non-blocking rescans for late-loading content. Each complete candidate follows strict count-growth replacement. |
+| Ten minutes after plugin startup | Request another non-blocking rescan and permit one complete candidate from a newer generation-policy version to replace a saved pair even when its count is smaller. |
 | GunGame closes | Request another background refresh for late-loading mods. |
 | Registry unavailable | Stop that attempt immediately; a later selector/session/retry event starts another. |
 
-There is no Modded loading row or live-insertion path. This removes selector
-UI ownership and prevents selector reloads from retaining polling coroutines or
-cloned UI components. Reloading GunGame is the reliable player path after a
+There is no Modded loading row or live-insertion path. Selector restore clones
+at most one existing GunGame choice per already-persisted runtime pool (02, 04,
+or 05), once per selector instance. It never captures metadata, builds pools,
+or loads an asset prefab. Reloading GunGame is reliable player path after a
 fresh pair is written.
 
 ## Persistence and replacement
@@ -89,9 +100,20 @@ removes the saved Modded pair so disabled IDs cannot survive indefinitely.
 ### Replacement rule
 
 First complete non-empty pair writes immediately. Later Modded candidates
-replace a saved pair only when eligible weapon count is strictly larger. Equal,
-smaller, malformed, and unknown-count candidates retain saved pair. Only an
-explicit loader-complete empty snapshot removes stale pools.
+replace a saved pair only when eligible weapon count is strictly larger. A new
+generation-policy version keeps that rule during the immediate, one-minute, and
+five-minute scans. The ten-minute rescan permits one complete policy-version
+replacement even when it safely removes weapons. Equal, smaller, malformed, and
+unknown-count candidates otherwise retain the saved pair. Only an explicit
+loader-complete empty snapshot removes stale pools.
+
+### Golden lifecycle boundary
+
+This lifecycle is release baseline. Scope/feed/blacklist policy work may change
+only shared builder and generated profiles. It must not change startup
+scheduling, one/five/ten-minute rescans, selector restore behavior, background
+worker ownership, loader-read cadence, persistence replacement, or GunGame-close
+refresh behavior without separate lifecycle design and test change.
 
 ## Compatibility and runtime safety
 
@@ -100,7 +122,8 @@ offline Vanilla fallback. Runtime capture uses the lightweight `FVRObject`
 catalog only, then follows the shared feed and optic policy.
 
 ```text
-catalog-proven firearm + verified compatible feed + optional compatible optic
+catalog-proven firearm + verified compatible feed + exact optic route
+    or safe Modded fallback
     -> progression entry
 anything unproven / malformed
     -> skip it safely
@@ -125,8 +148,8 @@ negative coverage.
 | Game source | Read-only API/Harmony-target discovery only. |
 
 The spawn-safety overlay protects GunGame progression spawning and its weapon
-buffer. It validates generated categories and attachment compatibility before
-letting a bad loadout derail a session.
+buffer. It validates IDs/categories before spawn, wraps the buffer iterator,
+then clears and promotes past any rejected or throwing loadout on next frame.
 
 ## Observability and performance
 
@@ -138,15 +161,23 @@ letting a bad loadout derail a session.
 | `no modded pools available` | No compatible active Modded firearms were found. |
 | `modded capture complete` | One current catalog snapshot is ready for background generation. |
 | `modded scan <time>ms` | One Modded snapshot/build completed; reports wall-clock duration and catalog entry count. |
+| `compatibility probe updated` | Debug-only: Runtime 05 wrote configured compatibility candidates for manual testing. |
+| `skipping invalid GunGame loadout` | Spawn safety rejected/failed a loadout; log includes gun, feed, optic, and reason. |
 | `spawn safety unavailable` | API drift disabled the protection; investigate before release. |
 
-Capture yields after a two-millisecond frame budget. Building/writing happens
-in a background job. Each request has one status read and one catalog snapshot;
-it never waits for a global loader completion signal or polls registry. Startup
-does one immediate snapshot plus one-, five-, and ten-minute rescans. The
-event log records each completed scan's wall-clock duration for live
-measurement. Design goal is responsive game, not a fixed artificial loading
-delay.
+Capture yields after a two-millisecond frame budget. After capture, one
+deterministic merge of plain metadata restores the stable 1.4.0 shared-builder
+input route; it never materializes a prefab. The shared builder, serialization,
+and disk writes run on a below-normal background worker. A Modded refresh may
+resolve Vanilla entries for feed/optic compatibility, but persists only Runtime
+02/04. Each request has one cached loader-status read and one catalog snapshot;
+it never waits for a global loader-completion signal or polls registry. If
+GunGame's selector type arrives late, event subscription retries only every ten
+seconds and stops after success. Startup does one immediate snapshot plus one-,
+five-, and ten-minute rescans. Only the ten-minute callback opens the
+policy-version replacement gate. The event log records each completed scan's
+wall-clock duration for live measurement. Design goal is responsive game, not a
+fixed artificial loading delay.
 
 ### Prefab-materialization boundary
 
@@ -154,8 +185,13 @@ delay.
 never call `GetGameObject()` or `GetGameObjectAsync()`: either can materialize
 an Anvil/OtherLoader prefab and retain its bundle. Catalog tags and direct
 compatibility lists provide all required pool metadata. Missing or conflicting
-metadata means skip the item. GunGame alone materializes the selected loadout
-at normal gameplay spawn time; spawn-safety skips any resulting failure.
+metadata means skip the item. Modded fallback uses curated vanilla
+RMR/red-dot/low-power/LPVO optics but does not claim a missing catalog mount
+exists. GunGame alone materializes the selected loadout at normal gameplay
+spawn time. Spawn safety only attaches that already-spawned selected optic; it
+never materializes or instantiates a repair adapter or replacement optic. The
+small selector choice clone uses GunGame's existing UI prefab only after a
+saved profile is found; it is not an item/attachment/prefab load.
 
 Logging is event-based: request, capture, write, or retained candidate. Never
 emit an exception or status log in a poll loop; repeated formatting and disk
@@ -166,13 +202,24 @@ writes turn a transient loader problem into a stutter.
 | Artifact | Role |
 | --- | --- |
 | `ObjectData.json` | Versioned vanilla-only metadata snapshot. |
-| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools. |
+| `OfflineProfileGenerator` | Rebuilds/verifies the two tracked Vanilla fallback pools; `--probe-output <file>` emits a temporary metadata-only Runtime 05 audit for local maintainer review. |
 | `GENERATION_POLICY.md` | Compatibility rules and regressions. |
 | `BRANDING.md` | Canonical Thunderstore short description. |
+| `profile-rules.json` | Global blacklist for generated profiles, Runtime 02/04 curation, and Debug-only Runtime 05 candidates. |
 | Package README | Player-facing installation and use guidance. |
 
 Never package a player's captured Modded pool, private paths, credentials,
 machine details, or game assemblies.
+
+### Debug/release build boundary
+
+`h3vr.ps1` defaults `GunGameProgressions` to `-GunGameBuildConfiguration
+Release`. This builds and packages only Runtime 01/03 fallbacks plus Runtime
+02/04 runtime support. For a local compatibility investigation only, use
+`-GunGameBuildConfiguration Debug`; that compiler configuration defines
+`GUNGAME_COMPATIBILITY_PROBE`, enables Runtime 05 generation/restoration, and
+writes artifacts under a `-debug` directory. Debug packages are deployment-only
+and the publish command rejects them.
 
 ## Verification and change protocol
 
@@ -192,5 +239,5 @@ playtest report
 | --- | --- | --- |
 | P0 | Validate background Modded coordination. | No selector-owned coroutine/UI clone/live insertion; low-mod idle/reload test shows stable memory and no periodic stutter. |
 | P0 | Verify catalog-only release candidate. | Windows runtime restores golden vanilla weapons and includes catalog-proven Modded firearms without prefab materialization. |
-| P1 | Improve author metadata coverage. | Provide optional external manifest format for mods whose catalog exposes neither a feed nor sight mount. |
+| P1 | Classify Runtime 05 results. | Use spawn-safety log gun/feed/optic IDs to classify each failure. Add only confirmed broken entries to the shared global blacklist. |
 | P2 | Discover a trustworthy global mod-completion signal if one becomes available. | Replace the loader-local/quiet heuristic only with verified behavior. |

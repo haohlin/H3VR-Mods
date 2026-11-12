@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Collections;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.Json;
 using Xunit;
 
@@ -37,6 +38,12 @@ public sealed class GunGameGeneratorTests
             payload =>
                 payload.GetProperty("from").GetString() == "GunGameProgressions\\ObjectData.json" &&
                 payload.GetProperty("to").GetString() == "ObjectData.json");
+        Assert.Contains(
+            gunGame.GetProperty("payload").EnumerateArray(),
+            payload =>
+                payload.GetProperty("from").GetString() ==
+                    "GunGameProgressions\\MetadataExporter\\bin\\{configuration}\\net35\\GunGameProgressionsMetadataExporter.dll" &&
+                payload.GetProperty("to").GetString() == "GunGameProgressionsMetadataExporter.dll");
         var externalTargets = gunGame.GetProperty("externalPatchTargets").EnumerateArray().ToArray();
         Assert.Contains(
             externalTargets,
@@ -59,7 +66,10 @@ public sealed class GunGameGeneratorTests
         var changelogPath = Path.Combine(packageSource, "CHANGELOG.md");
 
         Assert.True(File.Exists(changelogPath));
-        Assert.Contains("Count mode", File.ReadAllText(readmePath), StringComparison.Ordinal);
+        var readme = File.ReadAllText(readmePath);
+        Assert.Contains("Count mode", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Runtime 05", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("Compatibility Probe", readme, StringComparison.Ordinal);
         Assert.Contains("## 1.3.3", File.ReadAllText(changelogPath), StringComparison.Ordinal);
         Assert.Contains("'CHANGELOG.md'", File.ReadAllText(H3vrScriptPath), StringComparison.Ordinal);
     }
@@ -83,11 +93,46 @@ public sealed class GunGameGeneratorTests
         _ = LoadBuiltMetadataExporter();
     }
 
+    [WindowsH3vrFact]
+    public void GunGame_release_exporter_disables_runtime_05_and_debug_exporter_compiles()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var features = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeBuildFeatures"));
+        var enabled = Assert.IsAssignableFrom<PropertyInfo>(features.GetProperty("CompatibilityProbeEnabled", BindingFlags.Public | BindingFlags.Static));
+        Assert.False((bool)enabled.GetValue(null)!);
+
+        var debugAssembly = LoadBuiltMetadataExporter("Debug");
+        var debugFeatures = Assert.IsAssignableFrom<Type>(debugAssembly.GetType("HLin.GunGameProgressions.RuntimeBuildFeatures"));
+        var debugEnabled = Assert.IsAssignableFrom<PropertyInfo>(debugFeatures.GetProperty("CompatibilityProbeEnabled", BindingFlags.Public | BindingFlags.Static));
+        Assert.True((bool)debugEnabled.GetValue(null)!);
+    }
+
     [Fact]
     public void GunGame_windows_pipeline_enables_runtime_metadata_exporter_tests()
     {
         var pipeline = File.ReadAllText(H3vrScriptPath);
         Assert.Contains("$env:H3VR_METADATA_EXPORTER_TESTS = '1'", pipeline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GunGame_runtime_05_is_debug_only_and_release_packages_reject_it()
+    {
+        var project = File.ReadAllText(MetadataExporterProjectPath);
+        Assert.Contains("Condition=\"'$(Configuration)' == 'Debug'\"", project, StringComparison.Ordinal);
+        Assert.Contains("GUNGAME_COMPATIBILITY_PROBE", project, StringComparison.Ordinal);
+
+        var source = File.ReadAllText(PluginSourcePath);
+        Assert.Contains("#if GUNGAME_COMPATIBILITY_PROBE", source, StringComparison.Ordinal);
+        Assert.Contains("private IEnumerator GenerateCompatibilityProbe(", source, StringComparison.Ordinal);
+        Assert.Contains("RuntimeBuildFeatures.CompatibilityProbeEnabled", source, StringComparison.Ordinal);
+
+        var pipeline = File.ReadAllText(H3vrScriptPath);
+        Assert.Contains("[string]$GunGameBuildConfiguration = 'Release'", pipeline, StringComparison.Ordinal);
+        Assert.Contains("[ValidateSet('Release', 'Debug')]", pipeline, StringComparison.Ordinal);
+        Assert.Contains("bin\\\\{configuration}\\\\net35\\\\GunGameProgressionsMetadataExporter.dll", File.ReadAllText(ModsConfigPath), StringComparison.Ordinal);
+        Assert.Contains("function Assert-GunGameReleasePackage", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGame release package must not contain Runtime 05 pool files.", pipeline, StringComparison.Ordinal);
+        Assert.Contains("GunGame Debug packages are local-only and cannot be published.", pipeline, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -125,16 +170,23 @@ public sealed class GunGameGeneratorTests
                     .Select(enemy => enemy.GetProperty("Value").GetInt32())
                     .ToArray());
             Assert.All(pools, pool => Assert.Equal("Advanced", pool.RootElement.GetProperty("WeaponPoolType").GetString()));
-            Assert.All(pools, pool => Assert.Equal(661, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(pools, pool => Assert.Equal(659, pool.RootElement.GetProperty("Guns").GetArrayLength()));
+            Assert.All(
+                pools,
+                pool => Assert.DoesNotContain(
+                    pool.RootElement.GetProperty("Guns").EnumerateArray(),
+                    gun => string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
             var goldenWeaponIds = pools[0].RootElement
                 .GetProperty("Guns")
                 .EnumerateArray()
                 .Select(gun => gun.GetProperty("GunName").GetString())
                 .ToArray();
-            Assert.Equal(661, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
-            Assert.DoesNotContain("Slingshot", goldenWeaponIds);
+            Assert.Equal(659, goldenWeaponIds.Distinct(StringComparer.Ordinal).Count());
             Assert.All(
-                new[] { "GravitonBeamer", "HiroEnki", "PlungerLauncher", "RailTater", "SustenanceCrossbow" },
+                new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger", "PlungerLauncher" },
+                weaponId => Assert.DoesNotContain(weaponId, goldenWeaponIds));
+            Assert.All(
+                new[] { "GravitonBeamer", "HiroEnki", "RailTater", "SustenanceCrossbow" },
                 weaponId => Assert.Contains(weaponId, goldenWeaponIds));
 
             var metadataPath = Path.Combine(profileDirectory, "ObjectData.json");
@@ -207,6 +259,61 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
+    public void Offline_generator_emits_a_metadata_only_runtime_05_scope_audit()
+    {
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        using var workspace = TestWorkspace.Create();
+        var inputPath = Path.Combine(workspace.Path, "ObjectData.json");
+        var rulesPath = Path.Combine(workspace.Path, "profile-rules.json");
+        var outputPath = Path.Combine(workspace.Path, "Runtime05.json");
+        File.Copy(Path.Combine(profileDirectory, "ObjectData.json"), inputPath);
+        File.Copy(Path.Combine(profileDirectory, "profile-rules.json"), rulesPath);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"run --project \"{OfflineProfileGeneratorProjectPath}\" -c Release -- --input \"{inputPath}\" --probe-output \"{outputPath}\"",
+            WorkingDirectory = Path.GetDirectoryName(OfflineProfileGeneratorProjectPath)!,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo);
+        Assert.NotNull(process);
+        var standardOutput = process!.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.True(
+            process.ExitCode == 0,
+            $"Runtime 05 metadata audit failed:{Environment.NewLine}{standardOutput}{standardError}");
+        using var pool = JsonDocument.Parse(File.ReadAllText(outputPath));
+        var guns = pool.RootElement.GetProperty("Guns").EnumerateArray().ToArray();
+        var gunNames = guns.Select(gun => gun.GetProperty("GunName").GetString()).ToArray();
+        using var rules = JsonDocument.Parse(File.ReadAllText(rulesPath));
+        var runtimeBlacklist = rules.RootElement
+            .GetProperty("runtimeFirearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
+        var globalBlacklist = rules.RootElement
+            .GetProperty("firearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
+        Assert.NotEmpty(guns);
+        Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(gun.GetProperty("Extra").GetString())));
+        Assert.DoesNotContain(gunNames, gunName => runtimeBlacklist.Contains(gunName));
+        Assert.DoesNotContain(gunNames, gunName => globalBlacklist.Contains(gunName));
+        Assert.Equal(
+            new[]
+            {
+                "Airgun", "Flaregun", "MF_Medical180", "Pocket1906", "Quackenbush1886",
+            },
+            gunNames);
+    }
+
+    [WindowsH3vrFact]
     public void Runtime_profile_rules_load_shared_blacklists_without_System_Web_extensions()
     {
         var assembly = LoadBuiltMetadataExporter();
@@ -214,6 +321,7 @@ public sealed class GunGameGeneratorTests
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
         var load = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static));
         var isBlacklisted = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("IsBlacklisted", BindingFlags.Public | BindingFlags.Instance));
+        var isGloballyBlacklisted = Assert.IsAssignableFrom<MethodInfo>(rulesType.GetMethod("IsGloballyBlacklisted", BindingFlags.Public | BindingFlags.Instance));
 
         using var workspace = TestWorkspace.Create();
         File.WriteAllText(
@@ -221,15 +329,55 @@ public sealed class GunGameGeneratorTests
             """
             {
               "firearmBlacklist": ["BlockedFirearm"],
-              "feedBlacklist": ["BlockedMagazine"]
+              "feedBlacklist": ["BlockedMagazine"],
+              "compatibilityProbeFirearms": ["ProbeFirearm"]
             }
             """);
 
         var rules = load.Invoke(null, new object[] { workspace.Path });
         Assert.NotNull(rules);
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
+        Assert.True((bool)isGloballyBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedFirearm", "Firearm", false) })!);
         Assert.True((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "BlockedMagazine", "Magazine", false) })!);
         Assert.False((bool)isBlacklisted.Invoke(rules, new[] { RuntimeEntry(entryType, "AllowedMagazine", "Magazine", false) })!);
+        var probeIds = Assert.IsAssignableFrom<IEnumerable>(
+            rulesType.GetProperty("CompatibilityProbeFirearms")!.GetValue(rules));
+        Assert.Equal(new[] { "ProbeFirearm" }, probeIds.Cast<string>().ToArray());
+        Assert.Null(rulesType.GetProperty("CompatibilityProbeForceIncludeFirearms"));
+    }
+
+    [Fact]
+    public void Production_profile_rules_keep_requested_runtime_and_global_exclusions()
+    {
+        var rulesPath = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(PluginSourcePath)!,
+            "..",
+            "..",
+            "profile-rules.json"));
+        using var rules = JsonDocument.Parse(File.ReadAllText(rulesPath));
+        var firearmBlacklist = rules.RootElement
+            .GetProperty("runtimeFirearmBlacklist")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
+        Assert.Equal(
+            new[]
+            {
+                "GrappleGun", "M224Mortar", "LadiesPepperbox", "M6Survival", "MF_LongShot",
+                "PotatoGun", "SustenanceCrossbow", "MP510A4", "MP540A4", "MP5A2",
+                "MP5A3", "MP5A4", "MP5K", "MP5KA2", "MP5KA3", "MP5KN", "MP5SD1", "MP5SD2",
+                "MP5SD3", "MP5SD4", "MP5SD5", "MP5SFA2", "SP5K", "SP5KA2", "SP5KA3", "SP5KFolding",
+            },
+            firearmBlacklist);
+        Assert.Equal(
+            new[] { "Slingshot", "BrownBess", "Degle", "JunkyardFlameThrower", "LaserPistol", "MF_Flamethrower", "Stinger", "PlungerLauncher" },
+            rules.RootElement
+                .GetProperty("firearmBlacklist")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+                .ToArray());
+        Assert.False(rules.RootElement.TryGetProperty("compatibilityProbeForceIncludeFirearms", out _));
+        Assert.Equal(0, rules.RootElement.GetProperty("feedBlacklist").GetArrayLength());
     }
 
     [WindowsH3vrFact]
@@ -412,7 +560,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Optic_classifier_excludes_magnifier_object_ids_case_insensitively()
+    public void Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope()
     {
         var assembly = LoadBuiltMetadataExporter();
         var classifierType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.PipScopeOpticClassifier"));
@@ -421,6 +569,7 @@ public sealed class GunGameGeneratorTests
 
         Assert.Equal("Magnifier", classify.Invoke(null, new object[] { "AlphaMagnifierBeta", true, false }));
         Assert.Equal("Magnifier", classify.Invoke(null, new object[] { "alphamagnifierbeta", true, false }));
+        Assert.Equal("Scope", classify.Invoke(null, new object[] { "MagnifierPSO1", true, false }));
 
         Assert.Equal("Scope", classify.Invoke(null, new object[] { "ScopeBR4", true, false }));
         Assert.Equal("Reflex", classify.Invoke(null, new object[] { "ReflexRMR", false, true }));
@@ -429,6 +578,7 @@ public sealed class GunGameGeneratorTests
         var classifyFromMetadata = Assert.IsAssignableFrom<MethodInfo>(classifierType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "ClassifyFromMetadata" && method.GetParameters().Length == 2));
         Assert.Equal("Magnifier", classifyFromMetadata.Invoke(null, new object[] { "AlphaMagnifierBeta", "Magnification" }));
+        Assert.Equal("Scope", classifyFromMetadata.Invoke(null, new object[] { "MagnifierPSO1", "Magnification" }));
         Assert.Equal("Reflex", classifyFromMetadata.Invoke(null, new object[] { "ReflexRMR", "Reflex" }));
         Assert.Equal("Scope", classifyFromMetadata.Invoke(null, new object[] { "ScopeBR4", "Magnification" }));
         Assert.Equal(string.Empty, classifyFromMetadata.Invoke(null, new object[] { "Attachment", "None" }));
@@ -452,7 +602,8 @@ public sealed class GunGameGeneratorTests
     {
         var assembly = LoadBuiltMetadataExporter();
         var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
-        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethod("ShouldPromoteModdedCandidate", BindingFlags.Public | BindingFlags.Static));
+        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 5));
 
         // Incomplete candidates and empty unconfirmed snapshots cannot write.
         Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 1, 24, null, false, false })!);
@@ -471,6 +622,35 @@ public sealed class GunGameGeneratorTests
         // Only an explicit completed-loader empty snapshot clears stale IDs.
         Assert.True((bool)shouldPromote.Invoke(null, new object?[] { 0, 0, 32, true, true })!);
 
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_modded_profiles_defer_smaller_policy_replacement_until_the_ten_minute_window()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var policyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
+        var shouldPromote = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 6));
+        var shouldPromoteAfterTenMinutes = Assert.IsAssignableFrom<MethodInfo>(policyType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "ShouldPromoteModdedCandidate" && method.GetParameters().Length == 7));
+
+        // A policy change alone keeps the saved pair during early rescans.
+        Assert.False((bool)shouldPromote.Invoke(null, new object?[] { 2, 24, 32, true, false, true })!);
+
+        // The scheduled ten-minute window allows one complete, safe policy
+        // replacement even when the new pair is smaller.
+        Assert.True((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 2, 24, 32, true, false, true, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 2, 24, 32, true, false, false, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 1, 24, 32, true, false, true, true })!);
+        Assert.False((bool)shouldPromoteAfterTenMinutes.Invoke(
+            null,
+            new object?[] { 0, 0, 32, true, false, true, true })!);
     }
 
     [WindowsH3vrFact]
@@ -497,7 +677,10 @@ public sealed class GunGameGeneratorTests
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
         var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
         var persistenceType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimePoolPersistence"));
-        var createFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateFingerprint", BindingFlags.Public | BindingFlags.Static));
+        var createFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "CreateFingerprint" && method.GetParameters().Length == 2));
+        var createPhaseFingerprint = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "CreateFingerprint" && method.GetParameters().Length == 3));
         var createStableSeed = Assert.IsAssignableFrom<MethodInfo>(persistenceType.GetMethod("CreateStableSeed", BindingFlags.Public | BindingFlags.Static));
         var entries = Array.CreateInstance(entryType, 1);
         entries.SetValue(RuntimeEntry(entryType, "BattleRifle", "Firearm", true, magazineType: 556, roundType: 556), 0);
@@ -506,10 +689,14 @@ public sealed class GunGameGeneratorTests
 
         var first = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
         var second = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
+        var probeFirst = (string)createPhaseFingerprint.Invoke(null, new object[] { entries, enemies, new[] { "Airgun" } })!;
+        var probeChanged = (string)createPhaseFingerprint.Invoke(null, new object[] { entries, enemies, new[] { "Airgun", "Flaregun" } })!;
         SetRuntimeProperty(entryType, entries.GetValue(0)!, "CompatibleMagazines", new List<string> { "ARMagazine" });
         var changed = (string)createFingerprint.Invoke(null, new object[] { entries, enemies })!;
 
         Assert.Equal(first, second);
+        Assert.NotEqual(first, probeFirst);
+        Assert.NotEqual(probeFirst, probeChanged);
         Assert.NotEqual(first, changed);
         Assert.Equal(
             (int)createStableSeed.Invoke(null, new object[] { changed })!,
@@ -541,16 +728,21 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("SpawnAndEquipPrefix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipPostfix", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
-        Assert.Contains("SpawnAsyncPrefix(object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPrefix(object __instance, object __1, ref IEnumerator __result)", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncPostfix", source, StringComparison.Ordinal);
+        Assert.Contains("SpawnAsyncFinalizer", source, StringComparison.Ordinal);
+        Assert.Contains("GuardSpawnAsync", source, StringComparison.Ordinal);
         Assert.Contains("TryValidateCurrentLoadout", source, StringComparison.Ordinal);
         Assert.Contains("TryMountGeneratedOptic", source, StringComparison.Ordinal);
-        Assert.Contains("TryAttachOpticThroughAdapter", source, StringComparison.Ordinal);
         Assert.Contains("IsTopSightingMount", source, StringComparison.Ordinal);
         Assert.Contains("OpticMountPolicy.IsOpticMountType", source, StringComparison.Ordinal);
         Assert.Contains("OpticMountPolicy.RequiresTopSightingOrientation", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("yield return null;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObject(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObjectAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("UnityEngine.Object.Instantiate(", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -565,6 +757,9 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("id has category", source, StringComparison.Ordinal);
         Assert.Contains("SpawnAndEquipFinalizer", source, StringComparison.Ordinal);
         Assert.Contains("QueueSkip", source, StringComparison.Ordinal);
+        Assert.Contains("QueueSkipFromWeaponBuffer", source, StringComparison.Ordinal);
+        Assert.Contains("DescribeCurrentLoadout", source, StringComparison.Ordinal);
+        Assert.Contains("buffer spawn exception ", source, StringComparison.Ordinal);
         Assert.Contains("ClearWeaponBuffer", source, StringComparison.Ordinal);
         Assert.Contains("AdvancePastInvalidWeapon", source, StringComparison.Ordinal);
         Assert.Contains("return null;", source, StringComparison.Ordinal);
@@ -606,6 +801,7 @@ public sealed class GunGameGeneratorTests
         var familyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileFamily"));
         var isVanillaFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsVanillaPoolFile", BindingFlags.Public | BindingFlags.Static));
         var isModdedFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsModdedPoolFile", BindingFlags.Public | BindingFlags.Static));
+        var isProbeFile = Assert.IsAssignableFrom<MethodInfo>(familyType.GetMethod("IsCompatibilityProbePoolFile", BindingFlags.Public | BindingFlags.Static));
 
         Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
         Assert.True((bool)isVanillaFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_03_Vanilla_Mixed_Enemy_RW_Rot.json" })!);
@@ -615,6 +811,8 @@ public sealed class GunGameGeneratorTests
         Assert.True((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_04_Modded_Mixed_Enemy_CustomSosig.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_01_Vanilla_Rot_RW_Rot.json" })!);
         Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Unknown_RW_Rot.json" })!);
+        Assert.True((bool)isProbeFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Compatibility_Probe_RW_Rot.json" })!);
+        Assert.False((bool)isModdedFile.Invoke(null, new object[] { "GunGameWeaponPool_Runtime_05_Compatibility_Probe_RW_Rot.json" })!);
     }
 
     [WindowsH3vrFact]
@@ -684,14 +882,24 @@ public sealed class GunGameGeneratorTests
     public void Runtime_warms_modded_profiles_before_the_GunGame_selector_opens()
     {
         var source = File.ReadAllText(PluginSourcePath);
+        var awakeMethod = source.IndexOf("private void Awake()", StringComparison.Ordinal);
         var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var warmupMethod = source.IndexOf("private void ScheduleStartupProfileWarmup()", StringComparison.Ordinal);
         var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
 
-        Assert.True(startMethod >= 0);
-        Assert.True(destroyMethod > startMethod);
-        var startBody = source[startMethod..destroyMethod];
-        Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", startBody, StringComparison.Ordinal);
-        Assert.Contains("RequestModdedRefresh();", startBody, StringComparison.Ordinal);
+        Assert.True(awakeMethod >= 0 && startMethod > awakeMethod);
+        Assert.True(warmupMethod > startMethod && destroyMethod > warmupMethod);
+        var awakeBody = source.Substring(awakeMethod, startMethod - awakeMethod);
+        var startBody = source.Substring(startMethod, warmupMethod - startMethod);
+        var warmupBody = source.Substring(warmupMethod, destroyMethod - warmupMethod);
+        Assert.Contains("ScheduleStartupProfileWarmup();", awakeBody, StringComparison.Ordinal);
+        Assert.Contains("ScheduleStartupProfileWarmup();", startBody, StringComparison.Ordinal);
+        Assert.Contains("if (startupWarmupScheduled)", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("startupWarmupScheduled = true;", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(GenerateVanillaPoolsAtStartup());", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("RequestModdedRefresh();", warmupBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("WeaponPoolLoader", warmupBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("FindGunGamePoolLoader", warmupBody, StringComparison.Ordinal);
         Assert.DoesNotContain("StartCoroutine(GenerateModdedPoolsAtStartup());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("private IEnumerator GenerateModdedPoolsAtStartup()", source, StringComparison.Ordinal);
     }
@@ -700,19 +908,22 @@ public sealed class GunGameGeneratorTests
     public void Runtime_schedules_nonblocking_one_five_and_ten_minute_startup_modded_rescans()
     {
         var source = File.ReadAllText(PluginSourcePath);
-        var startMethod = source.IndexOf("private void Start()", StringComparison.Ordinal);
+        var warmupMethod = source.IndexOf("private void ScheduleStartupProfileWarmup()", StringComparison.Ordinal);
         var destroyMethod = source.IndexOf("private void OnDestroy()", StringComparison.Ordinal);
 
-        Assert.True(startMethod >= 0 && destroyMethod > startMethod);
-        var startBody = source.Substring(startMethod, destroyMethod - startMethod);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
-        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested.\"));", startBody, StringComparison.Ordinal);
-        Assert.Contains("private IEnumerator RequestStartupModdedRescan(float delaySeconds, string traceMessage)", source, StringComparison.Ordinal);
+        Assert.True(warmupMethod >= 0 && destroyMethod > warmupMethod);
+        var warmupBody = source.Substring(warmupMethod, destroyMethod - warmupMethod);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(60f, \"startup 1-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(300f, \"startup 5-minute rescan requested.\", false));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("StartCoroutine(RequestStartupModdedRescan(600f, \"startup 10-minute rescan requested; policy replacement eligible.\", true));", warmupBody, StringComparison.Ordinal);
+        Assert.Contains("private IEnumerator RequestStartupModdedRescan(", source, StringComparison.Ordinal);
+        Assert.Contains("bool enablePolicyReplacement)", source, StringComparison.Ordinal);
         Assert.Contains("new WaitForSecondsRealtime(delaySeconds)", source, StringComparison.Ordinal);
+        Assert.Contains("policyReplacementEligible = true;", source, StringComparison.Ordinal);
+        Assert.Contains("var allowPolicyReplacement = policyReplacementEligible;", source, StringComparison.Ordinal);
         Assert.Contains("startup 1-minute rescan requested.", source, StringComparison.Ordinal);
         Assert.Contains("startup 5-minute rescan requested.", source, StringComparison.Ordinal);
-        Assert.Contains("startup 10-minute rescan requested.", source, StringComparison.Ordinal);
+        Assert.Contains("startup 10-minute rescan requested; policy replacement eligible.", source, StringComparison.Ordinal);
     }
 
     [WindowsH3vrFact]
@@ -720,11 +931,39 @@ public sealed class GunGameGeneratorTests
     {
         var source = File.ReadAllText(PluginSourcePath);
 
-        Assert.Contains("var externalLoadState = new OtherLoaderStatusProbe().Read(Logger.LogDebug);", source, StringComparison.Ordinal);
+        Assert.Contains("private readonly OtherLoaderStatusProbe otherLoaderStatusProbe = new OtherLoaderStatusProbe();", source, StringComparison.Ordinal);
+        Assert.Contains("var externalLoadState = otherLoaderStatusProbe.Read(Logger.LogDebug);", source, StringComparison.Ordinal);
         Assert.Contains("Trace(\"modded capture started.\");", source, StringComparison.Ordinal);
         Assert.Contains("externalLoadState == ExternalContentLoadState.Complete", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ModdedRefreshAttemptSeconds", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ModdedProfileReadinessGate", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Runtime_modded_refresh_keeps_heavy_work_off_the_unity_thread()
+    {
+        var pluginSource = File.ReadAllText(PluginSourcePath);
+        var builderPath = Path.Combine(Path.GetDirectoryName(PluginSourcePath)!, "RuntimeProfileBuilder.cs");
+        var builderSource = File.ReadAllText(builderPath);
+        var candidateStart = pluginSource.IndexOf("private IEnumerator GenerateModdedPoolCandidate(", StringComparison.Ordinal);
+        var candidateEnd = pluginSource.IndexOf("private static string RuntimePoolDisplayName", StringComparison.Ordinal);
+
+        Assert.True(candidateStart >= 0 && candidateEnd > candidateStart);
+        var candidateBody = pluginSource.Substring(candidateStart, candidateEnd - candidateStart);
+        Assert.Contains("new RuntimeGenerationJob(", candidateBody, StringComparison.Ordinal);
+        Assert.Contains("var combinedMetadata = MergeRuntimeMetadata(", candidateBody, StringComparison.Ordinal);
+        Assert.Contains("private static List<RuntimeMetadataEntry> MergeRuntimeMetadata(", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("ThreadPriority.BelowNormal", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("private const float SelectorSubscriptionRetrySeconds = 10f;", pluginSource, StringComparison.Ordinal);
+        Assert.Contains("new WaitForSecondsRealtime(SelectorSubscriptionRetrySeconds)", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WaitForSeconds(0.5f)", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private void Update()", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private void FixedUpdate()", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObject(", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetGameObjectAsync", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuildModdedWithDiagnostics", builderSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("includeVanillaWeapons", builderSource, StringComparison.Ordinal);
+        Assert.Contains("RuntimeProfileBuilder.BuildWithDiagnostics(", pluginSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -738,7 +977,7 @@ public sealed class GunGameGeneratorTests
         Assert.Contains("RemoveEventHandler", source, StringComparison.Ordinal);
         Assert.Contains("GunGame.Scripts.Weapons.WeaponPoolLoader", source, StringComparison.Ordinal);
         Assert.Contains("GameManagerOnDestroyPostfix", source, StringComparison.Ordinal);
-        Assert.Contains("RestorePersistedModdedProfilesForSelector", source, StringComparison.Ordinal);
+        Assert.Contains("RestorePersistedRuntimeProfilesForSelector", source, StringComparison.Ordinal);
         Assert.Contains("RequestModdedRefresh", source, StringComparison.Ordinal);
         Assert.Contains("RefreshModdedPoolsInBackground", source, StringComparison.Ordinal);
         Assert.Contains("OtherLoaderStatusProbe", source, StringComparison.Ordinal);
@@ -768,6 +1007,7 @@ public sealed class GunGameGeneratorTests
         var probeSource = File.ReadAllText(probePath);
         Assert.DoesNotContain("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", pluginSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Could not read OtherLoader load status", pluginSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("new OtherLoaderStatusProbe().Read", pluginSource, StringComparison.Ordinal);
         Assert.Contains("private bool initialized", probeSource, StringComparison.Ordinal);
         Assert.Contains("private bool failureLogged", probeSource, StringComparison.Ordinal);
         Assert.Contains("AccessTools.TypeByName(\"OtherLoader.LoaderStatus\")", probeSource, StringComparison.Ordinal);
@@ -885,11 +1125,12 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, magnifier, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(magnifier, 5);
 
-        var scope = RuntimeEntry(entryType, "Y_PicatinnyScope", "Attachment", true);
+        var scope = RuntimeEntry(entryType, "Y_PicatinnyScope", "Attachment", false);
         SetRuntimeProperty(entryType, scope, "AttachmentMount", "Picatinny");
         SetRuntimeProperty(entryType, scope, "AttachmentFeature", "Magnification");
         SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, scope, "OpticMaxMagnification", 4f);
         entries.SetValue(scope, 6);
 
         var reflex = RuntimeEntry(entryType, "Z_RmrReflex", "Attachment", true);
@@ -936,8 +1177,8 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(revolver, 0);
         entries.SetValue(RuntimeEntry(entryType, "RevolverSpeedloader", "Magazine", true, magazineType: 9), 1);
 
-        var scope = RuntimeEntry(entryType, "PicatinnyScope", "Attachment", true);
-        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        var scope = RuntimeEntry(entryType, "ReflexCom4", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Reflex");
         SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(scope, 2);
 
@@ -948,7 +1189,7 @@ public sealed class GunGameGeneratorTests
             .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy");
         var gun = ReadObjects(modded, "Guns").Single();
 
-        Assert.Equal("PicatinnyScope", ReadString(gun, "Extra"));
+        Assert.Equal("ReflexCom4", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
@@ -1041,9 +1282,48 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
 
-        Assert.Equal("PicatinnyHighScope", ReadString(guns["Sniper"], "Extra"));
+        Assert.Equal("PicatinnyVariableScope", ReadString(guns["Sniper"], "Extra"));
         Assert.Equal("PicatinnyReflex", ReadString(guns["Smg"], "Extra"));
         Assert.Equal("PicatinnyVariableScope", ReadString(guns["Rifle"], "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_balances_equal_rank_compatible_optics()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        for (var index = 0; index < 6; index++)
+        {
+            var firearm = RuntimeEntry(entryType, "BalancedCarbine" + index, "Firearm", true, magazineType: 1);
+            SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "BalancedMagazine" });
+            SetRuntimeProperty(entryType, firearm, "FirearmSize", "Carbine");
+            SetRuntimeProperty(entryType, firearm, "FirearmRoundPower", "Intermediate");
+            SetRuntimeProperty(entryType, firearm, "FirearmAction", "Automatic");
+            SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "Picatinny" });
+            entries.SetValue(firearm, index);
+        }
+
+        entries.SetValue(RuntimeEntry(entryType, "BalancedMagazine", "Magazine", false, magazineType: 1), 6);
+        entries.SetValue(Optic(entryType, "ScopeLion2-5x", "Scope", 1f, 5f, true), 7);
+        entries.SetValue(Optic(entryType, "ScopeST6T16x24mmBlack", "Scope", 1f, 6f, true), 8);
+        entries.SetValue(Optic(entryType, "ScopeVRZ_1_6x24mm", "Scope", 1f, 6f, true), 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var useCounts = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .GroupBy(gun => ReadString(gun, "Extra"), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+
+        Assert.Equal(3, useCounts.Count);
+        Assert.All(useCounts.Values, count => Assert.Equal(2, count));
     }
 
     [WindowsH3vrFact]
@@ -1214,7 +1494,110 @@ public sealed class GunGameGeneratorTests
     }
 
     [WindowsH3vrFact]
-    public void Runtime_profile_builder_ignores_unrecognized_non_optic_mounts()
+    public void Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var probeGun = RuntimeEntry(entryType, "LegacyProbeGun", "Firearm", false, magazineType: 27);
+        SetRuntimeProperty(entryType, probeGun, "PhysicalMountTypes", new List<string> { "Muzzle" });
+        entries.SetValue(probeGun, 0);
+        entries.SetValue(RuntimeEntry(entryType, "LegacyProbeMagazine", "Magazine", false, magazineType: 27), 1);
+
+        var picatinnyScope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
+        SetRuntimeProperty(entryType, picatinnyScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(picatinnyScope, 2);
+
+        var slingshot = RuntimeEntry(entryType, "Slingshot", "Firearm", false, magazineType: 27);
+        entries.SetValue(slingshot, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var result = buildProbe.Invoke(
+            null,
+            new object[] { entries, enemies, new[] { "LegacyProbeGun", "Slingshot" }, new SequenceRandom(0d) });
+        var pools = ReadObjects(result!, "Pools");
+
+        var pool = Assert.Single(pools);
+        Assert.Equal("Runtime 05 - Compatibility Probe", ReadString(pool, "Name"));
+        var gun = Assert.Single(ReadObjects(pool, "Guns"));
+        Assert.Equal("LegacyProbeGun", ReadString(gun, "GunName"));
+        Assert.Equal("LegacyProbeMagazine", ReadString(gun, "MagName"));
+        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_compatibility_probe_never_bypasses_ordinary_safety_gates()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
+        var entries = Array.CreateInstance(entryType, 3);
+        var unsafeProbe = RuntimeEntry(entryType, "UnsafeProbe", "Firearm", false);
+        SetRuntimeProperty(entryType, unsafeProbe, "CompatibleMagazines", new List<string> { "UnsafeProbeMagazine" });
+        SetRuntimeProperty(entryType, unsafeProbe, "IsGunGameRoundDisplaySupported", false);
+        SetRuntimeProperty(entryType, unsafeProbe, "IsVerifiedFirearmPrefab", false);
+        entries.SetValue(unsafeProbe, 0);
+        entries.SetValue(RuntimeEntry(entryType, "UnsafeProbeMagazine", "Magazine", false, magazineType: 1), 1);
+        var scope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        entries.SetValue(scope, 2);
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var result = buildProbe.Invoke(
+            null,
+            new object[] { entries, enemies, new[] { "UnsafeProbe" }, new SequenceRandom(0d) });
+        Assert.Empty(ReadObjects(result!, "Pools"));
+    }
+
+    [WindowsH3vrFact]
+    public void Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var buildProbe = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "BuildCompatibilityProbe" && method.GetParameters().Length == 4));
+        var profileDirectory = Path.GetDirectoryName(GeneratorPath)!;
+        var metadataType = typeof(List<>).MakeGenericType(entryType);
+        var entries = JsonSerializer.Deserialize(
+            File.ReadAllText(Path.Combine(profileDirectory, "ObjectData.json")),
+            metadataType);
+        Assert.NotNull(entries);
+
+        using var rules = JsonDocument.Parse(File.ReadAllText(Path.Combine(profileDirectory, "profile-rules.json")));
+        var probeIds = rules.RootElement
+            .GetProperty("compatibilityProbeFirearms")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .Where(item => !string.IsNullOrEmpty(item))
+            .Cast<string>()
+            .ToArray();
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var result = buildProbe.Invoke(null, new object[] { entries!, enemies, probeIds, new Random(0) });
+        var pools = ReadObjects(result!, "Pools");
+        var pool = Assert.Single(pools);
+        var guns = ReadObjects(pool, "Guns");
+
+        Assert.NotEmpty(guns);
+        Assert.All(guns, gun => Assert.False(string.IsNullOrEmpty(ReadString(gun, "Extra")), ReadString(gun, "GunName")));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1222,7 +1605,7 @@ public sealed class GunGameGeneratorTests
         var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
         var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
-        var entries = Array.CreateInstance(entryType, 3);
+        var entries = Array.CreateInstance(entryType, 4);
 
         var firearm = RuntimeEntry(entryType, "NonOpticMountFirearm", "Firearm", true);
         SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "Magazine" });
@@ -1235,6 +1618,12 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, invalidScope, "PhysicalMountTypes", new List<string> { "NonOpticMountA" });
         entries.SetValue(invalidScope, 2);
 
+        var fallbackScope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
+        SetRuntimeProperty(entryType, fallbackScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, fallbackScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, fallbackScope, "OpticMaxMagnification", 4f);
+        entries.SetValue(fallbackScope, 3);
+
         var enemies = Array.CreateInstance(enemyType, 1);
         enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
 
@@ -1243,11 +1632,82 @@ public sealed class GunGameGeneratorTests
             "Guns")
             .Single();
 
-        Assert.Equal(string.Empty, ReadString(gun, "Extra"));
+        Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
-    public void Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts()
+    public void Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 10);
+
+        var handgun = RuntimeEntry(entryType, "UnknownMountHandgun", "Firearm", true, magazineType: 1);
+        SetRuntimeProperty(entryType, handgun, "FirearmSize", "Pistol");
+        SetRuntimeProperty(entryType, handgun, "CompatibleMagazines", new List<string> { "HandgunMagazine" });
+        entries.SetValue(handgun, 0);
+
+        var rifle = RuntimeEntry(entryType, "UnknownMountRifle", "Firearm", true, magazineType: 2);
+        SetRuntimeProperty(entryType, rifle, "FirearmSize", "Carbine");
+        SetRuntimeProperty(entryType, rifle, "FirearmRoundPower", "Intermediate");
+        SetRuntimeProperty(entryType, rifle, "CompatibleMagazines", new List<string> { "RifleMagazine" });
+        entries.SetValue(rifle, 1);
+
+        var russianRifle = RuntimeEntry(entryType, "RussianRailModRifle", "Firearm", true, magazineType: 3);
+        SetRuntimeProperty(entryType, russianRifle, "FirearmSize", "FullSize");
+        SetRuntimeProperty(entryType, russianRifle, "PhysicalMountTypes", new List<string> { "Russian", "Picatinny" });
+        SetRuntimeProperty(entryType, russianRifle, "CompatibleMagazines", new List<string> { "RussianMagazine" });
+        entries.SetValue(russianRifle, 2);
+
+        entries.SetValue(RuntimeEntry(entryType, "HandgunMagazine", "Magazine", true, magazineType: 1), 3);
+        entries.SetValue(RuntimeEntry(entryType, "RifleMagazine", "Magazine", true, magazineType: 2), 4);
+        entries.SetValue(RuntimeEntry(entryType, "RussianMagazine", "Magazine", true, magazineType: 3), 5);
+
+        var rmr = RuntimeEntry(entryType, "ReflexRMRSlideMount", "Attachment", false);
+        SetRuntimeProperty(entryType, rmr, "OpticKind", "Reflex");
+        SetRuntimeProperty(entryType, rmr, "PhysicalMountTypes", new List<string> { "RMR" });
+        entries.SetValue(rmr, 6);
+
+        var lowVariable = RuntimeEntry(entryType, "ScopeLion2-5x", "Attachment", false);
+        SetRuntimeProperty(entryType, lowVariable, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, lowVariable, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, lowVariable, "OpticMinMagnification", 1f);
+        SetRuntimeProperty(entryType, lowVariable, "OpticMaxMagnification", 5f);
+        SetRuntimeProperty(entryType, lowVariable, "IsVariableMagnification", true);
+        entries.SetValue(lowVariable, 7);
+
+        var russianScope = RuntimeEntry(entryType, "Scope_M76", "Attachment", false);
+        SetRuntimeProperty(entryType, russianScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, russianScope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(russianScope, 8);
+
+        var moddedSniperScope = RuntimeEntry(entryType, "ModdedSniperScope", "Attachment", true);
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, moddedSniperScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticMinMagnification", 6f);
+        SetRuntimeProperty(entryType, moddedSniperScope, "OpticMaxMagnification", 24f);
+        SetRuntimeProperty(entryType, moddedSniperScope, "IsVariableMagnification", true);
+        entries.SetValue(moddedSniperScope, 9);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+        var guns = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 04 - Modded Mixed Enemy"),
+            "Guns")
+            .ToDictionary(gun => ReadString(gun, "GunName"), StringComparer.Ordinal);
+
+        Assert.Equal("ReflexRMRSlideMount", ReadString(guns["UnknownMountHandgun"], "Extra"));
+        Assert.Equal("ScopeLion2-5x", ReadString(guns["UnknownMountRifle"], "Extra"));
+        Assert.Equal("Scope_M76", ReadString(guns["RussianRailModRifle"], "Extra"));
+        Assert.DoesNotContain(guns.Values, gun => ReadString(gun, "Extra") == "ModdedSniperScope");
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms()
     {
         var assembly = LoadBuiltMetadataExporter();
         var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
@@ -1266,9 +1726,10 @@ public sealed class GunGameGeneratorTests
             entries.SetValue(firearm, index * 3);
 
             entries.SetValue(RuntimeEntry(entryType, "UnsafeMountMagazine" + index, "Magazine", true, magazineType: index + 1), index * 3 + 1);
-            var scope = RuntimeEntry(entryType, "UnsafeMountScope" + index, "Attachment", true);
+            var scope = RuntimeEntry(entryType, "ScopeAcog4x32", "Attachment", false);
             SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
-            SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { mountTypes[index] });
+            SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Picatinny" });
+            SetRuntimeProperty(entryType, scope, "OpticMaxMagnification", 4f);
             entries.SetValue(scope, index * 3 + 2);
         }
 
@@ -1279,7 +1740,7 @@ public sealed class GunGameGeneratorTests
             "Guns");
 
         Assert.Equal(mountTypes.Length, guns.Count);
-        Assert.All(guns, gun => Assert.Equal(string.Empty, ReadString(gun, "Extra")));
+        Assert.All(guns, gun => Assert.Equal("ScopeAcog4x32", ReadString(gun, "Extra")));
     }
 
     [Fact]
@@ -1302,11 +1763,16 @@ public sealed class GunGameGeneratorTests
             "Runtime_profile_builder_selects_only_exact_mount_verified_optics",
             "Runtime_profile_builder_prefers_a_proprietary_scope_mount_over_picatinny",
             "Runtime_profile_builder_prefers_a_russian_side_rail_scope_over_other_shared_mounts",
+            "Runtime_profile_builder_uses_a_declared_mp5_adapter_mount_without_prefab_materialization",
+            "Runtime_profile_builder_uses_the_default_pso1_scope_when_no_modded_scope_is_available",
             "Runtime_profile_builder_matches_verified_picatinny_optics_to_firearm_role",
+            "Runtime_profile_builder_balances_equal_rank_compatible_optics",
             "Runtime_profile_builder_assigns_variable_scope_to_picatinny_only_rifle_carbines",
-            "Runtime_profile_builder_never_assigns_optic_to_non_sighting_mounts",
-            "Runtime_profile_builder_ignores_unrecognized_non_optic_mounts",
-            "Optic_classifier_excludes_magnifier_object_ids_case_insensitively",
+            "Runtime_profile_builder_uses_picatinny_scope_fallback_when_no_verified_optic_route_exists",
+            "Runtime_profile_builder_assigns_picatinny_scope_fallback_to_otherwise_valid_firearms",
+            "Runtime_profile_builder_uses_vanilla_low_power_and_rmr_fallbacks_for_modded_firearms",
+            "Runtime_compatibility_probe_uses_verified_feed_and_global_picatinny_scope_fallback",
+            "Optic_classifier_excludes_generic_magnifier_ids_but_normalizes_pso1_scope",
             "Runtime_profile_builder_applies_one_optic_policy_to_vanilla_and_modded_profiles",
             "Runtime_profile_builder_uses_catalog_proven_modded_magazines_and_exact_mount_scopes",
             "Runtime_captures_each_modded_snapshot_without_waiting_for_loader_readiness",
@@ -1342,7 +1808,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, picatinnyScope, "PhysicalMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(picatinnyScope, 2);
 
-        var proprietaryScope = RuntimeEntry(entryType, "Z_HandleMountScope", "Attachment", true);
+        var proprietaryScope = RuntimeEntry(entryType, "Z_HandleMountScope", "Attachment", false);
         SetRuntimeProperty(entryType, proprietaryScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, proprietaryScope, "PhysicalMountTypes", new List<string> { "M16HandleMount" });
         entries.SetValue(proprietaryScope, 3);
@@ -1380,7 +1846,7 @@ public sealed class GunGameGeneratorTests
         // physical mount through the attachment component at runtime, but old
         // capture data did not retain that field, so direct game compatibility
         // must still beat the generic Picatinny fallback.
-        var pythonScope = RuntimeEntry(entryType, "ScopePython", "Attachment", true);
+        var pythonScope = RuntimeEntry(entryType, "ScopePython", "Attachment", false);
         SetRuntimeProperty(entryType, pythonScope, "AttachmentFeature", "Magnification");
         SetRuntimeProperty(entryType, pythonScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, pythonScope, "PhysicalMountTypes", new List<string>());
@@ -1428,7 +1894,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, adapter, "ProvidedMountTypes", new List<string> { "Picatinny" });
         entries.SetValue(adapter, 2);
 
-        var optic = RuntimeEntry(entryType, "PicatinnyVariableScope", "Attachment", true);
+        var optic = RuntimeEntry(entryType, "PicatinnyVariableScope", "Attachment", false);
         SetRuntimeProperty(entryType, optic, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
         SetRuntimeProperty(entryType, optic, "OpticMinMagnification", 1f);
@@ -1445,6 +1911,87 @@ public sealed class GunGameGeneratorTests
             .Single();
 
         Assert.Equal("PicatinnyVariableScope", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_uses_a_declared_mp5_adapter_mount_without_prefab_materialization()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        // MP5 entries can expose only a compatible adapter. The adapter's
+        // declared MP5RailMount still proves the matching vanilla scope;
+        // neither firearm nor adapter prefab may be read or instantiated.
+        var firearm = RuntimeEntry(entryType, "MetadataOnlyMp5", "Firearm", true, magazineType: 9);
+        SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "MP5Magazine" });
+        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "Bespoke" });
+        SetRuntimeProperty(entryType, firearm, "BespokeAttachments", new List<string> { "MP5PicatinnyAdapter" });
+        entries.SetValue(firearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "MP5Magazine", "Magazine", true, magazineType: 9), 1);
+
+        var adapter = RuntimeEntry(entryType, "MP5PicatinnyAdapter", "Attachment", false);
+        SetRuntimeProperty(entryType, adapter, "AttachmentFeature", "Adapter");
+        SetRuntimeProperty(entryType, adapter, "PhysicalMountTypes", new List<string> { "MP5RailMount" });
+        entries.SetValue(adapter, 2);
+
+        var scope = RuntimeEntry(entryType, "Scope_G3SG1", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "MP5RailMount" });
+        entries.SetValue(scope, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("Scope_G3SG1", ReadString(gun, "Extra"));
+    }
+
+    [WindowsH3vrFact]
+    public void Runtime_profile_builder_uses_the_default_pso1_scope_when_no_modded_scope_is_available()
+    {
+        var assembly = LoadBuiltMetadataExporter();
+        var entryType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeMetadataEntry"));
+        var enemyType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeEnemyEntry"));
+        var builderType = Assert.IsAssignableFrom<Type>(assembly.GetType("HLin.GunGameProgressions.RuntimeProfileBuilder"));
+        var build = Assert.IsAssignableFrom<MethodInfo>(builderType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Build" && method.GetParameters().Length == 3));
+        var entries = Array.CreateInstance(entryType, 4);
+
+        var firearm = RuntimeEntry(entryType, "MetadataRussianRifle", "Firearm", true, magazineType: 7);
+        SetRuntimeProperty(entryType, firearm, "CompatibleMagazines", new List<string> { "RussianMagazine" });
+        SetRuntimeProperty(entryType, firearm, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(firearm, 0);
+        entries.SetValue(RuntimeEntry(entryType, "RussianMagazine", "Magazine", true, magazineType: 7), 1);
+
+        // H3VR's PSO-1 has a legacy Magnifier object ID but is a real scope.
+        // It wins over M76 for the requested Modded Russian fallback.
+        var scope = RuntimeEntry(entryType, "MagnifierPSO1", "Attachment", false);
+        SetRuntimeProperty(entryType, scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, scope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(scope, 2);
+        var m76Scope = RuntimeEntry(entryType, "Scope_M76", "Attachment", false);
+        SetRuntimeProperty(entryType, m76Scope, "OpticKind", "Scope");
+        SetRuntimeProperty(entryType, m76Scope, "PhysicalMountTypes", new List<string> { "Russian" });
+        entries.SetValue(m76Scope, 3);
+
+        var enemies = Array.CreateInstance(enemyType, 1);
+        enemies.SetValue(RuntimeEnemyEntry(enemyType, "RW_Rot", false, 5), 0);
+
+        var gun = ReadObjects(BuildRuntimePools(build, entries, enemies, new SequenceRandom(0d))
+                .Single(pool => ReadString(pool, "Name") == "Runtime 02 - Modded Rot"),
+            "Guns")
+            .Single();
+
+        Assert.Equal("MagnifierPSO1", ReadString(gun, "Extra"));
     }
 
     [WindowsH3vrFact]
@@ -1469,7 +2016,7 @@ public sealed class GunGameGeneratorTests
         SetRuntimeProperty(entryType, genericScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, genericScope, "PhysicalMountTypes", new List<string> { "Bespoke" });
         entries.SetValue(genericScope, 2);
-        var russianScope = RuntimeEntry(entryType, "Z_RussianSideRailScope", "Attachment", true);
+        var russianScope = RuntimeEntry(entryType, "Z_RussianSideRailScope", "Attachment", false);
         SetRuntimeProperty(entryType, russianScope, "OpticKind", "Scope");
         SetRuntimeProperty(entryType, russianScope, "PhysicalMountTypes", new List<string> { "Russian" });
         entries.SetValue(russianScope, 3);
@@ -1652,7 +2199,7 @@ public sealed class GunGameGeneratorTests
         entries.SetValue(g28, 0);
         entries.SetValue(RuntimeEntry(entryType, "G28Magazine10", "Magazine", true), 1);
         entries.SetValue(RuntimeEntry(entryType, "G28Magazine20", "Magazine", true), 2);
-        entries.SetValue(Optic(entryType, "G28Scope", "Scope", 2f, 8f, true), 3);
+        entries.SetValue(Optic(entryType, "G28Scope", "Scope", 1f, 6f, true), 3);
 
         // A loose same-round cartridge is not proof that it fits a mod rifle.
         // Without direct/exact metadata this entry must be omitted.
@@ -1946,13 +2493,13 @@ public sealed class GunGameGeneratorTests
         Assert.Equal("Advanced", root.GetProperty("WeaponPoolType").GetString());
         Assert.Equal(0, root.GetProperty("EnemyProgressionType").GetInt32());
         Assert.Equal(
-            new[] { "VanillaMagazineGun", "LeverSentinelGun", "PKM" },
+            new[] { "VanillaMagazineGun", "LeverSentinelGun", "PKM", "PotatoGun" },
             guns.Select(gun => gun.GetProperty("GunName").GetString()).ToArray());
         Assert.Equal(
-            new[] { "TestMagazine", "TestCartridge", "MagazinePKM" },
+            new[] { "MagazineMp515rnd", "TestCartridge", "MagazinePKM", "TestCartridge" },
             guns.Select(gun => gun.GetProperty("MagName").GetString()).ToArray());
         Assert.Equal(
-            new[] { "TestMagazine" },
+            new[] { "MagazineMp515rnd", "TestMagazine" },
             guns.Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun")
                 .GetProperty("MagNames")
                 .EnumerateArray()
@@ -2000,7 +2547,7 @@ public sealed class GunGameGeneratorTests
     }
 
     [Fact]
-    public void Generator_discards_a_legacy_primary_from_a_lower_priority_feed_class()
+    public void Generator_discards_a_legacy_cartridge_primary_when_direct_magazine_exists()
     {
         using var workspace = TestWorkspace.Create();
         var inputPath = Path.Combine(workspace.Path, "MetaRipper.json");
@@ -2028,7 +2575,7 @@ public sealed class GunGameGeneratorTests
         var vanillaGun = document.RootElement.GetProperty("Guns").EnumerateArray()
             .Single(gun => gun.GetProperty("GunName").GetString() == "VanillaMagazineGun");
 
-        Assert.Equal("TestMagazine", vanillaGun.GetProperty("MagName").GetString());
+        Assert.Equal("MagazineMp515rnd", vanillaGun.GetProperty("MagName").GetString());
         Assert.Equal(0, vanillaGun.GetProperty("CategoryID").GetInt32());
     }
 
@@ -2288,10 +2835,26 @@ public sealed class GunGameGeneratorTests
 
     private static Assembly BuildMetadataExporter()
     {
+        return LoadBuiltMetadataExporter("Release");
+    }
+
+    private static Assembly LoadBuiltMetadataExporter(string configuration)
+    {
+        var originalPath = BuildMetadataExporterConfiguration(configuration);
+        var loadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(loadDirectory);
+        var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
+        File.Copy(originalPath, loadPath);
+        return new AssemblyLoadContext(Guid.NewGuid().ToString("N"), isCollectible: true)
+            .LoadFromAssemblyPath(loadPath);
+    }
+
+    private static string BuildMetadataExporterConfiguration(string configuration)
+    {
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"build \"{MetadataExporterProjectPath}\" -c Release",
+            Arguments = $"build \"{MetadataExporterProjectPath}\" -c {configuration}",
             WorkingDirectory = Path.GetDirectoryName(MetadataExporterProjectPath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -2308,14 +2871,11 @@ public sealed class GunGameGeneratorTests
         var originalPath = Path.Combine(
             Path.GetDirectoryName(MetadataExporterProjectPath)!,
             "bin",
-            "Release",
+            configuration,
             "net35",
             "GunGameProgressionsMetadataExporter.dll");
-        var loadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(loadDirectory);
-        var loadPath = Path.Combine(loadDirectory, Path.GetFileName(originalPath));
-        File.Copy(originalPath, loadPath);
-        return Assembly.LoadFrom(loadPath);
+        Assert.True(File.Exists(originalPath), $"Metadata exporter output missing: {originalPath}");
+        return originalPath;
     }
 
     private static object RuntimeEntry(
@@ -2345,7 +2905,7 @@ public sealed class GunGameGeneratorTests
         float maximumMagnification,
         bool variableMagnification)
     {
-        var optic = RuntimeEntry(entryType, objectId, "Attachment", true);
+        var optic = RuntimeEntry(entryType, objectId, "Attachment", false);
         SetRuntimeProperty(entryType, optic, "OpticKind", opticKind);
         SetRuntimeProperty(entryType, optic, "PhysicalMountTypes", new List<string> { "Picatinny" });
         SetRuntimeProperty(entryType, optic, "OpticMinMagnification", minimumMagnification);
