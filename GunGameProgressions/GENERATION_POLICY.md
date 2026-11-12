@@ -269,7 +269,7 @@ with coverage for the same condition.
 | Debug Runtime 05 emits a scope-less firearm | Both tracked Vanilla pools and every generated local Runtime 05 candidate must have nonempty `Extra`. | `Local_metadata_compatibility_probe_assigns_an_optic_to_every_generated_firearm` |
 | Release package includes Runtime 05 | Reject it. Release builds never generate or restore the probe. | `GunGame_runtime_05_is_debug_only_and_release_packages_reject_it`; `GunGame_release_exporter_disables_runtime_05_and_debug_exporter_compiles` |
 | Existing generated profiles are stale, deleted, or content changes | Rebuild from the current fingerprinted snapshot. | `Runtime_pool_persistence_rebuilds_when_active_content_changes_or_files_are_missing` |
-| H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | `Runtime_modded_profiles_create_first_pair_and_replace_only_with_a_larger_complete_pair` |
+| H3VR restarts while Modded refresh is pending | Restore the last complete Modded pair; do not replace it with a partial candidate. | No test simulates a restart or a pending refresh. `Runtime_modded_profiles_create_first_pair_and_replace_only_with_a_larger_complete_pair` covers only the promotion rule: an incomplete candidate is rejected, and an unconfirmed empty, equal, or smaller candidate cannot replace a saved pair. |
 
 ## Change checklist
 
