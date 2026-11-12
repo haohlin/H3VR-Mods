@@ -25,7 +25,9 @@ The patch registers the map that the original Nuketown package already installed
 
 ## If the Map Does Not Appear
 
-The patch supports Nuketown GunGame `2.1.6` only. With any other version, or a missing file, it skips registration and writes one line that contains `Nuketown compatibility registration skipped:` to the BepInEx log. Install version `2.1.6`, then restart H3VR.
+The patch supports Nuketown GunGame `2.1.6` only. With any other version, or a missing file, it skips registration and writes one line that contains `Nuketown compatibility registration skipped:` to the BepInEx log. The line names the reason. Install version `2.1.6`, then restart H3VR.
+
+The map also stays hidden when Atlas or GunGame is missing or out of date. The patch does not load without them, and it skips registration when Atlas cannot register the map. Install or update both, then restart H3VR.
 
 ## License
 
