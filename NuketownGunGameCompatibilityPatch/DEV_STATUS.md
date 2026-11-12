@@ -18,6 +18,7 @@ State: `active`
 | Launch / VR | r2modman native Modded launch created `h3vr.exe`. BepInEx loaded patch `1.0.0`; Atlas registered BO1 Nuketown; compatibility registration took 91 ms and logs no per-frame work. | Verified |
 | Runtime warning | Profile BepInEx is `5.4.17`; deployed plugin was compiled against `5.4.20`, producing a non-fatal compatibility warning despite successful load. | Verified |
 | BepInEx reference pin | Project file now references `BepInEx.Core` `5.4.17` instead of `5.*`; a source test requires the pin. Source edited on macOS, not built. Build, package, deploy, and launch rows above describe the package built before the pin. | Pinned in source; portable test run, Windows rebuild, and startup proof pending |
+| Skip log and player guide | Skip log line now ends with the consequence for the player, and a trailing period in the reason is trimmed. Player guide is reorganized into requirements, steps, unchanged items, and troubleshooting; it quotes the skip log prefix, which a source test keeps identical. Source edited on macOS, not built. | Portable test run and Windows rebuild pending |
 
 ### Open blockers
 
@@ -53,14 +54,14 @@ Keep one item active.
 | Source / unit | `h3vr.ps1 -Action Test` | 87 passed, 0 failed on Windows. |
 | Source API | `h3vr.ps1 -Action Verify -Mod NuketownGunGameCompatibilityPatch` | Passed on Windows. |
 | Build / package | `Build`, `Package`, `Deploy` through wrapper | Build 0 warnings / 0 errors; package and deployment succeeded. |
-| BepInEx reference pin | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify`, and `Build`. | Pending; not run since the pin. Evidence in rows above predates it. |
+| Source edits after last Windows run | Portable `dotnet test tests/H3vrPipeline.Tests/H3vrPipeline.Tests.csproj`; then Windows `Test`, `Verify`, and `Build`. | Pending; not run since the BepInEx reference pin and the skip log change. Evidence in rows above predates both. |
 
 ### Manual H3VR acceptance
 
 | Case | Expected result | Evidence |
 | --- | --- | --- |
 | Startup | Compatibility plugin loads once and Atlas registers BO1 Nuketown. | Verified: `Nuketown GunGame Compatibility Patch 1.0.0` loaded; Atlas registered BO1 Nuketown; registration took 91 ms. |
-| Map selector | BO1 Nuketown appears and loads. | Pending |
+| Map selector | Atlas list shows the entry as **BO1 Nuketown**, the label the player guide names, and the map loads. | Pending |
 | Gameplay | Start, kill promotion, death demotion, respawn, and exit work. | Pending |
 
 ### Release gate
@@ -70,5 +71,5 @@ Keep one item active.
 - [x] Package payload/version verified.
 - [x] Deployment receipt created.
 - [x] BepInEx log checked.
-- [ ] Rebuild, redeploy, and log recheck after BepInEx reference pin.
+- [ ] Rebuild, redeploy, and log recheck after BepInEx reference pin and skip log change.
 - [ ] Required VR interaction completed.
