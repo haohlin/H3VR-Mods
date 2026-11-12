@@ -74,6 +74,7 @@ public sealed class NightForcePipelineTests
         var candidates = document.RootElement
             .GetProperty("mods")
             .GetProperty("VanillaRipScopes");
+
         Assert.True(candidates.GetProperty("localOnly").GetBoolean());
 
         var pipeline = File.ReadAllText(Path.Combine(RepositoryRoot, "tools", "h3vr.ps1"));
