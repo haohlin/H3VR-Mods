@@ -64,7 +64,7 @@ Mixed Enemy pools use GunGame's **Count mode**, starting at **3 kills to advance
 
 ## Your Enabled Content
 
-The pools follow the content enabled in your current H3VR profile. Vanilla pools stay vanilla. Modded pools use only enabled mod firearms, so disabled or uninstalled weapon mods are never selected. The mixed modded pool can also draw from enabled custom Sosigs.
+The pools follow the content enabled in your current H3VR profile. Vanilla pools stay vanilla. Modded pools are built only from enabled mod firearms. A gun from a weapon mod you later disable or uninstall is skipped when it would spawn, and it leaves the pool when a refresh replaces the saved Modded profiles. The mixed modded pool can also draw from enabled custom Sosigs.
 
 ## License
 
